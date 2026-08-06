@@ -1,0 +1,1 @@
+Placeholder file to keep avatar component folder visible in version control.

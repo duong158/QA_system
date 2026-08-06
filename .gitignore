@@ -28,3 +28,11 @@ ENV/
 Thumbs.db
 .vscode/
 .idea/
+
+# Node / Vite frontend artifacts
+node_modules/
+dist/
+*.tsbuildinfo
+vite.config.js
+vite.config.d.ts
+.env
