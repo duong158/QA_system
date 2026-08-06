@@ -1,0 +1,4 @@
+﻿method,num_questions,num_evaluated,retrieval_time_sec,queries_per_sec,MRR,Recall@1,Recall@3,Recall@5,Recall@10,Recall@20,Recall@50,eval_set
+TF-IDF (DrQA),7301,7301,11.1,657.8,0.6517,0.5547,0.712,0.7655,0.8321,0.8875,0.9407,test
+BM25-Okapi,7301,7301,216.74,33.7,0.685,0.5939,0.7433,0.795,0.8515,0.896,0.9367,test
+Dense (vietnamese-sbert),7301,7301,43.83,166.6,0.4225,0.3179,0.4703,0.5399,0.6366,0.7199,0.8128,test

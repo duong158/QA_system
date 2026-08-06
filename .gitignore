@@ -1,0 +1,30 @@
+# ==========================================
+# Large files (> 100MB) & Generated Indexes
+# ==========================================
+# GitHub has a 100MB hard limit per file.
+data/indexes/tfidf_index_meta.pkl
+data/indexes/
+*.faiss
+*.npz
+*.bin
+*.pt
+*.pth
+*.onnx
+*.h5
+
+# Python Caches & Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+ENV/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# OS / IDE generated files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

@@ -1,0 +1,35 @@
+{
+  "method": "BM25-Okapi",
+  "parameters": {
+    "k1": 1.5,
+    "b": 0.75
+  },
+  "tokenizer": "pyvi ViTokenizer",
+  "corpus_size": 5317,
+  "dev": {
+    "set": "Dev",
+    "num_questions": 3814,
+    "time_sec": 72.8,
+    "qps": 52.4,
+    "MRR": 0.6903,
+    "Recall@1": 0.6046,
+    "Recall@3": 0.7444,
+    "Recall@5": 0.7973,
+    "Recall@10": 0.8466,
+    "Recall@20": 0.8875,
+    "Recall@50": 0.9318
+  },
+  "test": {
+    "set": "Test",
+    "num_questions": 7301,
+    "time_sec": 186.6,
+    "qps": 39.1,
+    "MRR": 0.685,
+    "Recall@1": 0.5939,
+    "Recall@3": 0.7433,
+    "Recall@5": 0.795,
+    "Recall@10": 0.8515,
+    "Recall@20": 0.896,
+    "Recall@50": 0.9367
+  }
+}

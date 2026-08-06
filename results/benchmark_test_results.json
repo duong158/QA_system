@@ -1,0 +1,47 @@
+[
+  {
+    "method": "TF-IDF (DrQA)",
+    "num_questions": 7301,
+    "num_evaluated": 7301,
+    "retrieval_time_sec": 11.1,
+    "queries_per_sec": 657.8,
+    "MRR": 0.6517,
+    "Recall@1": 0.5547,
+    "Recall@3": 0.712,
+    "Recall@5": 0.7655,
+    "Recall@10": 0.8321,
+    "Recall@20": 0.8875,
+    "Recall@50": 0.9407,
+    "eval_set": "test"
+  },
+  {
+    "method": "BM25-Okapi",
+    "num_questions": 7301,
+    "num_evaluated": 7301,
+    "retrieval_time_sec": 216.74,
+    "queries_per_sec": 33.7,
+    "MRR": 0.685,
+    "Recall@1": 0.5939,
+    "Recall@3": 0.7433,
+    "Recall@5": 0.795,
+    "Recall@10": 0.8515,
+    "Recall@20": 0.896,
+    "Recall@50": 0.9367,
+    "eval_set": "test"
+  },
+  {
+    "method": "Dense (vietnamese-sbert)",
+    "num_questions": 7301,
+    "num_evaluated": 7301,
+    "retrieval_time_sec": 43.83,
+    "queries_per_sec": 166.6,
+    "MRR": 0.4225,
+    "Recall@1": 0.3179,
+    "Recall@3": 0.4703,
+    "Recall@5": 0.5399,
+    "Recall@10": 0.6366,
+    "Recall@20": 0.7199,
+    "Recall@50": 0.8128,
+    "eval_set": "test"
+  }
+]
