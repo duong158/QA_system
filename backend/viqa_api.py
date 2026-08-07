@@ -118,6 +118,7 @@ class ViqaEngine:
             term: math.log(1 + (len(self.documents) - freq + 0.5) / (freq + 0.5))
             for term, freq in self.doc_freq.items()
         }
+        self.predictors = {}
 
     def _load_documents(self, db_path: Path) -> list[Document]:
         connection = sqlite3.connect(str(db_path))
@@ -231,7 +232,57 @@ class ViqaEngine:
         union = max(1, len(q_ngrams.union(document.char_ngrams)))
         return bm25 * 0.72 + (overlap / union) * 12
 
+    def get_predictor(self, reader_name: str):
+        if reader_name not in self.predictors:
+            folder_map = {
+                "phobert": "vinai_phobert-base-v2",
+                "xlmr": "xlm-roberta-base",
+                "vibert": "vibert-base-v2"
+            }
+            folder_name = folder_map.get(reader_name)
+            if not folder_name:
+                self.predictors[reader_name] = None
+                return None
+                
+            model_dir = ROOT / "models" / "reader" / folder_name
+            if model_dir.exists():
+                try:
+                    from reader.predict import ReaderPredictor
+                    self.predictors[reader_name] = ReaderPredictor(str(model_dir))
+                    print(f"[VIQA API] Loaded ReaderPredictor for '{reader_name}' from {model_dir}")
+                except Exception as e:
+                    print(f"[VIQA API] Failed to load ReaderPredictor for '{reader_name}': {e}")
+                    self.predictors[reader_name] = None
+            else:
+                self.predictors[reader_name] = None
+                
+        return self.predictors[reader_name]
+
     def answer(self, question: str, hit: SearchHit, reader: str) -> dict[str, Any]:
+        predictor = self.get_predictor(reader)
+        if predictor:
+            try:
+                res = predictor.predict(question, hit.document.text)
+                span = res["answer"]
+                start = res["start"]
+                end = res["end"]
+                confidence = res["confidence"]
+                
+                if not span or start == -1:
+                    span = ""
+                    start, end = 0, 0
+                    confidence = 0.0
+                    
+                return {
+                    "answer": span,
+                    "answer_span": {"text": span, "start": start, "end": end},
+                    "reader_score": res["score"],
+                    "confidence": confidence,
+                }
+            except Exception as e:
+                print(f"[VIQA API] Error running model predictor '{reader}': {e}. Falling back to heuristic.")
+
+        # Heuristic rule-based fallback
         query_tokens = set(tokenize(question))
         sentences = split_sentences(hit.document.text)
         best_sentence = sentences[0]
@@ -508,7 +559,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     elapsed = int((time.perf_counter() - started) * 1000)
     document_id = best.document.document_id
 
-    if reader_output["confidence"] < 0.18:
+    if reader_output["confidence"] < 0.05 and not reader_output["answer"]:
         answer = ""
     else:
         answer = reader_output["answer"]

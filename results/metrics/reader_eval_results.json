@@ -1,0 +1,87 @@
+{
+  "metrics": {
+    "overall": {
+      "em": 20.0,
+      "f1": 20.0,
+      "count": 5
+    },
+    "answerable": {
+      "em": 0.0,
+      "f1": 0.0,
+      "count": 4
+    },
+    "unanswerable": {
+      "em": 100.0,
+      "count": 1
+    },
+    "breakdown": {
+      "Cái gì / Nào (What/Which)": {
+        "em": 25.0,
+        "f1": 25.0,
+        "count": 4
+      },
+      "Ở đâu (Location)": {
+        "em": 0.0,
+        "f1": 0.0,
+        "count": 1
+      }
+    }
+  },
+  "predictions": [
+    {
+      "id": "0001-0001-0001",
+      "question": "Paris đạt được thành_quả gì sau khỏang 4 thế_kỷ tính từ ngày Cách_mạng Pháp diễn ra ?",
+      "gold": "trở_thành một trong những trung_tâm văn_hóa của thế_giới , thủ_đô của nghệ_thuật và giải_trí",
+      "pred": "",
+      "em": 0,
+      "f1": 0.0,
+      "is_answerable": true,
+      "confidence": 0.0,
+      "score": 2.4021382331848145
+    },
+    {
+      "id": "0001-0001-0002",
+      "question": "Vị_trí địa_lý của Pháp có gì đặc_biệt ?",
+      "gold": "",
+      "pred": "",
+      "em": 1,
+      "f1": 1.0,
+      "is_answerable": false,
+      "confidence": 0.0,
+      "score": 2.4239351749420166
+    },
+    {
+      "id": "0001-0001-0003",
+      "question": "Kinh_tế xung_quanh kinh đô ánh_sáng mạnh về gì ?",
+      "gold": "giáo_dục và nghệ_thuật",
+      "pred": "",
+      "em": 0,
+      "f1": 0.0,
+      "is_answerable": true,
+      "confidence": 0.0,
+      "score": 2.3954062461853027
+    },
+    {
+      "id": "0001-0001-0004",
+      "question": "Cuộc cách_mạng Pháp diễn ra ở đâu ?",
+      "gold": "Paris",
+      "pred": "",
+      "em": 0,
+      "f1": 0.0,
+      "is_answerable": true,
+      "confidence": 0.0,
+      "score": 2.406426429748535
+    },
+    {
+      "id": "0001-0001-0005",
+      "question": "Kinh_đô ánh_sáng nổi_tiếng về lĩnh_vực gì ?",
+      "gold": "nghệ_thuật và giải_trí",
+      "pred": "",
+      "em": 0,
+      "f1": 0.0,
+      "is_answerable": true,
+      "confidence": 0.0,
+      "score": 2.421525001525879
+    }
+  ]
+}
