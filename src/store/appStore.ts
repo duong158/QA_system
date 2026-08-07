@@ -73,8 +73,8 @@ const defaultSettings: QaSettings = {
   topK: 5,
   voice: {
     enabled: true,
-    rate: 1,
-    pitch: 1,
+    rate: 0.92,
+    pitch: 1.08,
     volume: 1,
   },
   display: {
@@ -154,7 +154,33 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'viqa-nexus-settings',
+      version: 2,
       partialize: (state) => ({ settings: state.settings }),
+      migrate: (persistedState) => {
+        const state = persistedState as Partial<AppState> | undefined;
+        const settings = state?.settings;
+        if (!settings) {
+          return persistedState;
+        }
+
+        return {
+          ...state,
+          settings: {
+            ...defaultSettings,
+            ...settings,
+            voice: {
+              ...defaultSettings.voice,
+              ...settings.voice,
+              rate: settings.voice?.rate === 1 ? defaultSettings.voice.rate : settings.voice?.rate ?? defaultSettings.voice.rate,
+              pitch: settings.voice?.pitch === 1 ? defaultSettings.voice.pitch : settings.voice?.pitch ?? defaultSettings.voice.pitch,
+            },
+            display: {
+              ...defaultSettings.display,
+              ...settings.display,
+            },
+          },
+        };
+      },
     },
   ),
 );

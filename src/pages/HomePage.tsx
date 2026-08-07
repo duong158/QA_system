@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { GitCompareArrows, RotateCcw } from 'lucide-react';
+import { FileText, GitCompareArrows, RotateCcw, X } from 'lucide-react';
 import { AvatarScene } from '@/components/avatar/AvatarScene';
 import { AnswerPanel } from '@/components/answer/AnswerPanel';
 import { RetrieverComparison } from '@/components/compare/RetrieverComparison';
@@ -16,6 +16,7 @@ import type { PassageResult, RetrieverComparisonRow } from '@/types/qa';
 
 export function HomePage() {
   const [comparisonRows, setComparisonRows] = useState<RetrieverComparisonRow[]>([]);
+  const [selectedSource, setSelectedSource] = useState<PassageResult | null>(null);
   const draft = useAppStore((state) => state.draft);
   const answer = useAppStore((state) => state.answer);
   const pipelineState = useAppStore((state) => state.pipelineState);
@@ -53,6 +54,7 @@ export function HomePage() {
     speech.resetTranscript();
     setAnswer(null);
     setComparisonRows([]);
+    setSelectedSource(null);
     resetTransientState();
   };
 
@@ -67,10 +69,22 @@ export function HomePage() {
   const reset = () => {
     stopAll();
     setComparisonRows([]);
+    setSelectedSource(null);
     resetTransientState();
   };
 
+  const testVoice = () => {
+    synthesis.speak({
+      text: 'Xin chào, tôi là Mari. Tôi có thể giúp bạn tìm câu trả lời trong tập tài liệu.',
+      voiceName: settings.voice.voiceName,
+      rate: settings.voice.rate,
+      pitch: settings.voice.pitch,
+      volume: settings.voice.volume,
+    });
+  };
+
   const viewSource = (passage: PassageResult) => {
+    setSelectedSource(passage);
     setStatusMessage(`SOURCE ${passage.passage_id} | PAGE ${passage.page ?? '--'}`);
   };
 
@@ -131,7 +145,47 @@ export function HomePage() {
         onVoiceToggle={toggleVoiceInput}
         onStopSpeaking={stop}
       />
-      <SettingsPanel voices={synthesis.voices} />
+      <SettingsPanel voices={synthesis.voices} onTestVoice={testVoice} />
+      {selectedSource ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <section className="viqa-panel max-h-[82vh] w-full max-w-2xl overflow-y-auto rounded-[28px] p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.32em] text-slate-500">
+                  <FileText className="h-4 w-4 text-viqa-gold" />
+                  Source passage
+                </div>
+                <h2 className="mt-2 text-xl font-semibold text-white">{selectedSource.title}</h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedSource(null)}
+                aria-label="Close source passage"
+                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
+              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{selectedSource.document_id}</span>
+              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{selectedSource.passage_id}</span>
+              <span className="rounded-full border border-viqa-cyan/20 bg-viqa-cyan/10 px-3 py-1.5 text-viqa-cyan">
+                Retrieval {(selectedSource.retrieval_score * 100).toFixed(1)}%
+              </span>
+              {typeof selectedSource.reader_score === 'number' ? (
+                <span className="rounded-full border border-viqa-violet/20 bg-viqa-violet/10 px-3 py-1.5 text-viqa-violet">
+                  Reader {(selectedSource.reader_score * 100).toFixed(1)}%
+                </span>
+              ) : null}
+            </div>
+
+            <p className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-sm leading-7 text-slate-200">
+              {selectedSource.text}
+            </p>
+          </section>
+        </div>
+      ) : null}
     </MainLayout>
   );
 }

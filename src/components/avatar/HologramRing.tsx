@@ -24,7 +24,7 @@ export function HologramRing({ state }: HologramRingProps) {
 
   const opacity = state === 'error' ? 0.2 : 0.5;
   return (
-    <group position={[0, -1.95, 0]}>
+    <group position={[0, -1.35, 0]}>
       <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[2.1, 0.035, 16, 120]} />
         <meshBasicMaterial color={state === 'error' ? '#FB7185' : '#58E6FF'} transparent opacity={opacity} />

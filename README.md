@@ -66,7 +66,10 @@ Copy `.env.example` to `.env` when you need local overrides.
 ```text
 VITE_API_BASE_URL=http://localhost:8000
 VITE_USE_MOCK_API=true
-VITE_AVATAR_MODEL_URL=/models/avatar.glb
+VITE_AVATAR_MODEL_URL=/models/mari.vrm
+VITE_AVATAR_MODEL_NAME=Mari 3D VRoid Model
+VITE_AVATAR_CREATOR_NAME=wondrous21
+VITE_AVATAR_LICENSE=Free to use with credit
 ```
 
 When `VITE_USE_MOCK_API=true`, the app uses `src/services/mockQaService.ts`.
@@ -90,8 +93,15 @@ POST ${VITE_API_BASE_URL}/api/ask
 
 ## Avatar Model
 
-The current avatar is a Three.js placeholder in `src/components/avatar/AvatarModel.tsx`.
-To replace it with a real GLB later, place the model under `public/models/avatar.glb` and update `VITE_AVATAR_MODEL_URL` if needed. Keep the `AvatarState` prop contract so the UI state machine continues to drive animations.
+The avatar is loaded from a local VRM file using `GLTFLoader` and `VRMLoaderPlugin`.
+
+The Mari VRM model is not included in this repository. Download it from the original creator and place the file at:
+
+```text
+public/models/mari.vrm
+```
+
+Do not redistribute or upload the model file to a public repository unless the creator's license explicitly allows it. The currently configured source is the free BOOTH item by `wondrous21`: https://booth.pm/en/items/4507087
 
 ## Build
 

@@ -79,6 +79,15 @@ def normalize(value: str) -> str:
     value = value.replace("đ", "d")
     return value
 
+def safe_normalize(value: str) -> str:
+    value = value.replace("\u0110", "D").replace("\u0111", "d")
+    value = unicodedata.normalize("NFD", value.lower())
+    value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
+    return value.replace("\u0111", "d")
+
+
+normalize = safe_normalize
+
 
 def tokenize(value: str) -> list[str]:
     tokens = re.findall(r"[\w%]+", normalize(value), flags=re.UNICODE)
@@ -227,10 +236,13 @@ class ViqaEngine:
         sentences = split_sentences(hit.document.text)
         best_sentence = sentences[0]
         best_score = -1.0
+        identity_subject = extract_identity_subject(question)
 
         for sentence in sentences:
             sentence_tokens = set(tokenize(sentence))
             score = len(query_tokens.intersection(sentence_tokens))
+            if identity_subject and normalize(identity_subject) in normalize(sentence) and " la " in f" {normalize(sentence)} ":
+                score += 4
             score += 0.4 if re.search(r"\d|%|năm|ngày|tháng", sentence.lower()) else 0
             if score > best_score:
                 best_score = score
@@ -263,6 +275,9 @@ class ViqaEngine:
             match = re.search(r"((?:\d+[.,]?\d*\s*(?:%|phần trăm|năm|ngày|tháng|giờ|lần)?)|(?:thế kỷ\s+\w+))", sentence, re.I)
             if match:
                 return match.group(1).strip()
+
+        if extract_identity_subject(question):
+            return sentence[: min(280, len(sentence))].strip()
 
         if normalized_question.startswith("ai ") or " la ai" in normalized_question:
             match = re.search(r"([A-ZĐÂĂÊÔƠƯ][\wÀ-ỹ'.-]+(?:\s+[A-ZĐÂĂÊÔƠƯ][\wÀ-ỹ'.-]+){1,5})", sentence)
@@ -391,6 +406,56 @@ class RetrievalManager:
 RETRIEVAL = RetrievalManager(ENGINE)
 
 
+def extract_identity_subject(question: str) -> str:
+    normalized_question = normalize(question)
+    match = re.search(r"^\s*(.*?)\s+(?:la ai|la nguoi nao)\s*\??\s*$", normalized_question)
+    if not match:
+        return ""
+    subject = match.group(1).strip()
+    return subject if len(subject) >= 2 else ""
+
+
+def rerank_identity_hits(question: str, hits: list[SearchHit]) -> list[SearchHit]:
+    subject = extract_identity_subject(question)
+    if not subject:
+        return hits
+
+    subject_tokens = set(tokenize(subject))
+    if not subject_tokens:
+        return hits
+
+    existing_ids = {hit.document.document_id for hit in hits}
+    candidates = list(hits)
+
+    for document in ENGINE.documents:
+        if document.document_id in existing_ids:
+            continue
+        if not subject_tokens.issubset(set(document.tokens)):
+            continue
+        candidates.append(SearchHit(document=document, score=0.42, raw_score=0.42))
+
+    def identity_score(hit: SearchHit) -> float:
+        text = normalize(hit.document.text[:420])
+        title = normalize(hit.document.title)
+        subject_norm = normalize(subject)
+        score = hit.raw_score
+        if subject_norm in text[:180]:
+            score += 8
+        if subject_norm in title:
+            score += 3
+        if re.search(rf"{re.escape(subject_norm)}\s*(?:\([^)]{{0,120}}\))?\s+la\s+", text):
+            score += 16
+        if any(marker in text for marker in ["la thu tuong", "la chu tich", "la nha", "la mot", "la vi"]):
+            score += 4
+        if " co vo " in text[:120] or " con trai " in text[:160]:
+            score -= 4
+        return score
+
+    reranked = sorted(candidates, key=identity_score, reverse=True)
+    max_score = max((identity_score(hit) for hit in reranked[:10]), default=1.0) or 1.0
+    return [SearchHit(hit.document, min(0.999, identity_score(hit) / max_score), identity_score(hit)) for hit in reranked]
+
+
 def passage_from_hit(hit: SearchHit, rank: int, question: str, reader: str) -> dict[str, Any]:
     reader_output = ENGINE.answer(question, hit, reader)
     text = hit.document.text
@@ -422,7 +487,8 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     reader = str(payload.get("reader", "mock")).lower()
     top_k = int(payload.get("top_k", 5) or 5)
 
-    hits = RETRIEVAL.retrieve(retriever, question, top_k)
+    internal_top_k = max(top_k, 30) if extract_identity_subject(question) else top_k
+    hits = rerank_identity_hits(question, RETRIEVAL.retrieve(retriever, question, internal_top_k))[:top_k]
     if not hits:
         elapsed = int((time.perf_counter() - started) * 1000)
         return {

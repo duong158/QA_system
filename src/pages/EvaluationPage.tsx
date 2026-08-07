@@ -38,6 +38,16 @@ export function EvaluationPage() {
   const updateVoiceSettings = useAppStore((state) => state.updateVoiceSettings);
   const synthesis = useSpeechSynthesis();
 
+  const testVoice = () => {
+    synthesis.speak({
+      text: 'Xin chào, tôi là Mari. Tôi có thể giúp bạn tìm câu trả lời trong tập tài liệu.',
+      voiceName: settings.voice.voiceName,
+      rate: settings.voice.rate,
+      pitch: settings.voice.pitch,
+      volume: settings.voice.volume,
+    });
+  };
+
   return (
     <MainLayout>
       <Header
@@ -166,7 +176,7 @@ export function EvaluationPage() {
         </section>
       </main>
 
-      <SettingsPanel voices={synthesis.voices} />
+      <SettingsPanel voices={synthesis.voices} onTestVoice={testVoice} />
     </MainLayout>
   );
 }

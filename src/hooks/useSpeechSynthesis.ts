@@ -37,14 +37,15 @@ export function useSpeechSynthesis(): UseSpeechSynthesisResult {
     };
   }, [isSupported]);
 
-  const speak = ({ text, voiceName, rate = 1, pitch = 1, volume = 1, lang = 'vi-VN' }: SpeakOptions) => {
+  const speak = ({ text, voiceName, rate = 0.92, pitch = 1.08, volume = 1, lang = 'vi-VN' }: SpeakOptions) => {
     if (!isSupported || !text.trim()) {
       return;
     }
 
     window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
-    const voice = pickVietnameseVoice(voices, voiceName);
+    const latestVoices = getAvailableVoices();
+    const voice = pickVietnameseVoice(latestVoices.length ? latestVoices : voices, voiceName);
     if (voice) {
       utterance.voice = voice;
     }

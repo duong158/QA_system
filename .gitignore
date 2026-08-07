@@ -36,3 +36,6 @@ dist/
 vite.config.js
 vite.config.d.ts
 .env
+
+# Licensed avatar files are provided locally by the user.
+public/models/mari.vrm

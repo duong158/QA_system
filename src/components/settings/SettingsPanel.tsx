@@ -1,10 +1,12 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { Palette, Volume2, Cpu, DatabaseZap, Brain } from 'lucide-react';
+import { Palette, Volume2, Cpu, DatabaseZap, Brain, Play } from 'lucide-react';
 import { useAppStore } from '@/store/appStore';
 import type { ReaderType, RetrieverType } from '@/types/qa';
+import { sortVoicesForVietnameseAssistant } from '@/utils/speechUtils';
 
 interface SettingsPanelProps {
   voices: SpeechSynthesisVoice[];
+  onTestVoice?: () => void;
 }
 
 const retrieverOptions: Array<{ value: RetrieverType; label: string }> = [
@@ -22,14 +24,18 @@ const readerOptions: Array<{ value: ReaderType; label: string }> = [
 ];
 
 const topKOptions = [1, 3, 5, 10];
+const avatarModelName = import.meta.env.VITE_AVATAR_MODEL_NAME || 'Mari 3D VRoid Model';
+const avatarCreatorName = import.meta.env.VITE_AVATAR_CREATOR_NAME || 'Creator name not configured';
+const avatarLicense = import.meta.env.VITE_AVATAR_LICENSE || 'Free to use with credit';
 
-export function SettingsPanel({ voices }: SettingsPanelProps) {
+export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
   const open = useAppStore((state) => state.isSettingsOpen);
   const settings = useAppStore((state) => state.settings);
   const updateSettings = useAppStore((state) => state.updateSettings);
   const updateVoiceSettings = useAppStore((state) => state.updateVoiceSettings);
   const updateDisplaySettings = useAppStore((state) => state.updateDisplaySettings);
   const setSettingsOpen = useAppStore((state) => state.setSettingsOpen);
+  const sortedVoices = sortVoicesForVietnameseAssistant(voices);
 
   return (
     <AnimatePresence>
@@ -133,8 +139,8 @@ export function SettingsPanel({ voices }: SettingsPanelProps) {
                       onChange={(event) => updateVoiceSettings({ voiceName: event.target.value || undefined })}
                       className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-slate-100 outline-none"
                     >
-                      <option value="">Auto-select</option>
-                      {voices.map((voice) => (
+                      <option value="">Auto-select Vietnamese female</option>
+                      {sortedVoices.map((voice) => (
                         <option key={voice.name} value={voice.name}>
                           {voice.name} ({voice.lang})
                         </option>
@@ -174,6 +180,15 @@ export function SettingsPanel({ voices }: SettingsPanelProps) {
                       onChange={(event) => updateVoiceSettings({ volume: Number(event.target.value) })}
                     />
                   </label>
+                  <button
+                    type="button"
+                    onClick={onTestVoice}
+                    disabled={!onTestVoice}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-300/20 bg-emerald-300/10 px-3 py-2 text-sm font-medium text-emerald-200 transition hover:border-emerald-300/40 hover:bg-emerald-300/15 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Play className="h-4 w-4" />
+                    Test voice
+                  </button>
                 </div>
               </div>
 
@@ -201,6 +216,13 @@ export function SettingsPanel({ voices }: SettingsPanelProps) {
                   ))}
                 </div>
               </div>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-xs leading-6 text-slate-400">
+              <p className="text-slate-200">Avatar Model: {avatarModelName}</p>
+              <p>Creator: {avatarCreatorName}</p>
+              <p>License: {avatarLicense}</p>
+              <p>Model redistribution: Prohibited</p>
             </div>
 
             <div className="mt-auto rounded-2xl border border-white/10 bg-white/5 p-4 text-xs leading-6 text-slate-400">

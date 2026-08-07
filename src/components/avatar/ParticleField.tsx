@@ -10,7 +10,7 @@ interface ParticleFieldProps {
 
 export function ParticleField({ state }: ParticleFieldProps) {
   const pointsRef = useRef<Points>(null);
-  const count = 180;
+  const count = 140;
 
   const positions = useMemo(() => {
     const array = new Float32Array(count * 3);
@@ -19,7 +19,7 @@ export function ParticleField({ state }: ParticleFieldProps) {
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.random() * Math.PI;
       array[index * 3] = Math.sin(phi) * Math.cos(theta) * radius;
-      array[index * 3 + 1] = (Math.cos(phi) - 0.2) * radius * 0.7;
+      array[index * 3 + 1] = (Math.cos(phi) - 0.08) * radius * 0.58;
       array[index * 3 + 2] = Math.sin(phi) * Math.sin(theta) * radius;
     }
     return array;
@@ -35,7 +35,7 @@ export function ParticleField({ state }: ParticleFieldProps) {
   });
 
   return (
-    <points ref={pointsRef} position={[0, 0.2, 0]}>
+    <points ref={pointsRef} position={[0, 0.05, -0.35]}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
