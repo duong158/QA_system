@@ -37,8 +37,41 @@ The local API is implemented in `backend/viqa_api.py` and serves:
 - `POST /api/ask`
 - `POST /api/compare`
 
-It reads `data/processed/docs.db` and provides lightweight TF-IDF, BM25, Pyserini-BM25 adapter, and dense-lite retrieval for UI testing.
-The API adapter prefers the pulled `retrieval/` package:
+It reads `data/processed/docs.db`, chunks each document at sentence boundaries, and retrieves passage-level top-k results with TF-IDF or BM25. Every retrieved passage is sent to the configured extractive QA Reader before score-based reranking.
+
+The real API does not fall back to mock answers, heuristic answer extraction, Dense-lite, or fabricated scores. Dense/Pyserini and Reader choices without a compatible local model/index return an explicit API error.
+
+Pipeline settings are environment variables on the API process:
+
+```text
+QA_CHUNK_MAX_TOKENS=220
+QA_CHUNK_OVERLAP_SENTENCES=2
+QA_RETRIEVER_WEIGHT=0.30
+QA_READER_WEIGHT=0.70
+QA_ANSWER_THRESHOLD=0.30
+QA_READER_MAX_LENGTH=384
+QA_READER_STRIDE=128
+QA_TOP_N_START=20
+QA_TOP_N_END=20
+QA_MAX_ANSWER_LENGTH=40
+QA_DEBUG=false
+```
+
+For example, enable technical pipeline logs in PowerShell with:
+
+```powershell
+$env:QA_DEBUG="true"; npm run api
+```
+
+Retriever and QA evaluation commands:
+
+```bash
+python evaluate_retriever.py path/to/eval.jsonl --method bm25 --k 1 3 5 10
+python evaluate_qa.py path/to/eval.jsonl --mode oracle
+python evaluate_qa.py path/to/eval.jsonl --mode end-to-end --retriever bm25 --top-k 5
+```
+
+The optional standalone retrieval package remains available for offline experiments:
 
 - `retrieval.tfidf_retriever.TfidfRetriever`
 - `retrieval.bm25_retriever.BM25Retriever`
@@ -57,7 +90,7 @@ Build indexes from the processed corpus:
 python retrieval/build_index.py --method sparse
 ```
 
-Dense and Pyserini are optional because they require heavier dependencies and, for Pyserini, Java. If their dependency/index is missing, the local API falls back to a lightweight equivalent so the UI remains testable.
+Dense and Pyserini are optional because they require heavier dependencies and, for Pyserini, Java. They must have passage-level indexes compatible with the current chunked corpus before being enabled in the real API.
 
 ## Environment
 
@@ -65,7 +98,8 @@ Copy `.env.example` to `.env` when you need local overrides.
 
 ```text
 VITE_API_BASE_URL=http://localhost:8000
-VITE_USE_MOCK_API=true
+VITE_USE_MOCK_API=false
+VITE_QA_DEBUG=false
 VITE_AVATAR_MODEL_URL=/models/mari.vrm
 VITE_AVATAR_MODEL_NAME=Mari 3D VRoid Model
 VITE_AVATAR_CREATOR_NAME=wondrous21

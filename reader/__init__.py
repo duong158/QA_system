@@ -1,3 +1,15 @@
-from reader.data_utils import find_char_span, load_qa_dataset, get_tokenizer, prepare_train_features
-from reader.predict import ReaderPredictor
-from reader.evaluate import normalize_answer, compute_exact, compute_f1
+"""Reader package.
+
+Heavy training/evaluation dependencies are imported only by the commands that need
+them, so production inference does not require the full datasets toolchain.
+"""
+
+__all__ = ["ReaderPredictor"]
+
+
+def __getattr__(name):
+    if name == "ReaderPredictor":
+        from reader.predict import ReaderPredictor
+
+        return ReaderPredictor
+    raise AttributeError(name)

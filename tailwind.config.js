@@ -5,22 +5,22 @@ export default {
     extend: {
       colors: {
         viqa: {
-          bg: '#040711',
-          bg2: '#080D1D',
-          panel: 'rgba(10, 18, 40, 0.68)',
-          border: 'rgba(90, 220, 255, 0.25)',
-          cyan: '#58E6FF',
-          violet: '#9F7AEA',
-          gold: '#FFD76A',
-          success: '#4ADE80',
-          warning: '#FBBF24',
+          bg: '#0B1220',
+          bg2: '#111827',
+          panel: 'rgba(30, 41, 59, 0.82)',
+          border: 'rgba(148, 163, 184, 0.20)',
+          cyan: '#38BDF8',
+          violet: '#818CF8',
+          gold: '#FBBF24',
+          success: '#34D399',
+          warning: '#F59E0B',
           error: '#FB7185',
           text: '#F8FAFC',
           muted: '#94A3B8',
         },
       },
       boxShadow: {
-        glow: '0 0 0 1px rgba(90, 220, 255, 0.18), 0 24px 80px rgba(0, 0, 0, 0.45)',
+        glow: '0 18px 48px rgba(2, 6, 23, 0.28)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
@@ -28,7 +28,7 @@ export default {
         mono: ['Orbitron', 'Inter', 'sans-serif'],
       },
       backgroundImage: {
-        'viqa-radial': 'radial-gradient(circle at top, rgba(88, 230, 255, 0.18), transparent 35%), radial-gradient(circle at bottom right, rgba(159, 122, 234, 0.18), transparent 30%)',
+        'viqa-radial': 'radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.10), transparent 35%), radial-gradient(circle at 80% 30%, rgba(129, 140, 248, 0.10), transparent 40%)',
       },
     },
   },

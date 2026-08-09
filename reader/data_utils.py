@@ -1,7 +1,7 @@
 import re
 import pandas as pd
 from datasets import Dataset
-from transformers import RobertaTokenizerFast, AutoTokenizer
+from transformers import AutoTokenizer
 
 def find_char_span(context: str, answer: str):
     """
@@ -52,12 +52,12 @@ def load_qa_dataset(file_path: str, data_variant: str = "clean", subset_size: in
 
 def get_tokenizer(model_name: str):
     """
-    Returns the appropriate fast tokenizer. For PhoBERT, uses RobertaTokenizerFast.
+    Load the tokenizer from the same checkpoint as the QA model.
     """
-    if "phobert" in model_name.lower():
-        return RobertaTokenizerFast.from_pretrained(model_name)
-    else:
-        return AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=True)
+    if not tokenizer.is_fast:
+        raise RuntimeError("A fast tokenizer is required for QA offset mappings")
+    return tokenizer
 
 def prepare_train_features(examples, tokenizer, max_seq_length=384, doc_stride=128):
     """

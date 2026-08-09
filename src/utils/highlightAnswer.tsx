@@ -12,7 +12,7 @@ export function highlightAnswer(text: string, answer?: string): ReactNode[] {
 
   return [
     text.slice(0, index),
-    <mark key="highlight" className="rounded-md bg-viqa-gold/20 px-1 text-viqa-gold ring-1 ring-viqa-gold/40">
+    <mark key="highlight" className="rounded bg-amber-400/15 px-1 text-amber-200 ring-1 ring-amber-300/20">
       {text.slice(index, index + answer.length)}
     </mark>,
     text.slice(index + answer.length),

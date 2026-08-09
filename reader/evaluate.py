@@ -10,9 +10,6 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from collections import Counter
-from tqdm import tqdm
-from reader.data_utils import load_qa_dataset
-from reader.predict import ReaderPredictor
 
 def normalize_answer(s: str) -> str:
     """
@@ -75,6 +72,10 @@ def categorize_question(question: str) -> str:
         return "Khác (Other)"
 
 def evaluate(model_path: str, data_variant: str = "auto", subset_size: int = -1, use_cpu: bool = False, output_file: str = None):
+    from tqdm import tqdm
+    from reader.data_utils import load_qa_dataset
+    from reader.predict import ReaderPredictor
+
     if data_variant == "auto":
         data_variant = "segmented" if "phobert" in model_path.lower() else "clean"
         
@@ -117,7 +118,7 @@ def evaluate(model_path: str, data_variant: str = "auto", subset_size: int = -1,
             gold_answer = ""
             
         pred_res = predictor.predict(question, context)
-        pred_answer = pred_res["answer"]
+        pred_answer = pred_res["answer"] if pred_res["has_answer"] else ""
         
         em = compute_exact(gold_answer, pred_answer)
         f1 = compute_f1(gold_answer, pred_answer)

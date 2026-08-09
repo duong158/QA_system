@@ -2,10 +2,12 @@ from __future__ import annotations
 
 import json
 import math
+import os
 import re
 import sqlite3
 import sys
 import time
+import traceback
 import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass
@@ -14,520 +16,227 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
+
+from backend.chunking import Passage, chunk_document, split_sentences
+
+
 DOCS_DB = ROOT / "data" / "processed" / "docs.db"
-INDEX_DIR = ROOT / "data" / "indexes"
-HOST = "0.0.0.0"
-PORT = 8000
+HOST = os.getenv("QA_HOST", "0.0.0.0")
+PORT = int(os.getenv("QA_PORT", "8000"))
+CHUNK_MAX_TOKENS = int(os.getenv("QA_CHUNK_MAX_TOKENS", "220"))
+CHUNK_OVERLAP_SENTENCES = int(os.getenv("QA_CHUNK_OVERLAP_SENTENCES", "2"))
+RETRIEVER_WEIGHT = float(os.getenv("QA_RETRIEVER_WEIGHT", "0.30"))
+READER_WEIGHT = float(os.getenv("QA_READER_WEIGHT", "0.70"))
+ANSWER_THRESHOLD = float(os.getenv("QA_ANSWER_THRESHOLD", "0.30"))
+QA_DEBUG = os.getenv("QA_DEBUG", "false").lower() in {"1", "true", "yes", "on"}
+
+if RETRIEVER_WEIGHT < 0 or READER_WEIGHT < 0 or RETRIEVER_WEIGHT + READER_WEIGHT <= 0:
+    raise ValueError("QA retriever/reader weights must be non-negative and have a positive sum")
+
+WEIGHT_TOTAL = RETRIEVER_WEIGHT + READER_WEIGHT
+RETRIEVER_WEIGHT /= WEIGHT_TOTAL
+READER_WEIGHT /= WEIGHT_TOTAL
 
 STOPWORDS = {
-    "la",
-    "cua",
-    "va",
-    "co",
-    "cac",
-    "mot",
-    "nhung",
-    "duoc",
-    "trong",
-    "cho",
-    "voi",
-    "the",
-    "nay",
-    "do",
-    "den",
-    "tu",
-    "khi",
-    "nao",
-    "gi",
-    "ai",
-    "bao",
-    "nhieu",
-    "may",
-    "o",
-    "tai",
-    "ve",
-    "nhu",
-    "khong",
-    "sau",
-    "truoc",
+    "ai", "bao", "cac", "cho", "co", "cua", "den", "do", "duoc", "gi", "khi",
+    "khong", "la", "may", "mot", "nao", "nhieu", "nhu", "nhung", "o", "sau",
+    "tai", "the", "trong", "truoc", "tu", "va", "ve", "voi",
 }
 
 
+class PipelineError(RuntimeError):
+    pass
+
+
 @dataclass(frozen=True)
-class Document:
-    document_id: str
-    title: str
-    text: str
+class IndexedPassage:
+    metadata: Passage
     tokens: tuple[str, ...]
     term_counts: Counter[str]
-    char_ngrams: frozenset[str]
 
 
 @dataclass(frozen=True)
 class SearchHit:
-    document: Document
-    score: float
-    raw_score: float
+    passage: IndexedPassage
+    retrieval_score_raw: float
+    retrieval_score_normalized: float = 0.0
 
 
-def normalize(value: str) -> str:
+def normalize_text(value: str) -> str:
+    value = value.replace("Đ", "D").replace("đ", "d")
     value = unicodedata.normalize("NFD", value.lower())
-    value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
-    value = value.replace("đ", "d")
-    return value
-
-def safe_normalize(value: str) -> str:
-    value = value.replace("\u0110", "D").replace("\u0111", "d")
-    value = unicodedata.normalize("NFD", value.lower())
-    value = "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
-    return value.replace("\u0111", "d")
-
-
-normalize = safe_normalize
+    return "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
 
 
 def tokenize(value: str) -> list[str]:
-    tokens = re.findall(r"[\w%]+", normalize(value), flags=re.UNICODE)
+    tokens = re.findall(r"[\w%]+", normalize_text(value), flags=re.UNICODE)
     return [token for token in tokens if len(token) > 1 and token not in STOPWORDS]
 
 
-def char_ngrams(value: str, n: int = 3) -> frozenset[str]:
-    compact = re.sub(r"\s+", " ", normalize(value))
-    if len(compact) <= n:
-        return frozenset({compact})
-    return frozenset(compact[index : index + n] for index in range(len(compact) - n + 1))
+def min_max_normalize(scores: list[float]) -> list[float]:
+    if not scores:
+        return []
+    low, high = min(scores), max(scores)
+    if math.isclose(low, high):
+        return [1.0 if high > 0 else 0.0 for _ in scores]
+    return [(score - low) / (high - low) for score in scores]
 
 
-def split_sentences(text: str) -> list[str]:
-    sentences = [item.strip() for item in re.split(r"(?<=[.!?])\s+", text) if item.strip()]
-    return sentences or [text.strip()]
+def finite_or_none(value: Any) -> float | None:
+    number = float(value)
+    return round(number, 6) if math.isfinite(number) else None
 
 
-class ViqaEngine:
+class PassageIndex:
     def __init__(self, db_path: Path) -> None:
         if not db_path.exists():
             raise FileNotFoundError(f"Missing docs database: {db_path}")
-
-        self.documents = self._load_documents(db_path)
-        self.avg_doc_len = sum(len(doc.tokens) for doc in self.documents) / max(1, len(self.documents))
-        self.doc_freq = self._build_doc_freq()
+        self.passages = self._load_passages(db_path)
+        self.avg_passage_len = sum(len(item.tokens) for item in self.passages) / max(1, len(self.passages))
+        frequencies: dict[str, int] = defaultdict(int)
+        for passage in self.passages:
+            for term in passage.term_counts:
+                frequencies[term] += 1
         self.idf = {
-            term: math.log(1 + (len(self.documents) - freq + 0.5) / (freq + 0.5))
-            for term, freq in self.doc_freq.items()
+            term: math.log(1 + (len(self.passages) - count + 0.5) / (count + 0.5))
+            for term, count in frequencies.items()
         }
-        self.predictors = {}
 
-    def _load_documents(self, db_path: Path) -> list[Document]:
+    @staticmethod
+    def _guess_title(document_id: str, text: str) -> str:
+        sentences = split_sentences(text)
+        words = (sentences[0] if sentences else text).split()
+        return " ".join(words[:8]) if words else document_id
+
+    def _load_passages(self, db_path: Path) -> list[IndexedPassage]:
         connection = sqlite3.connect(str(db_path))
         try:
-            rows = connection.execute("select id, text from documents").fetchall()
+            rows = connection.execute("SELECT id, text FROM documents").fetchall()
         finally:
             connection.close()
 
-        documents: list[Document] = []
-        for doc_id, text in rows:
-            clean_text = str(text or "").strip()
-            tokens = tuple(tokenize(clean_text))
-            documents.append(
-                Document(
-                    document_id=str(doc_id),
-                    title=self._guess_title(str(doc_id), clean_text),
-                    text=clean_text,
-                    tokens=tokens,
-                    term_counts=Counter(tokens),
-                    char_ngrams=char_ngrams(clean_text[:900]),
-                )
+        indexed: list[IndexedPassage] = []
+        for document_id, raw_text in rows:
+            text = str(raw_text or "").strip()
+            if not text:
+                continue
+            title = self._guess_title(str(document_id), text)
+            for passage in chunk_document(
+                str(document_id),
+                text,
+                title=title,
+                max_tokens=CHUNK_MAX_TOKENS,
+                overlap_sentences=CHUNK_OVERLAP_SENTENCES,
+            ):
+                tokens = tuple(tokenize(f"{passage.title} {passage.text}"))
+                indexed.append(IndexedPassage(passage, tokens, Counter(tokens)))
+        return indexed
+
+    def _bm25(self, query_tokens: list[str], passage: IndexedPassage) -> float:
+        k1, b = 1.5, 0.75
+        passage_length = max(1, len(passage.tokens))
+        score = 0.0
+        for term in query_tokens:
+            frequency = passage.term_counts.get(term, 0)
+            if not frequency:
+                continue
+            denominator = frequency + k1 * (
+                1 - b + b * passage_length / max(1.0, self.avg_passage_len)
             )
-        return documents
+            score += self.idf.get(term, 0.0) * (frequency * (k1 + 1)) / denominator
+        return score
 
-    def _build_doc_freq(self) -> dict[str, int]:
-        doc_freq: dict[str, int] = defaultdict(int)
-        for document in self.documents:
-            for term in set(document.tokens):
-                doc_freq[term] += 1
-        return doc_freq
+    def _tfidf(self, query_tokens: list[str], passage: IndexedPassage) -> float:
+        query_counts = Counter(query_tokens)
+        numerator = 0.0
+        query_norm = 0.0
+        document_norm = 0.0
+        for term, count in query_counts.items():
+            idf = self.idf.get(term, 0.0)
+            query_weight = (1 + math.log(count)) * idf
+            document_count = passage.term_counts.get(term, 0)
+            document_weight = (1 + math.log(document_count)) * idf if document_count else 0.0
+            numerator += query_weight * document_weight
+            query_norm += query_weight * query_weight
+        for term, count in passage.term_counts.items():
+            weight = (1 + math.log(count)) * self.idf.get(term, 0.0)
+            document_norm += weight * weight
+        if not query_norm or not document_norm:
+            return 0.0
+        return numerator / math.sqrt(query_norm * document_norm)
 
-    def _guess_title(self, doc_id: str, text: str) -> str:
-        first_sentence = split_sentences(text)[0]
-        words = first_sentence.split()
-        if words:
-            return " ".join(words[: min(8, len(words))])
-        return doc_id
-
-    def search(self, question: str, retriever: str, top_k: int) -> list[SearchHit]:
+    def retrieve(self, question: str, method: str, top_k: int) -> list[SearchHit]:
         query_tokens = tokenize(question)
         if not query_tokens:
             return []
+        if method not in {"bm25", "tfidf"}:
+            raise PipelineError(
+                f"Retriever '{method}' is unavailable: no compatible passage-level index/model is configured"
+            )
 
-        method = "bm25" if retriever == "pyserini" else retriever
-        scored: list[SearchHit] = []
-        for document in self.documents:
-            if method == "tfidf":
-                raw = self._tfidf_score(query_tokens, document)
-            elif method == "dense":
-                raw = self._dense_lite_score(question, query_tokens, document)
-            else:
-                raw = self._bm25_score(query_tokens, document)
-            if raw > 0:
-                scored.append(SearchHit(document=document, score=raw, raw_score=raw))
+        scored: list[tuple[IndexedPassage, float]] = []
+        scorer = self._bm25 if method == "bm25" else self._tfidf
+        for passage in self.passages:
+            score = scorer(query_tokens, passage)
+            if score > 0:
+                scored.append((passage, score))
+        scored.sort(key=lambda item: item[1], reverse=True)
+        selected = scored[:top_k]
+        normalized = min_max_normalize([score for _, score in selected])
+        return [
+            SearchHit(passage, raw, norm)
+            for (passage, raw), norm in zip(selected, normalized)
+        ]
 
-        scored.sort(key=lambda hit: hit.raw_score, reverse=True)
-        top_hits = scored[: max(1, top_k)]
-        if not top_hits:
-            return []
 
-        max_score = max(hit.raw_score for hit in top_hits) or 1.0
-        return [SearchHit(hit.document, min(0.999, hit.raw_score / max_score), hit.raw_score) for hit in top_hits]
+class ReaderManager:
+    MODEL_FOLDERS = {
+        "phobert": "vinai_phobert-base-v2",
+        "vibert": "vibert-base-v2",
+        "xlmr": "xlm-roberta-base",
+    }
 
-    def search_with_external(self, results: list[tuple[str, float]], top_k: int) -> list[SearchHit]:
-        doc_lookup = {doc.document_id: doc for doc in self.documents}
-        hits = [
-            SearchHit(document=doc_lookup[doc_id], score=float(score), raw_score=float(score))
-            for doc_id, score in results
-            if doc_id in doc_lookup and float(score) > 0
-        ][: max(1, top_k)]
-        if not hits:
-            return []
+    def __init__(self) -> None:
+        self.predictors: dict[str, Any] = {}
 
-        max_score = max(hit.raw_score for hit in hits) or 1.0
-        return [SearchHit(hit.document, min(0.999, hit.raw_score / max_score), hit.raw_score) for hit in hits]
-
-    def _tfidf_score(self, query_tokens: list[str], document: Document) -> float:
-        query_counts = Counter(query_tokens)
-        numerator = 0.0
-        doc_norm = 0.0
-        query_norm = 0.0
-        for term, query_tf in query_counts.items():
-            idf = self.idf.get(term, 0.0)
-            doc_weight = (1 + math.log(document.term_counts.get(term, 0))) * idf if document.term_counts.get(term, 0) else 0
-            query_weight = (1 + math.log(query_tf)) * idf
-            numerator += doc_weight * query_weight
-            doc_norm += doc_weight * doc_weight
-            query_norm += query_weight * query_weight
-        if not doc_norm or not query_norm:
-            return 0.0
-        return numerator / (math.sqrt(doc_norm) * math.sqrt(query_norm))
-
-    def _bm25_score(self, query_tokens: list[str], document: Document) -> float:
-        score = 0.0
-        k1 = 1.5
-        b = 0.75
-        doc_len = max(1, len(document.tokens))
-        for term in query_tokens:
-            freq = document.term_counts.get(term, 0)
-            if not freq:
-                continue
-            idf = self.idf.get(term, 0.0)
-            denom = freq + k1 * (1 - b + b * doc_len / max(1.0, self.avg_doc_len))
-            score += idf * (freq * (k1 + 1)) / denom
-        return score
-
-    def _dense_lite_score(self, question: str, query_tokens: list[str], document: Document) -> float:
-        bm25 = self._bm25_score(query_tokens, document)
-        q_ngrams = char_ngrams(question)
-        overlap = len(q_ngrams.intersection(document.char_ngrams))
-        union = max(1, len(q_ngrams.union(document.char_ngrams)))
-        return bm25 * 0.72 + (overlap / union) * 12
-
-    def get_predictor(self, reader_name: str):
+    def get(self, reader_name: str):
+        if reader_name == "mock":
+            raise PipelineError("Mock Reader is forbidden in the real API")
+        folder = self.MODEL_FOLDERS.get(reader_name)
+        if not folder:
+            raise PipelineError(f"Unknown reader '{reader_name}'")
         if reader_name not in self.predictors:
-            folder_map = {
-                "phobert": "vinai_phobert-base-v2",
-                "xlmr": "xlm-roberta-base",
-                "vibert": "vibert-base-v2"
-            }
-            folder_name = folder_map.get(reader_name)
-            if not folder_name:
-                self.predictors[reader_name] = None
-                return None
-                
-            model_dir = ROOT / "models" / "reader" / folder_name
-            if model_dir.exists():
-                try:
-                    from reader.predict import ReaderPredictor
-                    self.predictors[reader_name] = ReaderPredictor(str(model_dir))
-                    print(f"[VIQA API] Loaded ReaderPredictor for '{reader_name}' from {model_dir}")
-                except Exception as e:
-                    print(f"[VIQA API] Failed to load ReaderPredictor for '{reader_name}': {e}")
-                    self.predictors[reader_name] = None
-            else:
-                self.predictors[reader_name] = None
-                
+            model_dir = ROOT / "models" / "reader" / folder
+            if not model_dir.exists():
+                raise PipelineError(f"Reader checkpoint is missing: {model_dir}")
+            try:
+                from reader.predict import ReaderPredictor
+
+                self.predictors[reader_name] = ReaderPredictor(str(model_dir))
+            except Exception as error:
+                raise PipelineError(f"Failed to load reader '{reader_name}': {error}") from error
         return self.predictors[reader_name]
 
-    def answer(self, question: str, hit: SearchHit, reader: str) -> dict[str, Any]:
-        predictor = self.get_predictor(reader)
-        if predictor:
-            try:
-                res = predictor.predict(question, hit.document.text)
-                span = res["answer"]
-                start = res["start"]
-                end = res["end"]
-                confidence = res["confidence"]
-                
-                if not span or start == -1:
-                    span = ""
-                    start, end = 0, 0
-                    confidence = 0.0
-                    
-                return {
-                    "answer": span,
-                    "answer_span": {"text": span, "start": start, "end": end},
-                    "reader_score": res["score"],
-                    "confidence": confidence,
-                }
-            except Exception as e:
-                print(f"[VIQA API] Error running model predictor '{reader}': {e}. Falling back to heuristic.")
 
-        # Heuristic rule-based fallback
-        query_tokens = set(tokenize(question))
-        sentences = split_sentences(hit.document.text)
-        best_sentence = sentences[0]
-        best_score = -1.0
-        identity_subject = extract_identity_subject(question)
-
-        for sentence in sentences:
-            sentence_tokens = set(tokenize(sentence))
-            score = len(query_tokens.intersection(sentence_tokens))
-            if identity_subject and normalize(identity_subject) in normalize(sentence) and " la " in f" {normalize(sentence)} ":
-                score += 4
-            score += 0.4 if re.search(r"\d|%|năm|ngày|tháng", sentence.lower()) else 0
-            if score > best_score:
-                best_score = score
-                best_sentence = sentence
-
-        span = self._extract_span(question, best_sentence)
-        if not span:
-            span = best_sentence[: min(260, len(best_sentence))]
-
-        start = hit.document.text.find(span)
-        if start < 0:
-            start = hit.document.text.find(best_sentence)
-        end = start + len(span) if start >= 0 else len(span)
-
-        reader_bias = {"mock": 0.78, "phobert": 0.9, "vibert": 0.86, "xlmr": 0.88}.get(reader, 0.82)
-        reader_score = min(0.98, max(0.12, (best_score / max(1, len(query_tokens))) * reader_bias))
-        confidence = min(0.97, max(0.05, hit.score * 0.62 + reader_score * 0.38))
-
-        return {
-            "answer": span,
-            "answer_span": {"text": span, "start": max(0, start), "end": max(0, end)},
-            "reader_score": reader_score,
-            "confidence": confidence,
-        }
-
-    def _extract_span(self, question: str, sentence: str) -> str:
-        normalized_question = normalize(question)
-
-        if any(marker in normalized_question for marker in ["bao nhieu", "may", "phan tram", "nam nao", "khi nao"]):
-            match = re.search(r"((?:\d+[.,]?\d*\s*(?:%|phần trăm|năm|ngày|tháng|giờ|lần)?)|(?:thế kỷ\s+\w+))", sentence, re.I)
-            if match:
-                return match.group(1).strip()
-
-        if extract_identity_subject(question):
-            return sentence[: min(280, len(sentence))].strip()
-
-        if normalized_question.startswith("ai ") or " la ai" in normalized_question:
-            match = re.search(r"([A-ZĐÂĂÊÔƠƯ][\wÀ-ỹ'.-]+(?:\s+[A-ZĐÂĂÊÔƠƯ][\wÀ-ỹ'.-]+){1,5})", sentence)
-            if match:
-                return match.group(1).strip()
-
-        if " o dau" in normalized_question or normalized_question.startswith("o dau"):
-            match = re.search(r"(?:tại|ở|thuộc)\s+([^,.]{3,90})", sentence, re.I)
-            if match:
-                return match.group(1).strip()
-
-        return sentence[: min(220, len(sentence))].strip()
+INDEX = PassageIndex(DOCS_DB)
+READERS = ReaderManager()
 
 
-ENGINE = ViqaEngine(DOCS_DB)
-
-
-class RetrievalManager:
-    def __init__(self, engine: ViqaEngine) -> None:
-        self.engine = engine
-        self.corpus = [{"id": doc.document_id, "title": doc.title, "text": doc.text} for doc in engine.documents]
-        self.instances: dict[str, Any] = {}
-        self.status: dict[str, str] = {}
-
-    def retrieve(self, method: str, question: str, top_k: int) -> list[SearchHit]:
-        method = method.lower()
-        if method == "tfidf":
-            return self._retrieve_tfidf(question, top_k)
-        if method == "bm25":
-            return self._retrieve_bm25(question, top_k)
-        if method == "dense":
-            return self._retrieve_dense(question, top_k)
-        if method == "pyserini":
-            return self._retrieve_pyserini(question, top_k)
-        return self.engine.search(question, method, top_k)
-
-    def _retrieve_tfidf(self, question: str, top_k: int) -> list[SearchHit]:
-        try:
-            retriever = self._get_tfidf()
-            return self.engine.search_with_external(retriever.retrieve(question, top_k), top_k)
-        except Exception as error:
-            self.status["tfidf"] = f"fallback: {error}"
-            return self.engine.search(question, "tfidf", top_k)
-
-    def _retrieve_bm25(self, question: str, top_k: int) -> list[SearchHit]:
-        try:
-            retriever = self._get_bm25()
-            return self.engine.search_with_external(retriever.retrieve(question, top_k), top_k)
-        except Exception as error:
-            self.status["bm25"] = f"fallback: {error}"
-            return self.engine.search(question, "bm25", top_k)
-
-    def _retrieve_dense(self, question: str, top_k: int) -> list[SearchHit]:
-        try:
-            retriever = self._get_dense()
-            return self.engine.search_with_external(retriever.retrieve(question, top_k), top_k)
-        except Exception as error:
-            self.status["dense"] = f"dense-lite fallback: {error}"
-            return self.engine.search(question, "dense", top_k)
-
-    def _retrieve_pyserini(self, question: str, top_k: int) -> list[SearchHit]:
-        try:
-            retriever = self._get_pyserini()
-            return self.engine.search_with_external(retriever.retrieve(question, top_k), top_k)
-        except Exception as error:
-            self.status["pyserini"] = f"bm25 fallback: {error}"
-            return self.engine.search(question, "bm25", top_k)
-
-    def _get_tfidf(self) -> Any:
-        if "tfidf" not in self.instances:
-            from retrieval.tfidf_retriever import TfidfRetriever
-
-            retriever = TfidfRetriever(ngram=2, hash_size=2**18)
-            index_path = INDEX_DIR / "tfidf_index.npz"
-            if index_path.exists():
-                retriever.load_index(str(index_path))
-                self.status["tfidf"] = f"loaded {index_path.name}"
-            else:
-                retriever.build_index(self.corpus)
-                self.status["tfidf"] = "built in memory from retrieval.TfidfRetriever"
-            self.instances["tfidf"] = retriever
-        return self.instances["tfidf"]
-
-    def _get_bm25(self) -> Any:
-        if "bm25" not in self.instances:
-            from retrieval.bm25_retriever import BM25Retriever
-
-            retriever = BM25Retriever(variant="okapi", k1=1.5, b=0.75)
-            index_path = INDEX_DIR / "bm25_okapi_index.pkl"
-            if index_path.exists():
-                retriever.load_index(str(index_path))
-                self.status["bm25"] = f"loaded {index_path.name}"
-            else:
-                retriever.build_index(self.corpus)
-                self.status["bm25"] = "built in memory from retrieval.BM25Retriever"
-            self.instances["bm25"] = retriever
-        return self.instances["bm25"]
-
-    def _get_dense(self) -> Any:
-        if "dense" not in self.instances:
-            from retrieval.dense_retriever import DenseRetriever
-
-            index_path = INDEX_DIR / "dense_index.faiss"
-            if not index_path.exists():
-                raise FileNotFoundError("data/indexes/dense_index.faiss not found")
-            retriever = DenseRetriever()
-            retriever.load_index(str(index_path))
-            self.status["dense"] = f"loaded {index_path.name}"
-            self.instances["dense"] = retriever
-        return self.instances["dense"]
-
-    def _get_pyserini(self) -> Any:
-        if "pyserini" not in self.instances:
-            from retrieval.pyserini_retriever import PyseriniRetriever
-
-            meta_path = INDEX_DIR / "pyserini_meta.json"
-            if not meta_path.exists():
-                raise FileNotFoundError("data/indexes/pyserini_meta.json not found")
-            retriever = PyseriniRetriever()
-            retriever.load_index(str(meta_path))
-            self.status["pyserini"] = f"loaded {meta_path.name}"
-            self.instances["pyserini"] = retriever
-        return self.instances["pyserini"]
-
-
-RETRIEVAL = RetrievalManager(ENGINE)
-
-
-def extract_identity_subject(question: str) -> str:
-    normalized_question = normalize(question)
-    match = re.search(r"^\s*(.*?)\s+(?:la ai|la nguoi nao)\s*\??\s*$", normalized_question)
-    if not match:
-        return ""
-    subject = match.group(1).strip()
-    return subject if len(subject) >= 2 else ""
-
-
-def rerank_identity_hits(question: str, hits: list[SearchHit]) -> list[SearchHit]:
-    subject = extract_identity_subject(question)
-    if not subject:
-        return hits
-
-    subject_tokens = set(tokenize(subject))
-    if not subject_tokens:
-        return hits
-
-    existing_ids = {hit.document.document_id for hit in hits}
-    candidates = list(hits)
-
-    for document in ENGINE.documents:
-        if document.document_id in existing_ids:
-            continue
-        if not subject_tokens.issubset(set(document.tokens)):
-            continue
-        candidates.append(SearchHit(document=document, score=0.42, raw_score=0.42))
-
-    def identity_score(hit: SearchHit) -> float:
-        text = normalize(hit.document.text[:420])
-        title = normalize(hit.document.title)
-        subject_norm = normalize(subject)
-        score = hit.raw_score
-        if subject_norm in text[:180]:
-            score += 8
-        if subject_norm in title:
-            score += 3
-        if re.search(rf"{re.escape(subject_norm)}\s*(?:\([^)]{{0,120}}\))?\s+la\s+", text):
-            score += 16
-        if any(marker in text for marker in ["la thu tuong", "la chu tich", "la nha", "la mot", "la vi"]):
-            score += 4
-        if " co vo " in text[:120] or " con trai " in text[:160]:
-            score -= 4
-        return score
-
-    reranked = sorted(candidates, key=identity_score, reverse=True)
-    max_score = max((identity_score(hit) for hit in reranked[:10]), default=1.0) or 1.0
-    return [SearchHit(hit.document, min(0.999, identity_score(hit) / max_score), identity_score(hit)) for hit in reranked]
-
-
-def passage_from_hit(hit: SearchHit, rank: int, question: str, reader: str) -> dict[str, Any]:
-    reader_output = ENGINE.answer(question, hit, reader)
-    text = hit.document.text
-    span_text = reader_output["answer_span"]["text"]
-    span_index = text.find(span_text)
-    if span_index >= 0:
-        start = max(0, span_index - 180)
-        end = min(len(text), span_index + len(span_text) + 220)
-        preview = text[start:end].strip()
-    else:
-        preview = text[:420].strip()
-
-    document_id = hit.document.document_id
+def _empty_response(question: str, retriever: str, reader: str, elapsed: int) -> dict[str, Any]:
     return {
-        "rank": rank,
-        "document_id": document_id,
-        "passage_id": f"{document_id}_P{rank:03d}",
-        "title": hit.document.title,
-        "text": preview,
-        "retrieval_score": round(hit.score, 4),
-        "reader_score": round(reader_output["reader_score"], 4),
+        "question": question,
+        "answer": None,
+        "has_answer": False,
+        "confidence": 0.0,
+        "selected_passage_id": None,
+        "processing_time_ms": elapsed,
+        "retriever": retriever,
+        "reader": reader,
+        "source": None,
+        "answer_span": None,
+        "passages": [],
     }
 
 
@@ -535,71 +244,136 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     started = time.perf_counter()
     question = str(payload.get("question", "")).strip()
     retriever = str(payload.get("retriever", "bm25")).lower()
-    reader = str(payload.get("reader", "mock")).lower()
-    top_k = int(payload.get("top_k", 5) or 5)
+    reader_name = str(payload.get("reader", "phobert")).lower()
+    try:
+        top_k = min(20, max(1, int(payload.get("top_k", 5) or 5)))
+    except (TypeError, ValueError) as error:
+        raise ValueError("top_k must be an integer") from error
+    if not question:
+        raise ValueError("question is required")
 
-    internal_top_k = max(top_k, 30) if extract_identity_subject(question) else top_k
-    hits = rerank_identity_hits(question, RETRIEVAL.retrieve(retriever, question, internal_top_k))[:top_k]
+    hits = INDEX.retrieve(question, retriever, top_k)
     if not hits:
-        elapsed = int((time.perf_counter() - started) * 1000)
-        return {
-            "question": question,
-            "answer": "",
-            "confidence": 0.0,
-            "processing_time_ms": elapsed,
-            "retriever": retriever,
-            "reader": reader,
-            "source": {"document_id": "", "passage_id": "", "title": ""},
-            "passages": [],
-        }
+        return _empty_response(
+            question,
+            retriever,
+            reader_name,
+            int((time.perf_counter() - started) * 1000),
+        )
 
-    best = hits[0]
-    reader_output = ENGINE.answer(question, best, reader)
-    passages = [passage_from_hit(hit, index + 1, question, reader) for index, hit in enumerate(hits)]
+    predictor = READERS.get(reader_name)
+    passages: list[dict[str, Any]] = []
+    for retrieval_rank, hit in enumerate(hits, start=1):
+        output = predictor.predict(
+            question,
+            hit.passage.metadata.text,
+            no_answer_threshold=ANSWER_THRESHOLD,
+        )
+        reader_score = float(output["confidence"])
+        final_score = RETRIEVER_WEIGHT * hit.retrieval_score_normalized + READER_WEIGHT * reader_score
+        metadata = hit.passage.metadata
+        passages.append(
+            {
+                "rank": retrieval_rank,
+                "document_id": metadata.document_id,
+                "passage_id": metadata.passage_id,
+                "title": metadata.title,
+                "paragraph_id": metadata.paragraph_id,
+                "sentence_start": metadata.sentence_start,
+                "sentence_end": metadata.sentence_end,
+                "page": metadata.page,
+                "text": metadata.text,
+                "retrieval_score": round(hit.retrieval_score_normalized, 6),
+                "retrieval_score_raw": round(hit.retrieval_score_raw, 6),
+                "retrieval_score_normalized": round(hit.retrieval_score_normalized, 6),
+                "reader_answer": output["answer"] or None,
+                "reader_score": round(reader_score, 6),
+                "reader_score_raw": finite_or_none(output["score"]),
+                "reader_null_score": finite_or_none(output["null_score"]),
+                "reader_score_margin": finite_or_none(output["score_margin"]),
+                "answer_span": {
+                    "text": output["answer"],
+                    "start": int(output["start"]),
+                    "end": int(output["end"]),
+                },
+                "final_score": round(final_score, 6),
+            }
+        )
+
+    selected = max(passages, key=lambda item: item["final_score"])
+    has_answer = bool(selected["reader_answer"]) and selected["reader_score"] >= ANSWER_THRESHOLD
     elapsed = int((time.perf_counter() - started) * 1000)
-    document_id = best.document.document_id
-
-    if reader_output["confidence"] < 0.05 and not reader_output["answer"]:
-        answer = ""
-    else:
-        answer = reader_output["answer"]
-
-    return {
+    source = {
+        "document_id": selected["document_id"],
+        "passage_id": selected["passage_id"],
+        "title": selected["title"],
+        "paragraph_id": selected["paragraph_id"],
+        "sentence_start": selected["sentence_start"],
+        "sentence_end": selected["sentence_end"],
+        "page": selected["page"],
+    }
+    response = {
         "question": question,
-        "answer": answer,
-        "confidence": round(reader_output["confidence"], 4),
+        "answer": selected["reader_answer"] if has_answer else None,
+        "has_answer": has_answer,
+        "confidence": selected["reader_score"],
+        "selected_passage_id": selected["passage_id"],
         "processing_time_ms": elapsed,
         "retriever": retriever,
-        "reader": reader,
-        "source": {
-            "document_id": document_id,
-            "passage_id": f"{document_id}_P001",
-            "title": best.document.title,
-        },
-        "answer_span": reader_output["answer_span"],
+        "reader": reader_name,
+        "source": source,
+        "answer_span": selected["answer_span"] if has_answer else None,
         "passages": passages,
+        "scoring": {
+            "retriever_weight": RETRIEVER_WEIGHT,
+            "reader_weight": READER_WEIGHT,
+            "answer_threshold": ANSWER_THRESHOLD,
+            "retrieval_normalization": "min_max_within_top_k",
+        },
     }
+    if QA_DEBUG:
+        _log_debug(response)
+    return response
+
+
+def _log_debug(response: dict[str, Any]) -> None:
+    print(f"[QA_DEBUG] QUESTION {response['question']!r}")
+    for passage in response["passages"]:
+        print(
+            "[QA_DEBUG] "
+            f"rank={passage['rank']} passage={passage['passage_id']} "
+            f"retrieval_raw={passage['retrieval_score_raw']:.6f} "
+            f"retrieval_norm={passage['retrieval_score_normalized']:.6f} "
+            f"reader={passage['reader_score']:.6f} final={passage['final_score']:.6f} "
+            f"answer={passage['reader_answer']!r}"
+        )
+    print(
+        f"[QA_DEBUG] FINAL passage={response['selected_passage_id']} "
+        f"confidence={response['confidence']:.6f} has_answer={response['has_answer']}"
+    )
 
 
 def compare_retrievers(payload: dict[str, Any]) -> list[dict[str, Any]]:
     question = str(payload.get("question", "")).strip()
+    if not question:
+        raise ValueError("question is required")
     rows: list[dict[str, Any]] = []
-    labels = {"tfidf": "TF-IDF", "bm25": "BM25", "dense": "Dense Retrieval"}
-    for retriever, label in labels.items():
+    for method, label in (("tfidf", "TF-IDF"), ("bm25", "BM25")):
         started = time.perf_counter()
-        hits = RETRIEVAL.retrieve(retriever, question, 3)
+        hits = INDEX.retrieve(question, method, 3)
         elapsed = int((time.perf_counter() - started) * 1000)
         first = hits[0] if hits else None
         rows.append(
             {
-                "retriever": retriever,
+                "retriever": method,
                 "label": label,
-                "correctPassageRank": 1 if first else 0,
-                "recallAt1": bool(first and first.score >= 0.45),
-                "recallAt3": bool(first),
+                "correctPassageRank": None,
+                "recallAt1": None,
+                "recallAt3": None,
                 "responseTimeMs": elapsed,
-                "topPassagePreview": first.document.text[:220] if first else "No passage found.",
-                "retrievalScore": round(first.score if first else 0, 4),
+                "topPassagePreview": first.passage.metadata.text if first else "",
+                "retrievalScore": round(first.retrieval_score_raw, 6) if first else 0.0,
+                "evaluationNote": "Ground truth is required to compute correctness and Recall@k",
             }
         )
     return rows
@@ -610,32 +384,51 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json({"ok": True})
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
-        if path == "/health":
-            self._send_json({"status": "ok", "documents": len(ENGINE.documents), "retrievers": RETRIEVAL.status})
+        if urlparse(self.path).path == "/health":
+            self._send_json(
+                {
+                    "status": "ok",
+                    "passages": len(INDEX.passages),
+                    "reader_models": ReaderManager.MODEL_FOLDERS,
+                    "config": {
+                        "chunk_max_tokens": CHUNK_MAX_TOKENS,
+                        "chunk_overlap_sentences": CHUNK_OVERLAP_SENTENCES,
+                        "retriever_weight": RETRIEVER_WEIGHT,
+                        "reader_weight": READER_WEIGHT,
+                        "answer_threshold": ANSWER_THRESHOLD,
+                    },
+                }
+            )
             return
         self._send_json({"error": "Not found"}, status=404)
 
     def do_POST(self) -> None:
-        path = urlparse(self.path).path
-        payload = self._read_json()
-        if path == "/api/ask":
-            self._send_json(ask_question(payload))
-            return
-        if path == "/api/compare":
-            self._send_json(compare_retrievers(payload))
-            return
-        self._send_json({"error": "Not found"}, status=404)
+        try:
+            payload = self._read_json()
+            path = urlparse(self.path).path
+            if path == "/api/ask":
+                self._send_json(ask_question(payload))
+                return
+            if path == "/api/compare":
+                self._send_json(compare_retrievers(payload))
+                return
+            self._send_json({"error": "Not found"}, status=404)
+        except ValueError as error:
+            self._send_json({"error": str(error)}, status=400)
+        except PipelineError as error:
+            self._send_json({"error": str(error)}, status=503)
+        except Exception as error:
+            traceback.print_exc()
+            self._send_json({"error": f"QA pipeline failed: {error}"}, status=500)
 
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("content-length", "0") or 0)
         if length <= 0:
             return {}
-        raw = self.rfile.read(length)
-        return json.loads(raw.decode("utf-8"))
+        return json.loads(self.rfile.read(length).decode("utf-8"))
 
     def _send_json(self, data: Any, status: int = 200) -> None:
-        encoded = json.dumps(data, ensure_ascii=False).encode("utf-8")
+        encoded = json.dumps(data, ensure_ascii=False, allow_nan=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(encoded)))
@@ -650,7 +443,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    print(f"VIQA API loaded {len(ENGINE.documents)} documents from {DOCS_DB}")
+    print(f"VIQA API indexed {len(INDEX.passages)} sentence-aware passages from {DOCS_DB}")
     print(f"Serving http://localhost:{PORT}")
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 

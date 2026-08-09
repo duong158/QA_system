@@ -68,7 +68,7 @@ export interface AppState {
 }
 
 const defaultSettings: QaSettings = {
-  retriever: 'dense',
+  retriever: 'bm25',
   reader: 'phobert',
   topK: 5,
   voice: {
@@ -154,7 +154,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'viqa-nexus-settings',
-      version: 2,
+      version: 3,
       partialize: (state) => ({ settings: state.settings }),
       migrate: (persistedState) => {
         const state = persistedState as Partial<AppState> | undefined;
@@ -168,6 +168,8 @@ export const useAppStore = create<AppState>()(
           settings: {
             ...defaultSettings,
             ...settings,
+            retriever: settings.retriever === 'dense' || settings.retriever === 'pyserini' ? 'bm25' : settings.retriever,
+            reader: settings.reader === 'mock' ? 'phobert' : settings.reader,
             voice: {
               ...defaultSettings.voice,
               ...settings.voice,

@@ -97,16 +97,17 @@ export function useQaPipeline() {
       setAnswer(response);
       setStatusMessage('ANSWER READY');
 
-      const finalState: PipelineState = response.answer && response.confidence >= 0.5 ? 'completed' : 'no-answer';
+      const responseHasAnswer = response.has_answer ?? Boolean(response.answer);
+      const finalState: PipelineState = responseHasAnswer ? 'completed' : 'no-answer';
       setPipelineState(finalState);
-      setAvatarState(response.answer && response.confidence >= 0.5 ? 'success' : 'no-answer');
+      setAvatarState(responseHasAnswer ? 'success' : 'no-answer');
 
       timersRef.current.push(
         window.setTimeout(() => {
           if (currentRunRef.current !== runId) {
             return;
           }
-          if (response.answer && response.confidence >= 0.5) {
+          if (responseHasAnswer && response.answer) {
             setPipelineState('speaking');
             setAvatarState('speaking');
             setSpeaking(true);

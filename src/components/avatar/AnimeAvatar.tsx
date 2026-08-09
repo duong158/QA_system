@@ -6,6 +6,9 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { VRM, VRMLoaderPlugin, VRMHumanBoneName, VRMUtils } from '@pixiv/three-vrm';
 import type { AvatarState } from '@/types/avatar';
+import { AvatarHairMotionController } from './AvatarHairMotionController';
+import { AvatarLookAtController } from './AvatarLookAtController';
+import { AvatarPoseController } from './AvatarPoseController';
 
 interface AnimeAvatarProps {
   state: AvatarState;
@@ -17,13 +20,7 @@ type LoadState = 'loading' | 'ready' | 'error';
 const modelUrl = import.meta.env.VITE_AVATAR_MODEL_URL || '/models/mari.vrm';
 let mariPromise: Promise<VRM> | null = null;
 
-const HEAD_CAMERA_LIFT = THREE.MathUtils.degToRad(-7);
-const NECK_CAMERA_LIFT = THREE.MathUtils.degToRad(-3);
 const CHEST_UPRIGHT_LIFT = THREE.MathUtils.degToRad(-1);
-const IDLE_MAX_YAW = THREE.MathUtils.degToRad(6);
-const IDLE_MAX_PITCH = THREE.MathUtils.degToRad(3);
-const ACTIVE_MAX_YAW = THREE.MathUtils.degToRad(3.5);
-const ACTIVE_MAX_PITCH = THREE.MathUtils.degToRad(2);
 
 function loadMariVrm(): Promise<VRM> {
   if (!mariPromise) {
@@ -75,31 +72,10 @@ function setBoneRotation(vrm: VRM, boneName: VRMHumanBoneName, rotation: THREE.E
   bone.rotation.copy(rotation);
 }
 
-function getPointerLookTarget(state: AvatarState, pointer: THREE.Vector2) {
-  const directStates: AvatarState[] = ['speaking', 'success', 'thinking'];
-  const workingStates: AvatarState[] = ['reading', 'retrieving'];
-
-  if (workingStates.includes(state)) {
-    return {
-      yaw: THREE.MathUtils.degToRad(-2.5),
-      pitch: THREE.MathUtils.degToRad(-1),
-    };
-  }
-
-  const yawLimit = directStates.includes(state) ? ACTIVE_MAX_YAW : IDLE_MAX_YAW;
-  const pitchLimit = directStates.includes(state) ? ACTIVE_MAX_PITCH : IDLE_MAX_PITCH;
-  const influence = directStates.includes(state) ? 0.28 : 0.48;
-
-  return {
-    yaw: THREE.MathUtils.clamp(pointer.x * 0.1 * influence, -yawLimit, yawLimit),
-    pitch: THREE.MathUtils.clamp(-pointer.y * 0.055 * influence, -pitchLimit, pitchLimit),
-  };
-}
-
 function applyInitialAvatarPose(vrm: VRM) {
   vrm.scene.rotation.set(0, Math.PI, 0);
-  vrm.scene.position.set(0, -1.42, 0);
-  vrm.scene.scale.setScalar(1.18);
+  vrm.scene.position.set(0, -1.47, 0);
+  vrm.scene.scale.setScalar(1.6);
 
   setBoneRotation(vrm, VRMHumanBoneName.LeftShoulder, new THREE.Euler(0, 0, 0.08));
   setBoneRotation(vrm, VRMHumanBoneName.RightShoulder, new THREE.Euler(0, 0, -0.08));
@@ -118,6 +94,7 @@ function stateExpression(state: AvatarState) {
   switch (state) {
     case 'listening':
       return 'relaxed';
+    case 'typing':
     case 'reading':
     case 'retrieving':
     case 'thinking':
@@ -174,6 +151,9 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
   const blinkRef = useRef(0);
   const mouthRef = useRef(0);
   const expressionValues = useRef<Record<string, number>>({});
+  const lookAtController = useMemo(() => new AvatarLookAtController(), []);
+  const hairControllerRef = useRef<AvatarHairMotionController | null>(null);
+  const poseControllerRef = useRef<AvatarPoseController | null>(null);
   const { pointer } = useThree();
 
   const expressionNames = useMemo(
@@ -193,6 +173,8 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
           return;
         }
         applyInitialAvatarPose(loadedVrm);
+        hairControllerRef.current = new AvatarHairMotionController(loadedVrm);
+        poseControllerRef.current = new AvatarPoseController(loadedVrm);
         vrmRef.current = loadedVrm;
         setVrm(loadedVrm);
         setLoadState('ready');
@@ -218,10 +200,8 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
     }
 
     const elapsed = clock.clock.getElapsedTime();
-    const head = currentVrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Head);
     const chest = currentVrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Chest);
     const upperChest = currentVrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.UpperChest);
-    const neck = currentVrm.humanoid.getNormalizedBoneNode(VRMHumanBoneName.Neck);
 
     if (chest) {
       const breath = Math.sin(elapsed * 1.5) * 0.003;
@@ -235,21 +215,8 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
       upperChest.rotation.y = THREE.MathUtils.lerp(upperChest.rotation.y, 0, 0.04);
     }
 
-    if (neck) {
-      const readingYaw = state === 'reading' || state === 'retrieving' ? THREE.MathUtils.degToRad(-1.2) : 0;
-      neck.rotation.x = THREE.MathUtils.lerp(neck.rotation.x, NECK_CAMERA_LIFT, 0.06);
-      neck.rotation.y = THREE.MathUtils.lerp(neck.rotation.y, readingYaw, 0.06);
-    }
-
-    if (head) {
-      const pointerLook = getPointerLookTarget(state, pointer);
-      const listenTilt = state === 'listening' ? THREE.MathUtils.degToRad(-2) : 0;
-      const noAnswerShake = state === 'no-answer' ? Math.sin(elapsed * 3.2) * 0.025 : 0;
-
-      head.rotation.y = THREE.MathUtils.lerp(head.rotation.y, pointerLook.yaw + noAnswerShake, 0.08);
-      head.rotation.x = THREE.MathUtils.lerp(head.rotation.x, HEAD_CAMERA_LIFT + pointerLook.pitch + Math.sin(elapsed * 0.7) * 0.006, 0.08);
-      head.rotation.z = THREE.MathUtils.lerp(head.rotation.z, listenTilt, 0.07);
-    }
+    lookAtController.update(currentVrm, state, pointer, elapsed, delta);
+    poseControllerRef.current?.update(state, delta);
 
     const activeExpression = stateExpression(state);
     expressionNames.forEach((name) => {
@@ -269,13 +236,18 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
     const blinkValue = THREE.MathUtils.lerp(currentVrm.expressionManager?.getValue('blink') ?? 0, blinkTarget, 0.45);
     setExpression(currentVrm, 'blink', blinkValue);
 
-    currentVrm.update(delta);
+    hairControllerRef.current?.update(
+      lookAtController.getHeadYaw(),
+      lookAtController.getHeadPitch(),
+      delta,
+    );
+    currentVrm.update(Math.min(delta, 1 / 30));
   });
 
   if (loadState === 'error') {
     return (
       <Html center>
-        <div className="w-72 rounded-2xl border border-viqa-error/30 bg-black/70 px-5 py-4 text-center text-sm leading-6 text-slate-100 shadow-glow backdrop-blur-xl">
+        <div className="w-72 rounded-lg border border-viqa-error/30 bg-slate-900/80 px-5 py-4 text-center text-sm leading-6 text-slate-100 shadow-glow backdrop-blur-xl">
           <p className="font-semibold text-viqa-error">Không thể tải Mari Avatar.</p>
           <p className="mt-2 text-slate-300">Vui lòng đặt file mari.vrm vào public/models/.</p>
         </div>
@@ -286,7 +258,7 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
   if (loadState === 'loading') {
     return (
       <Html center>
-        <div className="rounded-full border border-viqa-cyan/25 bg-black/60 px-5 py-3 text-xs uppercase tracking-[0.26em] text-viqa-cyan backdrop-blur-xl">
+        <div className="rounded-full border border-viqa-cyan/25 bg-slate-900/70 px-5 py-3 text-xs text-viqa-cyan backdrop-blur-xl">
           Loading Mari
         </div>
       </Html>

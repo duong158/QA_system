@@ -39,6 +39,11 @@ export function HomePage() {
     () => `${draft} ${speech.transcript} ${speech.interimTranscript}`.replace(/\s+/g, ' ').trim(),
     [draft, speech.interimTranscript, speech.transcript],
   );
+  const displayedAvatarState = speech.isListening
+    ? 'listening'
+    : composedQuestion && avatarState === 'idle'
+      ? 'typing'
+      : avatarState;
 
   const submit = async () => {
     const result = await submitQuestion(composedQuestion);
@@ -96,9 +101,9 @@ export function HomePage() {
         onToggleSettings={toggleSettings}
       />
 
-      <main className="mt-4 grid flex-1 gap-4 xl:grid-cols-[minmax(0,1.18fr)_minmax(420px,0.82fr)]">
+      <main className="mt-4 grid flex-1 gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(500px,1.08fr)]">
         <div className="flex min-w-0 flex-col gap-4">
-          <AvatarScene state={speech.isListening ? 'listening' : avatarState} />
+          <AvatarScene state={displayedAvatarState} />
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
@@ -110,7 +115,7 @@ export function HomePage() {
               }`}
             >
               <GitCompareArrows className="h-4 w-4" />
-              COMPARE RETRIEVERS
+              Compare retrievers
             </button>
             <button
               type="button"
@@ -127,8 +132,8 @@ export function HomePage() {
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
-          <PipelineFlow state={speech.isListening ? 'listening' : pipelineState} />
           <AnswerPanel response={answer} state={pipelineState} compareMode={comparisonEnabled} onViewSource={viewSource} />
+          <PipelineFlow state={speech.isListening ? 'listening' : pipelineState} />
         </div>
       </main>
 
@@ -147,11 +152,11 @@ export function HomePage() {
       />
       <SettingsPanel voices={synthesis.voices} onTestVoice={testVoice} />
       {selectedSource ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <section className="viqa-panel max-h-[82vh] w-full max-w-2xl overflow-y-auto rounded-[28px] p-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
+          <section className="viqa-panel max-h-[82vh] w-full max-w-2xl overflow-y-auto p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <div className="flex items-center gap-2 text-xs uppercase tracking-[0.32em] text-slate-500">
+                <div className="flex items-center gap-2 text-sm font-medium text-slate-400">
                   <FileText className="h-4 w-4 text-viqa-gold" />
                   Source passage
                 </div>
@@ -168,8 +173,8 @@ export function HomePage() {
             </div>
 
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
-              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{selectedSource.document_id}</span>
-              <span className="rounded-full border border-white/10 bg-black/20 px-3 py-1.5">{selectedSource.passage_id}</span>
+              <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">{selectedSource.document_id}</span>
+              <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">{selectedSource.passage_id}</span>
               <span className="rounded-full border border-viqa-cyan/20 bg-viqa-cyan/10 px-3 py-1.5 text-viqa-cyan">
                 Retrieval {(selectedSource.retrieval_score * 100).toFixed(1)}%
               </span>
@@ -180,7 +185,7 @@ export function HomePage() {
               ) : null}
             </div>
 
-            <p className="mt-5 rounded-2xl border border-white/10 bg-black/25 p-4 text-sm leading-7 text-slate-200">
+            <p className="mt-5 rounded-lg border border-slate-400/15 bg-[#172033] p-4 text-sm leading-7 text-slate-200">
               {selectedSource.text}
             </p>
           </section>

@@ -17,7 +17,6 @@ const retrieverOptions: Array<{ value: RetrieverType; label: string }> = [
 ];
 
 const readerOptions: Array<{ value: ReaderType; label: string }> = [
-  { value: 'mock', label: 'Mock Reader' },
   { value: 'phobert', label: 'PhoBERT QA' },
   { value: 'vibert', label: 'viBERT QA' },
   { value: 'xlmr', label: 'XLM-R QA' },

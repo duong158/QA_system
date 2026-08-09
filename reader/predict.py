@@ -1,186 +1,275 @@
+from __future__ import annotations
+
+import argparse
+import math
 import os
 import sys
-import argparse
+from dataclasses import dataclass
 from pathlib import Path
-
-# Add project root to path
-ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
+from typing import Sequence
 
 import numpy as np
 import torch
-from transformers import AutoModelForQuestionAnswering
-from reader.data_utils import get_tokenizer, find_char_span
+from transformers import AutoModelForQuestionAnswering, AutoTokenizer
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 
 try:
     from pyvi import ViTokenizer
+
     HAS_PYVI = True
 except ImportError:
     HAS_PYVI = False
 
+
+@dataclass(frozen=True)
+class SpanCandidate:
+    start_token: int
+    end_token: int
+    start_char: int
+    end_char: int
+    score: float
+
+
+def select_best_span(
+    start_logits: Sequence[float],
+    end_logits: Sequence[float],
+    offsets: Sequence[Sequence[int]],
+    sequence_ids: Sequence[int | None],
+    top_n_start: int = 20,
+    top_n_end: int = 20,
+    max_answer_length: int = 40,
+) -> SpanCandidate | None:
+    """Select the best valid start/end pair restricted to context tokens."""
+    start_indexes = np.argsort(np.asarray(start_logits))[::-1][:top_n_start]
+    end_indexes = np.argsort(np.asarray(end_logits))[::-1][:top_n_end]
+    best: SpanCandidate | None = None
+
+    for start_index in start_indexes:
+        if sequence_ids[int(start_index)] != 1:
+            continue
+        for end_index in end_indexes:
+            start_index = int(start_index)
+            end_index = int(end_index)
+            if sequence_ids[end_index] != 1 or end_index < start_index:
+                continue
+            if end_index - start_index + 1 > max_answer_length:
+                continue
+
+            start_char = int(offsets[start_index][0])
+            end_char = int(offsets[end_index][1])
+            if end_char <= start_char:
+                continue
+            score = float(start_logits[start_index] + end_logits[end_index])
+            if best is None or score > best.score:
+                best = SpanCandidate(start_index, end_index, start_char, end_char, score)
+    return best
+
+
+def map_segmented_span_to_raw(
+    raw_context: str,
+    segmented_context: str,
+    start_char: int,
+    end_char: int,
+) -> tuple[int, int]:
+    """Map PhoBERT/PyVi offsets back to the exact original-context characters."""
+    mapping: list[int | None] = [None] * len(segmented_context)
+    raw_index = 0
+    for segmented_index, char in enumerate(segmented_context):
+        if char.isspace() or char == "_":
+            continue
+        while raw_index < len(raw_context) and (raw_context[raw_index].isspace() or raw_context[raw_index] == "_"):
+            raw_index += 1
+        if raw_index >= len(raw_context):
+            break
+        if raw_context[raw_index].casefold() != char.casefold():
+            while raw_index < len(raw_context) and raw_context[raw_index].casefold() != char.casefold():
+                raw_index += 1
+            if raw_index >= len(raw_context):
+                break
+        mapping[segmented_index] = raw_index
+        raw_index += 1
+
+    mapped = [position for position in mapping[start_char:end_char] if position is not None]
+    if not mapped:
+        return -1, -1
+    return mapped[0], mapped[-1] + 1
+
+
+def _sigmoid(value: float) -> float:
+    if value >= 0:
+        return 1.0 / (1.0 + math.exp(-value))
+    exp_value = math.exp(value)
+    return exp_value / (1.0 + exp_value)
+
+
 class ReaderPredictor:
     def __init__(self, model_path_or_name: str, use_cpu: bool = False):
+        self.model_path_or_name = model_path_or_name
         self.device = torch.device("cpu" if use_cpu or not torch.cuda.is_available() else "cuda")
         print(f"Loading reader model from {model_path_or_name} to {self.device}...")
-        
-        self.tokenizer = get_tokenizer(model_path_or_name)
-        self.model = AutoModelForQuestionAnswering.from_pretrained(model_path_or_name)
+
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path_or_name, use_fast=True)
+        if not self.tokenizer.is_fast:
+            raise RuntimeError("Reader requires a fast tokenizer for offset_mapping and sequence_ids")
+
+        self.model, loading_info = AutoModelForQuestionAnswering.from_pretrained(
+            model_path_or_name,
+            output_loading_info=True,
+        )
+        missing_qa_head = [key for key in loading_info.get("missing_keys", []) if "qa_outputs" in key]
+        if missing_qa_head:
+            raise RuntimeError(
+                "Checkpoint does not contain a trained QA head; refusing to use randomly initialized qa_outputs"
+            )
         self.model.to(self.device)
         self.model.eval()
-        
-        # Detect if PhoBERT is used based on name/path
-        self.is_phobert = "phobert" in model_path_or_name.lower()
-        print(f"Model type: {'PhoBERT (requires word-segmented input)' if self.is_phobert else 'Standard/XLM-R'}")
-        
-    def predict(self, question: str, context: str, max_seq_len: int = 384, doc_stride: int = 128, max_answer_len: int = 30, no_answer_threshold: float = -8.0):
-        # Cap max_seq_len to model limits (PhoBERT max is 256)
+        self.is_phobert = "phobert" in model_path_or_name.lower() or self.model.config.model_type == "roberta" and "Phobert" in self.tokenizer.__class__.__name__
+        self.checkpoint_is_qa = not missing_qa_head
+
+    def predict(
+        self,
+        question: str,
+        context: str,
+        max_seq_len: int | None = None,
+        doc_stride: int | None = None,
+        max_answer_len: int | None = None,
+        no_answer_threshold: float | None = None,
+        top_n_start: int | None = None,
+        top_n_end: int | None = None,
+    ) -> dict[str, float | int | str | bool]:
+        max_seq_len = max_seq_len or int(os.getenv("QA_READER_MAX_LENGTH", "384"))
+        doc_stride = doc_stride or int(os.getenv("QA_READER_STRIDE", "128"))
+        max_answer_len = max_answer_len or int(os.getenv("QA_MAX_ANSWER_LENGTH", "40"))
+        top_n_start = top_n_start or int(os.getenv("QA_TOP_N_START", "20"))
+        top_n_end = top_n_end or int(os.getenv("QA_TOP_N_END", "20"))
+        no_answer_threshold = (
+            float(no_answer_threshold)
+            if no_answer_threshold is not None
+            else float(os.getenv("QA_ANSWER_THRESHOLD", "0.30"))
+        )
+
+        model_limit = int(getattr(self.model.config, "max_position_embeddings", max_seq_len))
         if self.is_phobert:
-            max_seq_len = min(max_seq_len, 256)
-            doc_stride = min(doc_stride, 32)
-            
-        # 1. Word segmentation if model is PhoBERT
+            max_seq_len = min(max_seq_len, max(8, model_limit - 2))
+        doc_stride = min(doc_stride, max(1, max_seq_len // 3))
+
         raw_context = context
         if self.is_phobert:
             if not HAS_PYVI:
-                raise ImportError("pyvi is required to run inference on PhoBERT. Please install it using: pip install pyvi")
-            segmented_question = ViTokenizer.tokenize(question)
-            segmented_context = ViTokenizer.tokenize(context)
+                raise ImportError("pyvi is required for PhoBERT inference")
+            model_question = ViTokenizer.tokenize(question)
+            model_context = ViTokenizer.tokenize(context)
         else:
-            segmented_question = question
-            segmented_context = context
-            
-        # 2. Tokenize inputs
+            model_question = question
+            model_context = context
+
         inputs = self.tokenizer(
-            segmented_question,
-            segmented_context,
+            model_question,
+            model_context,
             truncation="only_second",
             max_length=max_seq_len,
             stride=doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
             padding="max_length",
-            return_tensors="pt"
+            return_tensors="pt",
         )
-        
-        input_ids = inputs["input_ids"].to(self.device)
-        attention_mask = inputs["attention_mask"].to(self.device)
-        
-        # 3. Model forward pass
+        model_inputs = {
+            key: value.to(self.device)
+            for key, value in inputs.items()
+            if key in {"input_ids", "attention_mask", "token_type_ids"}
+        }
         with torch.no_grad():
-            outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-            
-        start_logits = outputs.start_logits.cpu().numpy()
-        end_logits = outputs.end_logits.cpu().numpy()
-        offset_mapping = inputs["offset_mapping"]
-        
-        best_score = -float("inf")
-        best_span_segmented = ""
-        # Track no_answer_score from the SAME chunk as best_score (per-chunk comparison)
-        best_chunk_no_answer_score = -float("inf")
-        
-        # Iterate over all sliding window chunks
-        for i in range(len(start_logits)):
-            sequence_ids = inputs.sequence_ids(i)
-            s_logits = start_logits[i]
-            e_logits = end_logits[i]
-            offsets = offset_mapping[i]
-            
-            # Find context start and end indices in the token list
-            context_start = 0
-            while context_start < len(sequence_ids) and sequence_ids[context_start] != 1:
-                context_start += 1
-                
-            context_end = len(sequence_ids) - 1
-            while context_end >= 0 and sequence_ids[context_end] != 1:
-                context_end -= 1
-                
-            if context_start > context_end:
-                continue
-                
-            # CLS index represents no answer for this chunk
-            chunk_no_answer_score = -float("inf")
+            outputs = self.model(**model_inputs)
+
+        start_logits = outputs.start_logits.detach().cpu().numpy()
+        end_logits = outputs.end_logits.detach().cpu().numpy()
+        offsets = inputs["offset_mapping"].tolist()
+        best: SpanCandidate | None = None
+        null_scores: list[float] = []
+
+        for feature_index in range(len(start_logits)):
+            sequence_ids = inputs.sequence_ids(feature_index)
+            input_ids = inputs["input_ids"][feature_index].tolist()
             try:
-                cls_idx = inputs["input_ids"][i].tolist().index(self.tokenizer.cls_token_id)
-                chunk_no_answer_score = s_logits[cls_idx] + e_logits[cls_idx]
+                cls_index = input_ids.index(self.tokenizer.cls_token_id)
             except ValueError:
-                pass
-                
-            # Select top-N candidates
-            n_best = 20
-            start_indexes = np.argsort(s_logits)[::-1][:n_best]
-            end_indexes = np.argsort(e_logits)[::-1][:n_best]
-            
-            for start_index in start_indexes:
-                for end_index in end_indexes:
-                    # Skip indexes that are out of context
-                    if start_index < context_start or start_index > context_end:
-                        continue
-                    if end_index < context_start or end_index > context_end:
-                        continue
-                    # Skip invalid spans
-                    if end_index < start_index or end_index - start_index >= max_answer_len:
-                        continue
-                        
-                    score = s_logits[start_index] + e_logits[end_index]
-                    if score > best_score:
-                        # Character offsets in the segmented context
-                        start_char = int(offsets[start_index][0])
-                        end_char = int(offsets[end_index][1])
-                        # Slice from segmented context
-                        best_span_segmented = segmented_context[start_char:end_char]
-                        best_score = score
-                        # Track the no_answer_score from THIS chunk (same chunk comparison)
-                        best_chunk_no_answer_score = chunk_no_answer_score
-                        
-        # 4. Deciding if the question is answerable
-        # Compare best span score against the no-answer score of the SAME chunk
-        if best_score == -float("inf") or best_score < best_chunk_no_answer_score + no_answer_threshold:
+                cls_index = 0
+            null_scores.append(float(start_logits[feature_index][cls_index] + end_logits[feature_index][cls_index]))
+
+            candidate = select_best_span(
+                start_logits[feature_index],
+                end_logits[feature_index],
+                offsets[feature_index],
+                sequence_ids,
+                top_n_start=top_n_start,
+                top_n_end=top_n_end,
+                max_answer_length=max_answer_len,
+            )
+            if candidate is not None and (best is None or candidate.score > best.score):
+                best = candidate
+
+        if best is None:
             return {
                 "answer": "",
-                "score": float(max(best_score, best_chunk_no_answer_score)),
+                "score": float("-inf"),
+                "null_score": min(null_scores, default=float("inf")),
+                "score_margin": float("-inf"),
                 "start": -1,
                 "end": -1,
-                "confidence": 0.0
+                "confidence": 0.0,
+                "has_answer": False,
             }
-            
-        # 5. Map segmented span back to original raw context
-        raw_start, raw_end = find_char_span(raw_context, best_span_segmented)
-        if raw_start == -1 or raw_end == -1:
-            raw_answer = best_span_segmented.replace("_", " ").strip()
-            raw_start, raw_end = -1, -1
+
+        null_score = min(null_scores, default=best.score)
+        margin = best.score - null_score
+        confidence = _sigmoid(margin)
+        if self.is_phobert:
+            raw_start, raw_end = map_segmented_span_to_raw(
+                raw_context,
+                model_context,
+                best.start_char,
+                best.end_char,
+            )
         else:
-            raw_answer = raw_context[raw_start:raw_end].strip()
-            
-        # Calculate normalized confidence score (0-1 range for UI display)
-        confidence = float(torch.sigmoid(torch.tensor(best_score + 1.0)).item())
-        
+            raw_start, raw_end = best.start_char, best.end_char
+
+        if raw_start < 0 or raw_end <= raw_start:
+            answer = ""
+            raw_start, raw_end = -1, -1
+            confidence = 0.0
+        else:
+            answer = raw_context[raw_start:raw_end].strip()
+            while raw_start < raw_end and raw_context[raw_start].isspace():
+                raw_start += 1
+            while raw_end > raw_start and raw_context[raw_end - 1].isspace():
+                raw_end -= 1
+
         return {
-            "answer": raw_answer,
-            "score": float(best_score),
+            "answer": answer,
+            "score": float(best.score),
+            "null_score": float(null_score),
+            "score_margin": float(margin),
             "start": raw_start,
             "end": raw_end,
-            "confidence": round(confidence, 4)
+            "confidence": round(confidence, 6),
+            "has_answer": bool(answer) and confidence >= no_answer_threshold,
         }
 
-def main():
-    parser = argparse.ArgumentParser(description="Predict answer span from context")
-    parser.add_argument("--model_path", type=str, required=True, help="Path to trained model directory")
-    parser.add_argument("--question", type=str, required=True, help="Question text")
-    parser.add_argument("--context", type=str, required=True, help="Context text")
-    parser.add_argument("--use_cpu", action="store_true", help="Force CPU use")
-    
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Predict an extractive answer span")
+    parser.add_argument("--model_path", required=True)
+    parser.add_argument("--question", required=True)
+    parser.add_argument("--context", required=True)
+    parser.add_argument("--use_cpu", action="store_true")
     args = parser.parse_args()
-    
+
     predictor = ReaderPredictor(args.model_path, use_cpu=args.use_cpu)
-    result = predictor.predict(args.question, args.context)
-    
-    print("\n=== INFERENCE RESULT ===")
-    print(f"Question: {args.question}")
-    print(f"Predicted Answer: '{result['answer']}'")
-    print(f"Confidence: {result['confidence']:.4f}")
-    print(f"Logits Score: {result['score']:.4f}")
-    print(f"Original Char Span: [{result['start']}, {result['end']}]")
-    print("========================\n")
+    print(predictor.predict(args.question, args.context))
+
 
 if __name__ == "__main__":
     main()

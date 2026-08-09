@@ -12,5 +12,5 @@ export function ConfidenceBadge({ confidence }: ConfidenceBadgeProps) {
       ? 'border-amber-400/25 bg-amber-400/10 text-amber-200'
       : 'border-rose-400/25 bg-rose-400/10 text-rose-200';
 
-  return <span className={`rounded-full border px-3 py-1 text-xs font-medium ${className}`}>{(confidence * 100).toFixed(1)}%</span>;
+  return <span className={`rounded-full border px-3 py-1 text-xs font-medium ${className}`}>Confidence {(confidence * 100).toFixed(1)}%</span>;
 }

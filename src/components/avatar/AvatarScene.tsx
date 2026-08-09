@@ -13,17 +13,21 @@ interface AvatarSceneProps {
   state: AvatarState;
 }
 
-const avatarCameraPosition: [number, number, number] = [0, 0.52, 2.28];
-const avatarCameraTarget: [number, number, number] = [0, 0.5, 0];
+const avatarCameraPosition: [number, number, number] = [0, 0.64, 1.95];
+const avatarCameraTarget: [number, number, number] = [0, 0.62, 0];
 
 function AvatarCameraRig() {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
 
   useEffect(() => {
-    camera.position.set(...avatarCameraPosition);
+    const compact = size.width < 640;
+    camera.position.set(0, compact ? 0.62 : avatarCameraPosition[1], compact ? 2.2 : avatarCameraPosition[2]);
+    if ('fov' in camera) {
+      camera.fov = compact ? 34 : 29;
+    }
     camera.lookAt(...avatarCameraTarget);
     camera.updateProjectionMatrix();
-  }, [camera]);
+  }, [camera, size.width]);
 
   return null;
 }
@@ -31,21 +35,23 @@ function AvatarCameraRig() {
 function statusLabel(state: AvatarState) {
   switch (state) {
     case 'listening':
-      return 'LISTENING';
+      return 'Listening';
+    case 'typing':
+      return 'Formulating question';
     case 'retrieving':
-      return 'SEARCHING KNOWLEDGE BASE';
+      return 'Searching knowledge base';
     case 'reading':
-      return 'ANALYZING PASSAGES';
+      return 'Analyzing passages';
     case 'thinking':
-      return 'EXTRACTING ANSWER';
+      return 'Extracting answer';
     case 'speaking':
-      return 'SPEAKING';
+      return 'Speaking';
     case 'no-answer':
-      return 'NO ANSWER';
+      return 'No answer';
     case 'error':
-      return 'SYSTEM ERROR';
+      return 'System error';
     default:
-      return 'READY';
+      return 'Ready';
   }
 }
 
@@ -56,16 +62,16 @@ export function AvatarScene({ state }: AvatarSceneProps) {
     <motion.section
       initial={{ opacity: 0, x: -18 }}
       animate={{ opacity: 1, x: 0 }}
-      className="viqa-panel relative min-h-[640px] overflow-hidden rounded-[32px]"
+      className="viqa-panel relative min-h-[320px] overflow-hidden rounded-2xl sm:min-h-[500px] xl:min-h-[620px]"
     >
-      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4 text-xs uppercase tracking-[0.34em] text-slate-500">
-        <span>{state.toUpperCase()}</span>
-        <span>MARI 3D ASSISTANT CORE</span>
+      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4 text-xs text-slate-400">
+        <span className="rounded-full border border-slate-400/15 bg-slate-900/35 px-2.5 py-1 capitalize backdrop-blur-md">{state}</span>
+        <span className="font-medium text-slate-300">Mari assistant</span>
       </div>
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(88,230,255,0.08),transparent_40%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(56,189,248,0.09),transparent_50%)]" />
 
-      <Canvas dpr={[1, 1.5]} camera={{ position: avatarCameraPosition, fov: 30 }} gl={{ antialias: true, alpha: true }} className="absolute inset-0">
+      <Canvas dpr={[1, 1.5]} camera={{ position: avatarCameraPosition, fov: 29 }} gl={{ antialias: true, alpha: true }} className="absolute inset-0">
         <Suspense fallback={null}>
           <AvatarCameraRig />
           <AvatarEnvironment />
@@ -77,9 +83,8 @@ export function AvatarScene({ state }: AvatarSceneProps) {
 
       <AudioVisualizer amplitude={amplitude} />
 
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-viqa-bg via-viqa-bg/50 to-transparent px-6 pb-6 pt-16 text-center">
-        <p className="font-display text-sm tracking-[0.35em] text-slate-200">{statusLabel(state)}</p>
-        <p className="mt-2 text-sm text-slate-400">Mari 3D VRoid Model is loaded from public/models/mari.vrm.</p>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/55 to-transparent px-6 pb-5 pt-16 text-center">
+        <p className="font-display text-sm font-medium text-slate-100">{statusLabel(state)}</p>
       </div>
     </motion.section>
   );

@@ -22,16 +22,16 @@ export function HologramRing({ state }: HologramRingProps) {
     }
   });
 
-  const opacity = state === 'error' ? 0.2 : 0.5;
+  const opacity = state === 'error' ? 0.16 : 0.3;
   return (
     <group position={[0, -1.35, 0]}>
       <mesh ref={ringRef} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[2.1, 0.035, 16, 120]} />
-        <meshBasicMaterial color={state === 'error' ? '#FB7185' : '#58E6FF'} transparent opacity={opacity} />
+        <meshBasicMaterial color={state === 'error' ? '#FB7185' : '#38BDF8'} transparent opacity={opacity} />
       </mesh>
       <mesh ref={ringRef2} rotation={[Math.PI / 2, 0, 0]}>
         <torusGeometry args={[2.45, 0.02, 16, 120]} />
-        <meshBasicMaterial color="#9F7AEA" transparent opacity={0.28} />
+        <meshBasicMaterial color="#818CF8" transparent opacity={0.18} />
       </mesh>
     </group>
   );

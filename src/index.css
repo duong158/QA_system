@@ -7,7 +7,7 @@
 :root {
   color-scheme: dark;
   font-family: 'Inter', system-ui, sans-serif;
-  background: #040711;
+  background: #0b1220;
   color: #f8fafc;
 }
 
@@ -21,9 +21,9 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(circle at top, rgba(88, 230, 255, 0.14), transparent 28%),
-    radial-gradient(circle at 80% 20%, rgba(159, 122, 234, 0.16), transparent 22%),
-    linear-gradient(180deg, #040711 0%, #080d1d 100%);
+    radial-gradient(circle at 20% 20%, rgba(56, 189, 248, 0.1), transparent 35%),
+    radial-gradient(circle at 80% 30%, rgba(129, 140, 248, 0.1), transparent 40%),
+    #0b1220;
   color: #f8fafc;
   overflow-x: hidden;
 }
@@ -33,7 +33,7 @@ body {
 }
 
 ::selection {
-  background: rgba(88, 230, 255, 0.28);
+  background: rgba(56, 189, 248, 0.28);
   color: #ffffff;
 }
 
@@ -43,26 +43,26 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(8, 13, 29, 0.85);
+  background: rgba(17, 24, 39, 0.85);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(88, 230, 255, 0.22);
+  background: rgba(56, 189, 248, 0.22);
   border-radius: 999px;
-  border: 2px solid rgba(8, 13, 29, 0.85);
+  border: 2px solid rgba(17, 24, 39, 0.85);
 }
 
 @layer components {
   .viqa-glass {
-    @apply border border-white/10 bg-white/5 shadow-glow backdrop-blur-xl;
+    @apply border border-viqa-border bg-slate-800/70 shadow-glow backdrop-blur-xl;
   }
 
   .viqa-panel {
-    @apply rounded-[28px] border border-viqa-border bg-[color:var(--panel-bg)] shadow-glow backdrop-blur-2xl;
+    @apply rounded-2xl border border-viqa-border bg-[color:var(--panel-bg)] shadow-glow backdrop-blur-2xl;
   }
 
   .viqa-heading {
-    @apply font-display tracking-[0.22em] text-slate-50;
+    @apply font-display text-slate-50;
   }
 
   .viqa-muted {
@@ -71,7 +71,7 @@ body {
 }
 
 :root {
-  --panel-bg: rgba(10, 18, 40, 0.68);
+  --panel-bg: rgba(30, 41, 59, 0.82);
 }
 
 @media (prefers-reduced-motion: reduce) {

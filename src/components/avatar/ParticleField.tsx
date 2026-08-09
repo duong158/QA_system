@@ -10,7 +10,7 @@ interface ParticleFieldProps {
 
 export function ParticleField({ state }: ParticleFieldProps) {
   const pointsRef = useRef<Points>(null);
-  const count = 140;
+  const count = 100;
 
   const positions = useMemo(() => {
     const array = new Float32Array(count * 3);
@@ -39,7 +39,7 @@ export function ParticleField({ state }: ParticleFieldProps) {
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial size={0.06} color={state === 'error' ? '#FB7185' : state === 'speaking' ? '#FFD76A' : '#7dd3fc'} transparent opacity={0.8} sizeAttenuation />
+      <pointsMaterial size={0.055} color={state === 'error' ? '#FB7185' : state === 'speaking' ? '#FBBF24' : '#7dd3fc'} transparent opacity={0.48} sizeAttenuation />
     </points>
   );
 }

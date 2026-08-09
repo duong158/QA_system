@@ -50,17 +50,14 @@ export function PipelineFlow({ state }: PipelineFlowProps) {
     <motion.section
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="viqa-panel rounded-[28px] p-4"
+      className="viqa-panel p-3.5"
     >
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Pipeline</p>
-          <h2 className="mt-1 font-display text-lg tracking-[0.16em] text-slate-50">QUESTION → RETRIEVER → READER → ANSWER</h2>
-        </div>
-        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-300">{state.toUpperCase()}</div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="font-display text-sm font-semibold text-slate-100">Pipeline</h2>
+        <div className="rounded-full border border-slate-400/15 bg-slate-700/45 px-2.5 py-1 text-xs capitalize text-slate-300">{state}</div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {steps.map((step) => (
           <PipelineStep key={step.key} step={step} />
         ))}
