@@ -27,6 +27,8 @@ HOST = os.getenv("QA_HOST", "0.0.0.0")
 PORT = int(os.getenv("QA_PORT", "8000"))
 CHUNK_MAX_TOKENS = int(os.getenv("QA_CHUNK_MAX_TOKENS", "220"))
 CHUNK_OVERLAP_SENTENCES = int(os.getenv("QA_CHUNK_OVERLAP_SENTENCES", "2"))
+RETRIEVER_CANDIDATE_MULTIPLIER = int(os.getenv("QA_RETRIEVER_CANDIDATE_MULTIPLIER", "3"))
+RETRIEVER_MIN_CANDIDATES = int(os.getenv("QA_RETRIEVER_MIN_CANDIDATES", "8"))
 RETRIEVER_WEIGHT = float(os.getenv("QA_RETRIEVER_WEIGHT", "0.30"))
 READER_WEIGHT = float(os.getenv("QA_READER_WEIGHT", "0.70"))
 ANSWER_THRESHOLD = float(os.getenv("QA_ANSWER_THRESHOLD", "0.30"))
@@ -40,10 +42,15 @@ RETRIEVER_WEIGHT /= WEIGHT_TOTAL
 READER_WEIGHT /= WEIGHT_TOTAL
 
 STOPWORDS = {
-    "ai", "bao", "cac", "cho", "co", "cua", "den", "do", "duoc", "gi", "khi",
-    "khong", "la", "may", "mot", "nao", "nhieu", "nhu", "nhung", "o", "sau",
-    "tai", "the", "trong", "truoc", "tu", "va", "ve", "voi",
+    "ai", "anh", "ay", "ban", "bang", "bao", "bi", "cac", "cai", "can", "chi",
+    "cho", "co", "con", "cua", "da", "dang", "day", "de", "den", "di", "do",
+    "duoc", "duoi", "gi", "giua", "hay", "hon", "khi", "khong", "la", "lai",
+    "lam", "may", "mot", "nao", "nay", "neu", "ngay", "nhieu", "nhu", "nhung",
+    "o", "phai", "qua", "ra", "rang", "sau", "se", "so", "tai", "the", "thi",
+    "theo", "tren", "trong", "truoc", "tu", "va", "vao", "ve", "vi", "voi",
 }
+
+DATE_TOKENS = {"ngay", "thang", "nam"}
 
 
 class PipelineError(RuntimeError):
@@ -62,6 +69,7 @@ class SearchHit:
     passage: IndexedPassage
     retrieval_score_raw: float
     retrieval_score_normalized: float = 0.0
+    retrieval_rank: int = 0
 
 
 def normalize_text(value: str) -> str:
@@ -73,6 +81,42 @@ def normalize_text(value: str) -> str:
 def tokenize(value: str) -> list[str]:
     tokens = re.findall(r"[\w%]+", normalize_text(value), flags=re.UNICODE)
     return [token for token in tokens if len(token) > 1 and token not in STOPWORDS]
+
+
+def raw_tokens(value: str) -> list[str]:
+    return re.findall(r"[\w%]+", normalize_text(value), flags=re.UNICODE)
+
+
+def normalized_token_text(tokens: list[str] | tuple[str, ...]) -> str:
+    return " ".join(tokens)
+
+
+def query_ngrams(tokens: list[str], min_n: int = 2, max_n: int = 4) -> list[str]:
+    grams: list[str] = []
+    limit = min(max_n, len(tokens))
+    for size in range(limit, min_n - 1, -1):
+        grams.extend(" ".join(tokens[index : index + size]) for index in range(0, len(tokens) - size + 1))
+    return grams
+
+
+def find_sequence(tokens: list[str], sequence: list[str]) -> int:
+    if not sequence or len(sequence) > len(tokens):
+        return -1
+    for index in range(0, len(tokens) - len(sequence) + 1):
+        if tokens[index : index + len(sequence)] == sequence:
+            return index
+    return -1
+
+
+def softmax_normalize(scores: list[float]) -> list[float]:
+    if not scores:
+        return []
+    high = max(scores)
+    values = [math.exp(min(50.0, score - high)) for score in scores]
+    total = sum(values)
+    if not total:
+        return [0.0 for _ in scores]
+    return [value / total for value in values]
 
 
 def min_max_normalize(scores: list[float]) -> list[float]:
@@ -87,6 +131,33 @@ def min_max_normalize(scores: list[float]) -> list[float]:
 def finite_or_none(value: Any) -> float | None:
     number = float(value)
     return round(number, 6) if math.isfinite(number) else None
+
+
+def expand_answer_to_sentence(context: str, answer: str, start: int, end: int) -> str:
+    answer = str(answer or "").strip()
+    if not answer or start < 0 or end <= start or end > len(context):
+        return answer
+
+    raw_span = context[start:end].strip()
+    if normalize_text(answer) not in normalize_text(raw_span):
+        return answer
+
+    max_chars = int(os.getenv("QA_ANSWER_SENTENCE_MAX_CHARS", "360"))
+    left_boundaries = [context.rfind(mark, 0, start) for mark in ".!?\n"]
+    sentence_start = max(left_boundaries) + 1
+    while sentence_start < len(context) and context[sentence_start].isspace():
+        sentence_start += 1
+
+    right_candidates = [context.find(mark, end) for mark in ".!?\n"]
+    right_candidates = [index for index in right_candidates if index >= 0]
+    sentence_end = (min(right_candidates) + 1) if right_candidates else len(context)
+    while sentence_end > sentence_start and context[sentence_end - 1].isspace():
+        sentence_end -= 1
+
+    sentence = context[sentence_start:sentence_end].strip()
+    if len(sentence) <= len(answer) or len(sentence) > max_chars:
+        return answer
+    return sentence
 
 
 class PassageIndex:
@@ -130,7 +201,7 @@ class PassageIndex:
                 max_tokens=CHUNK_MAX_TOKENS,
                 overlap_sentences=CHUNK_OVERLAP_SENTENCES,
             ):
-                tokens = tuple(tokenize(f"{passage.title} {passage.text}"))
+                tokens = tuple(tokenize(passage.text))
                 indexed.append(IndexedPassage(passage, tokens, Counter(tokens)))
         return indexed
 
@@ -142,6 +213,7 @@ class PassageIndex:
             frequency = passage.term_counts.get(term, 0)
             if not frequency:
                 continue
+            frequency = min(frequency, 1)
             denominator = frequency + k1 * (
                 1 - b + b * passage_length / max(1.0, self.avg_passage_len)
             )
@@ -167,6 +239,82 @@ class PassageIndex:
             return 0.0
         return numerator / math.sqrt(query_norm * document_norm)
 
+    def _lexical_boost(self, query_tokens: list[str], passage: IndexedPassage) -> float:
+        query_terms = list(dict.fromkeys(query_tokens))
+        if not query_terms:
+            return 0.0
+
+        passage_terms = set(passage.tokens)
+        matched_terms = [term for term in query_terms if term in passage_terms]
+        if not matched_terms:
+            return 0.0
+
+        coverage = len(matched_terms) / len(query_terms)
+        boost = coverage * 2.0
+
+        title_tokens = set(tokenize(passage.metadata.title))
+        if title_tokens:
+            title_matches = sum(1 for term in query_terms if term in title_tokens)
+            boost += 0.8 * title_matches / len(query_terms)
+
+        passage_token_text = normalized_token_text(passage.tokens)
+        phrase_hits = 0
+        for gram in query_ngrams(query_tokens):
+            if gram in passage_token_text:
+                phrase_hits += 1
+        if phrase_hits:
+            boost += min(1.5, 0.35 * phrase_hits)
+
+        positions: dict[str, list[int]] = defaultdict(list)
+        for index, token in enumerate(passage.tokens):
+            if token in matched_terms:
+                positions[token].append(index)
+        first_positions = [indexes[0] for indexes in positions.values() if indexes]
+        if len(first_positions) >= 2:
+            window = max(first_positions) - min(first_positions) + 1
+            if window <= 40:
+                boost += (40 - window) / 40
+
+        return boost
+
+    def _lead_passage_boost(self, query_tokens: list[str], passage: IndexedPassage) -> float:
+        query_terms = list(dict.fromkeys(query_tokens))
+        if len(query_terms) < 2:
+            return 0.0
+
+        sentences = split_sentences(passage.metadata.text)
+        if not sentences:
+            return 0.0
+
+        first_tokens = raw_tokens(sentences[0])
+        first_content = [token for token in first_tokens if len(token) > 1 and token not in STOPWORDS]
+        phrase_index = find_sequence(first_content, query_terms)
+        if phrase_index < 0:
+            return 0.0
+
+        boost = 0.0
+        if phrase_index <= 2:
+            boost += 1.0
+
+        raw_phrase_index = find_sequence(first_tokens, query_terms)
+        if raw_phrase_index >= 0:
+            boost += max(0.0, 0.8 - 0.08 * raw_phrase_index)
+            after_phrase = raw_phrase_index + len(query_terms)
+            try:
+                definition_index = first_tokens.index("la", after_phrase)
+            except ValueError:
+                definition_index = -1
+            if definition_index > after_phrase:
+                gap = first_tokens[after_phrase:definition_index]
+                gap_content = [
+                    token for token in gap
+                    if token not in STOPWORDS and token not in DATE_TOKENS and not token.isdigit()
+                ]
+                if not gap_content and definition_index - raw_phrase_index <= 18:
+                    boost += 2.4
+
+        return boost
+
     def retrieve(self, question: str, method: str, top_k: int) -> list[SearchHit]:
         query_tokens = tokenize(question)
         if not query_tokens:
@@ -179,15 +327,20 @@ class PassageIndex:
         scored: list[tuple[IndexedPassage, float]] = []
         scorer = self._bm25 if method == "bm25" else self._tfidf
         for passage in self.passages:
-            score = scorer(query_tokens, passage)
+            base_score = scorer(query_tokens, passage)
+            score = (
+                base_score
+                + self._lexical_boost(query_tokens, passage)
+                + self._lead_passage_boost(query_tokens, passage)
+            )
             if score > 0:
                 scored.append((passage, score))
         scored.sort(key=lambda item: item[1], reverse=True)
         selected = scored[:top_k]
         normalized = min_max_normalize([score for _, score in selected])
         return [
-            SearchHit(passage, raw, norm)
-            for (passage, raw), norm in zip(selected, normalized)
+            SearchHit(passage, raw, norm, rank)
+            for rank, ((passage, raw), norm) in enumerate(zip(selected, normalized), start=1)
         ]
 
 
@@ -252,7 +405,11 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     if not question:
         raise ValueError("question is required")
 
-    hits = INDEX.retrieve(question, retriever, top_k)
+    candidate_count = min(
+        20,
+        max(top_k, RETRIEVER_MIN_CANDIDATES, top_k * max(1, RETRIEVER_CANDIDATE_MULTIPLIER)),
+    )
+    hits = INDEX.retrieve(question, retriever, candidate_count)
     if not hits:
         return _empty_response(
             question,
@@ -263,7 +420,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
 
     predictor = READERS.get(reader_name)
     passages: list[dict[str, Any]] = []
-    for retrieval_rank, hit in enumerate(hits, start=1):
+    for hit in hits:
         output = predictor.predict(
             question,
             hit.passage.metadata.text,
@@ -272,9 +429,17 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         reader_score = float(output["confidence"])
         final_score = RETRIEVER_WEIGHT * hit.retrieval_score_normalized + READER_WEIGHT * reader_score
         metadata = hit.passage.metadata
+        span_answer = str(output["answer"] or "")
+        sentence_answer = expand_answer_to_sentence(
+            metadata.text,
+            span_answer,
+            int(output["start"]),
+            int(output["end"]),
+        )
         passages.append(
             {
-                "rank": retrieval_rank,
+                "rank": 0,
+                "retrieval_rank": hit.retrieval_rank,
                 "document_id": metadata.document_id,
                 "passage_id": metadata.passage_id,
                 "title": metadata.title,
@@ -286,13 +451,14 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 "retrieval_score": round(hit.retrieval_score_normalized, 6),
                 "retrieval_score_raw": round(hit.retrieval_score_raw, 6),
                 "retrieval_score_normalized": round(hit.retrieval_score_normalized, 6),
-                "reader_answer": output["answer"] or None,
+                "reader_answer": sentence_answer or None,
+                "reader_span_answer": span_answer or None,
                 "reader_score": round(reader_score, 6),
                 "reader_score_raw": finite_or_none(output["score"]),
                 "reader_null_score": finite_or_none(output["null_score"]),
                 "reader_score_margin": finite_or_none(output["score_margin"]),
                 "answer_span": {
-                    "text": output["answer"],
+                    "text": span_answer,
                     "start": int(output["start"]),
                     "end": int(output["end"]),
                 },
@@ -300,7 +466,32 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             }
         )
 
-    selected = max(passages, key=lambda item: item["final_score"])
+    margins = [
+        float(item["reader_score_margin"])
+        for item in passages
+        if item["reader_score_margin"] is not None and math.isfinite(float(item["reader_score_margin"]))
+    ]
+    margin_scores = softmax_normalize(margins)
+    margin_index = 0
+    for item in passages:
+        if item["reader_score_margin"] is not None and math.isfinite(float(item["reader_score_margin"])):
+            item["reader_margin_score"] = round(margin_scores[margin_index], 6)
+            margin_index += 1
+        else:
+            item["reader_margin_score"] = 0.0
+        item["final_score"] = round(
+            0.30 * float(item["retrieval_score_normalized"])
+            + 0.45 * float(item["reader_score"])
+            + 0.25 * float(item["reader_margin_score"]),
+            6,
+        )
+
+    passages.sort(key=lambda item: item["final_score"], reverse=True)
+    passages = passages[:top_k]
+    for rank, item in enumerate(passages, start=1):
+        item["rank"] = rank
+
+    selected = passages[0]
     has_answer = bool(selected["reader_answer"]) and selected["reader_score"] >= ANSWER_THRESHOLD
     elapsed = int((time.perf_counter() - started) * 1000)
     source = {
@@ -329,6 +520,9 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "reader_weight": READER_WEIGHT,
             "answer_threshold": ANSWER_THRESHOLD,
             "retrieval_normalization": "min_max_within_top_k",
+            "candidate_count": candidate_count,
+            "rerank": "retrieval_reader_margin",
+            "final_score_formula": "0.30*retrieval + 0.45*reader_confidence + 0.25*reader_margin_softmax",
         },
     }
     if QA_DEBUG:

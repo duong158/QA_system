@@ -20,6 +20,7 @@ export interface SourceInfo {
 
 export interface PassageResult {
   rank: number;
+  retrieval_rank?: number;
   document_id: string;
   passage_id: string;
   title: string;
@@ -32,10 +33,12 @@ export interface PassageResult {
   retrieval_score_raw?: number;
   retrieval_score_normalized?: number;
   reader_answer?: string | null;
+  reader_span_answer?: string | null;
   reader_score?: number;
   reader_score_raw?: number | null;
   reader_null_score?: number | null;
   reader_score_margin?: number | null;
+  reader_margin_score?: number;
   final_score?: number;
   answer_span?: {
     text: string;
@@ -65,6 +68,9 @@ export interface QaResponse {
     reader_weight: number;
     answer_threshold: number;
     retrieval_normalization: string;
+    candidate_count?: number;
+    rerank?: string;
+    final_score_formula?: string;
   };
 }
 
