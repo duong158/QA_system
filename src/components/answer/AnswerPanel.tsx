@@ -17,6 +17,7 @@ interface AnswerPanelProps {
 export function AnswerPanel({ response, state, compareMode, onViewSource }: AnswerPanelProps) {
   const hasAnswer = response?.has_answer ?? Boolean(response?.answer);
   const lowConfidence = Boolean(response && hasAnswer && response.confidence < 0.5);
+  const noAnswerWithRetrievedPassage = Boolean(response && !hasAnswer && response.passages?.length);
 
   return (
     <motion.section
@@ -52,7 +53,19 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
         ) : null}
       </div>
 
-      {response?.source ? <SourceCard source={response.source} /> : null}
+      {response?.answer_source ? <SourceCard source={response.answer_source} /> : null}
+
+      {noAnswerWithRetrievedPassage ? (
+        <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-50">
+          <p className="font-medium">No answer debug</p>
+          <p className="mt-1 text-amber-100/90">{response?.no_answer_reason ?? 'Reader did not return an answer above threshold.'}</p>
+          <p className="text-amber-100/80">
+            Best reader score: {typeof response?.best_reader_score === 'number' ? `${(response.best_reader_score * 100).toFixed(1)}%` : '--'}
+            {response?.scoring ? ` | Threshold: ${(response.scoring.answer_threshold * 100).toFixed(1)}%` : ''}
+          </p>
+          <p className="text-amber-100/70">Most relevant retrieved passage is shown below, but it is not treated as an answer source.</p>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-y border-slate-400/15 py-3 text-xs text-slate-400">
         {response ? <ConfidenceBadge confidence={response.confidence} /> : <span>Confidence --</span>}

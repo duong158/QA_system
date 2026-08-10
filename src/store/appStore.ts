@@ -154,7 +154,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'viqa-nexus-settings',
-      version: 3,
+      version: 4,
       partialize: (state) => ({ settings: state.settings }),
       migrate: (persistedState) => {
         const state = persistedState as Partial<AppState> | undefined;
@@ -168,8 +168,8 @@ export const useAppStore = create<AppState>()(
           settings: {
             ...defaultSettings,
             ...settings,
-            retriever: settings.retriever === 'dense' || settings.retriever === 'pyserini' ? 'bm25' : settings.retriever,
-            reader: settings.reader === 'mock' ? 'phobert' : settings.reader,
+            retriever: settings.retriever === 'tfidf' || settings.retriever === 'bm25' ? settings.retriever : defaultSettings.retriever,
+            reader: settings.reader === 'phobert' ? settings.reader : defaultSettings.reader,
             voice: {
               ...defaultSettings.voice,
               ...settings.voice,

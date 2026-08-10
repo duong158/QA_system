@@ -38,11 +38,23 @@ vite.config.d.ts
 .env
 
 # ==========================================
-# Model weights & checkpoints (too large for GitHub)
+# Model weights & checkpoints (too large or not redistributable)
 # ==========================================
-models/
+# Keep lightweight reader metadata/tokenizers in Git. Large weights stay local.
+models/*
+!models/reader/
+models/reader/*
+!models/reader/vinai_phobert-base-v2/
+models/reader/vinai_phobert-base-v2/*
+!models/reader/vinai_phobert-base-v2/config.json
+!models/reader/vinai_phobert-base-v2/tokenizer.json
+!models/reader/vinai_phobert-base-v2/tokenizer_config.json
+models_reader/
 *.safetensors
 *.zip
+
+# Mari's creator allows use with credit but explicitly forbids reposting.
+public/models/*.vrm
 
 # Agent / IDE config (personal)
 .agent/

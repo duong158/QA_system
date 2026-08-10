@@ -31,11 +31,17 @@ export interface PassageResult {
   retrieval_score: number;
   retrieval_score_raw?: number;
   retrieval_score_normalized?: number;
+  reader_method?: string;
   reader_answer?: string | null;
   reader_score?: number;
+  neural_reader_answer?: string | null;
+  neural_reader_score?: number;
   reader_score_raw?: number | null;
   reader_null_score?: number | null;
   reader_score_margin?: number | null;
+  fallback_answer?: string | null;
+  fallback_score?: number;
+  fallback_reason?: string;
   final_score?: number;
   answer_span?: {
     text: string;
@@ -54,6 +60,10 @@ export interface QaResponse {
   retriever: RetrieverType;
   reader: ReaderType;
   source: SourceInfo | null;
+  answer_source?: SourceInfo | null;
+  top_retrieved_passage?: PassageResult | null;
+  no_answer_reason?: string | null;
+  best_reader_score?: number;
   answer_span?: {
     text: string;
     start: number;
@@ -64,6 +74,8 @@ export interface QaResponse {
     retriever_weight: number;
     reader_weight: number;
     answer_threshold: number;
+    reader_fallback_threshold?: number;
+    sentence_fallback_threshold?: number;
     retrieval_normalization: string;
   };
 }

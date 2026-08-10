@@ -9,17 +9,17 @@ interface SettingsPanelProps {
   onTestVoice?: () => void;
 }
 
-const retrieverOptions: Array<{ value: RetrieverType; label: string }> = [
-  { value: 'tfidf', label: 'TF-IDF' },
-  { value: 'bm25', label: 'BM25' },
-  { value: 'dense', label: 'Dense Retrieval' },
-  { value: 'pyserini', label: 'Pyserini BM25' },
+const retrieverOptions: Array<{ value: RetrieverType; label: string; implemented: boolean }> = [
+  { value: 'tfidf', label: 'TF-IDF', implemented: true },
+  { value: 'bm25', label: 'BM25', implemented: true },
+  { value: 'dense', label: 'Dense Retrieval', implemented: false },
+  { value: 'pyserini', label: 'Pyserini BM25', implemented: false },
 ];
 
-const readerOptions: Array<{ value: ReaderType; label: string }> = [
-  { value: 'phobert', label: 'PhoBERT QA' },
-  { value: 'vibert', label: 'viBERT QA' },
-  { value: 'xlmr', label: 'XLM-R QA' },
+const readerOptions: Array<{ value: ReaderType; label: string; implemented: boolean }> = [
+  { value: 'phobert', label: 'PhoBERT QA', implemented: true },
+  { value: 'vibert', label: 'viBERT QA', implemented: false },
+  { value: 'xlmr', label: 'XLM-R QA', implemented: false },
 ];
 
 const topKOptions = [1, 3, 5, 10];
@@ -67,12 +67,20 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => updateSettings({ retriever: option.value })}
+                      disabled={!option.implemented}
+                      onClick={() => option.implemented && updateSettings({ retriever: option.value })}
                       className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
-                        settings.retriever === option.value ? 'border-viqa-cyan/30 bg-viqa-cyan/10 text-viqa-cyan' : 'border-white/10 bg-white/5 text-slate-200'
+                        settings.retriever === option.value
+                          ? 'border-viqa-cyan/30 bg-viqa-cyan/10 text-viqa-cyan'
+                          : option.implemented
+                            ? 'border-white/10 bg-white/5 text-slate-200 hover:border-viqa-cyan/25'
+                            : 'cursor-not-allowed border-white/5 bg-white/[0.03] text-slate-500'
                       }`}
                     >
-                      {option.label}
+                      <span className="flex items-center justify-between gap-3">
+                        <span>{option.label}</span>
+                        {!option.implemented ? <span className="rounded-full border border-slate-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em]">Coming soon</span> : null}
+                      </span>
                     </button>
                   ))}
                 </div>
@@ -87,12 +95,20 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => updateSettings({ reader: option.value })}
+                      disabled={!option.implemented}
+                      onClick={() => option.implemented && updateSettings({ reader: option.value })}
                       className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
-                        settings.reader === option.value ? 'border-viqa-violet/30 bg-viqa-violet/10 text-viqa-violet' : 'border-white/10 bg-white/5 text-slate-200'
+                        settings.reader === option.value
+                          ? 'border-viqa-violet/30 bg-viqa-violet/10 text-viqa-violet'
+                          : option.implemented
+                            ? 'border-white/10 bg-white/5 text-slate-200 hover:border-viqa-violet/25'
+                            : 'cursor-not-allowed border-white/5 bg-white/[0.03] text-slate-500'
                       }`}
                     >
-                      {option.label}
+                      <span className="flex items-center justify-between gap-3">
+                        <span>{option.label}</span>
+                        {!option.implemented ? <span className="rounded-full border border-slate-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em]">Coming soon</span> : null}
+                      </span>
                     </button>
                   ))}
                 </div>

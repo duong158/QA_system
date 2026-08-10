@@ -39,7 +39,7 @@ The local API is implemented in `backend/viqa_api.py` and serves:
 
 It reads `data/processed/docs.db`, chunks each document at sentence boundaries, and retrieves passage-level top-k results with TF-IDF or BM25. Every retrieved passage is sent to the configured extractive QA Reader before score-based reranking.
 
-The real API does not fall back to mock answers, heuristic answer extraction, Dense-lite, or fabricated scores. Dense/Pyserini and Reader choices without a compatible local model/index return an explicit API error.
+The real API never fabricates mock answers or scores. It uses the local PhoBERT QA checkpoint when available and a transparent sentence-extraction fallback when the neural score is too low or the large checkpoint is not installed. Dense/Pyserini and Reader choices without a compatible local model/index return an explicit API error.
 
 Pipeline settings are environment variables on the API process:
 
@@ -136,6 +136,22 @@ public/models/mari.vrm
 ```
 
 Do not redistribute or upload the model file to a public repository unless the creator's license explicitly allows it. The currently configured source is the free BOOTH item by `wondrous21`: https://booth.pm/en/items/4507087
+
+## Reader Model
+
+The lightweight PhoBERT QA configuration and tokenizer files are included at:
+
+```text
+models/reader/vinai_phobert-base-v2/
+```
+
+The trained `model.safetensors` file is about 513 MB and is intentionally excluded from Git. Transfer that checkpoint separately and place it at:
+
+```text
+models/reader/vinai_phobert-base-v2/model.safetensors
+```
+
+Without the large checkpoint, the API still starts and uses its sentence-extraction fallback. The `/health` response reports which Reader models are available.
 
 ## Build
 

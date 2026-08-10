@@ -27,10 +27,23 @@ HOST = os.getenv("QA_HOST", "0.0.0.0")
 PORT = int(os.getenv("QA_PORT", "8000"))
 CHUNK_MAX_TOKENS = int(os.getenv("QA_CHUNK_MAX_TOKENS", "220"))
 CHUNK_OVERLAP_SENTENCES = int(os.getenv("QA_CHUNK_OVERLAP_SENTENCES", "2"))
-RETRIEVER_WEIGHT = float(os.getenv("QA_RETRIEVER_WEIGHT", "0.30"))
-READER_WEIGHT = float(os.getenv("QA_READER_WEIGHT", "0.70"))
+RETRIEVER_WEIGHT = float(os.getenv("QA_RETRIEVER_WEIGHT", "0.15"))
+READER_WEIGHT = float(os.getenv("QA_READER_WEIGHT", "0.85"))
 ANSWER_THRESHOLD = float(os.getenv("QA_ANSWER_THRESHOLD", "0.30"))
+READER_FALLBACK_THRESHOLD = float(os.getenv("QA_READER_FALLBACK_THRESHOLD", "0.30"))
+SENTENCE_FALLBACK_THRESHOLD = float(os.getenv("QA_SENTENCE_FALLBACK_THRESHOLD", "0.42"))
 QA_DEBUG = os.getenv("QA_DEBUG", "false").lower() in {"1", "true", "yes", "on"}
+SUPPORTED_RETRIEVERS = {"tfidf", "bm25"}
+UNIMPLEMENTED_RETRIEVERS = {
+    "dense": "Dense retrieval is not wired into this API yet: no embedding model/vector index is configured for online serving.",
+    "pyserini": "Pyserini BM25 is not wired into this API yet: no Lucene index/runtime is configured for online serving.",
+}
+SUPPORTED_READERS = {"phobert"}
+UNIMPLEMENTED_READERS = {
+    "mock": "Mock Reader is forbidden in the real API.",
+    "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
+    "xlmr": "XLM-R QA is not implemented: no XLM-R QA checkpoint is available under models/reader.",
+}
 
 if RETRIEVER_WEIGHT < 0 or READER_WEIGHT < 0 or RETRIEVER_WEIGHT + READER_WEIGHT <= 0:
     raise ValueError("QA retriever/reader weights must be non-negative and have a positive sum")
@@ -48,6 +61,22 @@ STOPWORDS = {
 
 class PipelineError(RuntimeError):
     pass
+
+
+def validate_retriever(method: str) -> None:
+    if method in SUPPORTED_RETRIEVERS:
+        return
+    if method in UNIMPLEMENTED_RETRIEVERS:
+        raise ValueError(f"Retriever '{method}' is not implemented. {UNIMPLEMENTED_RETRIEVERS[method]}")
+    raise ValueError(f"Retriever '{method}' is not supported.")
+
+
+def validate_reader(reader_name: str) -> None:
+    if reader_name in SUPPORTED_READERS:
+        return
+    if reader_name in UNIMPLEMENTED_READERS:
+        raise ValueError(f"Reader '{reader_name}' is not implemented. {UNIMPLEMENTED_READERS[reader_name]}")
+    raise ValueError(f"Reader '{reader_name}' is not supported.")
 
 
 @dataclass(frozen=True)
@@ -87,6 +116,102 @@ def min_max_normalize(scores: list[float]) -> list[float]:
 def finite_or_none(value: Any) -> float | None:
     number = float(value)
     return round(number, 6) if math.isfinite(number) else None
+
+
+ANSWER_CUE_PATTERNS = (
+    "duoc chia thanh",
+    "duoc chia lam",
+    "chia thanh",
+    "chia lam",
+    "bao gom",
+    "gom",
+    "la",
+    "duoc goi la",
+    "co nghia la",
+    "duoc dinh nghia",
+)
+
+
+def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
+    """Extract a useful full-sentence answer when the neural reader is not confident.
+
+    This is deliberately generic: it does not map specific questions to answers.
+    It picks the context sentence with strong lexical overlap and Vietnamese answer cues.
+    """
+    question_tokens = set(tokenize(question))
+    if not question_tokens:
+        return {"answer": "", "confidence": 0.0, "start": -1, "end": -1, "reason": "empty_question_tokens"}
+
+    normalized_question = normalize_text(question)
+    subject_phrase = re.sub(
+        r"\b(bao gom nhung gi|gom nhung gi|co nhung gi|duoc chia thanh|duoc chia lam|duoc chia|chia thanh|chia lam|nhu the nao|nhu nao|la gi|la ai|chia|duoc|nao|gi|ai)\b",
+        " ",
+        normalized_question,
+    )
+    subject_phrase = re.sub(r"\s+", " ", subject_phrase).strip()
+    best: dict[str, Any] = {"answer": "", "confidence": 0.0, "start": -1, "end": -1, "reason": "no_sentence"}
+    search_from = 0
+    for sentence in split_sentences(context):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        start = context.find(sentence, search_from)
+        if start < 0:
+            start = context.find(sentence)
+        end = start + len(sentence) if start >= 0 else -1
+        search_from = max(search_from, end)
+
+        sentence_tokens = set(tokenize(sentence))
+        overlap = len(question_tokens & sentence_tokens) / max(1, len(question_tokens))
+        normalized_sentence = normalize_text(sentence)
+        cue_bonus = 0.0
+        if any(pattern in normalized_sentence for pattern in ANSWER_CUE_PATTERNS):
+            cue_bonus += 0.18
+        if len(subject_phrase) >= 8 and subject_phrase in normalized_sentence:
+            cue_bonus += 0.22
+        if len(sentence_tokens) >= 6:
+            cue_bonus += 0.04
+        if len(sentence) > 520:
+            cue_bonus -= 0.12
+        score = max(0.0, min(0.92, overlap * 0.78 + cue_bonus))
+
+        if score > best["confidence"]:
+            best = {
+                "answer": sentence,
+                "confidence": round(score, 6),
+                "start": start,
+                "end": end,
+                "reason": "sentence_overlap_cue",
+            }
+    return best
+
+
+def choose_reader_output(neural_output: dict[str, Any], fallback_output: dict[str, Any]) -> dict[str, Any]:
+    neural_confidence = float(neural_output["confidence"])
+    fallback_confidence = float(fallback_output["confidence"])
+    if neural_output.get("answer") and neural_confidence >= READER_FALLBACK_THRESHOLD:
+        return {
+            "method": "phobert",
+            "answer": neural_output["answer"],
+            "confidence": neural_confidence,
+            "start": int(neural_output["start"]),
+            "end": int(neural_output["end"]),
+        }
+    if fallback_output.get("answer") and fallback_confidence >= SENTENCE_FALLBACK_THRESHOLD:
+        return {
+            "method": "sentence_fallback",
+            "answer": fallback_output["answer"],
+            "confidence": fallback_confidence,
+            "start": int(fallback_output["start"]),
+            "end": int(fallback_output["end"]),
+        }
+    return {
+        "method": "phobert",
+        "answer": neural_output.get("answer") or None,
+        "confidence": neural_confidence,
+        "start": int(neural_output["start"]),
+        "end": int(neural_output["end"]),
+    }
 
 
 class PassageIndex:
@@ -171,10 +296,7 @@ class PassageIndex:
         query_tokens = tokenize(question)
         if not query_tokens:
             return []
-        if method not in {"bm25", "tfidf"}:
-            raise PipelineError(
-                f"Retriever '{method}' is unavailable: no compatible passage-level index/model is configured"
-            )
+        validate_retriever(method)
 
         scored: list[tuple[IndexedPassage, float]] = []
         scorer = self._bm25 if method == "bm25" else self._tfidf
@@ -194,19 +316,14 @@ class PassageIndex:
 class ReaderManager:
     MODEL_FOLDERS = {
         "phobert": "vinai_phobert-base-v2",
-        "vibert": "vibert-base-v2",
-        "xlmr": "xlm-roberta-base",
     }
 
     def __init__(self) -> None:
         self.predictors: dict[str, Any] = {}
 
     def get(self, reader_name: str):
-        if reader_name == "mock":
-            raise PipelineError("Mock Reader is forbidden in the real API")
+        validate_reader(reader_name)
         folder = self.MODEL_FOLDERS.get(reader_name)
-        if not folder:
-            raise PipelineError(f"Unknown reader '{reader_name}'")
         if reader_name not in self.predictors:
             model_dir = ROOT / "models" / "reader" / folder
             if not model_dir.exists():
@@ -235,6 +352,9 @@ def _empty_response(question: str, retriever: str, reader: str, elapsed: int) ->
         "retriever": retriever,
         "reader": reader,
         "source": None,
+        "answer_source": None,
+        "top_retrieved_passage": None,
+        "no_answer_reason": "Retriever returned no passage with a positive score.",
         "answer_span": None,
         "passages": [],
     }
@@ -251,6 +371,8 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("top_k must be an integer") from error
     if not question:
         raise ValueError("question is required")
+    validate_retriever(retriever)
+    validate_reader(reader_name)
 
     hits = INDEX.retrieve(question, retriever, top_k)
     if not hits:
@@ -269,7 +391,9 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             hit.passage.metadata.text,
             no_answer_threshold=ANSWER_THRESHOLD,
         )
-        reader_score = float(output["confidence"])
+        fallback_output = sentence_fallback_predict(question, hit.passage.metadata.text)
+        chosen_output = choose_reader_output(output, fallback_output)
+        reader_score = float(chosen_output["confidence"])
         final_score = RETRIEVER_WEIGHT * hit.retrieval_score_normalized + READER_WEIGHT * reader_score
         metadata = hit.passage.metadata
         passages.append(
@@ -286,15 +410,21 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 "retrieval_score": round(hit.retrieval_score_normalized, 6),
                 "retrieval_score_raw": round(hit.retrieval_score_raw, 6),
                 "retrieval_score_normalized": round(hit.retrieval_score_normalized, 6),
-                "reader_answer": output["answer"] or None,
+                "reader_method": chosen_output["method"],
+                "reader_answer": chosen_output["answer"] or None,
                 "reader_score": round(reader_score, 6),
+                "neural_reader_answer": output["answer"] or None,
+                "neural_reader_score": round(float(output["confidence"]), 6),
                 "reader_score_raw": finite_or_none(output["score"]),
                 "reader_null_score": finite_or_none(output["null_score"]),
                 "reader_score_margin": finite_or_none(output["score_margin"]),
+                "fallback_answer": fallback_output["answer"] or None,
+                "fallback_score": round(float(fallback_output["confidence"]), 6),
+                "fallback_reason": fallback_output["reason"],
                 "answer_span": {
-                    "text": output["answer"],
-                    "start": int(output["start"]),
-                    "end": int(output["end"]),
+                    "text": chosen_output["answer"],
+                    "start": int(chosen_output["start"]),
+                    "end": int(chosen_output["end"]),
                 },
                 "final_score": round(final_score, 6),
             }
@@ -303,7 +433,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     selected = max(passages, key=lambda item: item["final_score"])
     has_answer = bool(selected["reader_answer"]) and selected["reader_score"] >= ANSWER_THRESHOLD
     elapsed = int((time.perf_counter() - started) * 1000)
-    source = {
+    answer_source = {
         "document_id": selected["document_id"],
         "passage_id": selected["passage_id"],
         "title": selected["title"],
@@ -312,22 +442,39 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         "sentence_end": selected["sentence_end"],
         "page": selected["page"],
     }
+    top_retrieved = passages[0] if passages else None
+    best_reader_score = max((float(passage["reader_score"]) for passage in passages), default=0.0)
+    no_answer_reason = None
+    if not has_answer:
+        if best_reader_score < ANSWER_THRESHOLD:
+            no_answer_reason = "Reader confidence below threshold."
+        elif not selected["reader_answer"]:
+            no_answer_reason = "Reader did not extract a valid answer span."
+        else:
+            no_answer_reason = "No answer satisfied the QA acceptance criteria."
+
     response = {
         "question": question,
         "answer": selected["reader_answer"] if has_answer else None,
         "has_answer": has_answer,
-        "confidence": selected["reader_score"],
-        "selected_passage_id": selected["passage_id"],
+        "confidence": selected["reader_score"] if has_answer else 0.0,
+        "selected_passage_id": selected["passage_id"] if has_answer else None,
         "processing_time_ms": elapsed,
         "retriever": retriever,
         "reader": reader_name,
-        "source": source,
+        "source": answer_source if has_answer else None,
+        "answer_source": answer_source if has_answer else None,
+        "top_retrieved_passage": top_retrieved,
+        "no_answer_reason": no_answer_reason,
+        "best_reader_score": round(best_reader_score, 6),
         "answer_span": selected["answer_span"] if has_answer else None,
         "passages": passages,
         "scoring": {
             "retriever_weight": RETRIEVER_WEIGHT,
             "reader_weight": READER_WEIGHT,
             "answer_threshold": ANSWER_THRESHOLD,
+            "reader_fallback_threshold": READER_FALLBACK_THRESHOLD,
+            "sentence_fallback_threshold": SENTENCE_FALLBACK_THRESHOLD,
             "retrieval_normalization": "min_max_within_top_k",
         },
     }
@@ -390,12 +537,18 @@ class Handler(BaseHTTPRequestHandler):
                     "status": "ok",
                     "passages": len(INDEX.passages),
                     "reader_models": ReaderManager.MODEL_FOLDERS,
+                    "supported_retrievers": sorted(SUPPORTED_RETRIEVERS),
+                    "unsupported_retrievers": UNIMPLEMENTED_RETRIEVERS,
+                    "supported_readers": sorted(SUPPORTED_READERS),
+                    "unsupported_readers": UNIMPLEMENTED_READERS,
                     "config": {
                         "chunk_max_tokens": CHUNK_MAX_TOKENS,
                         "chunk_overlap_sentences": CHUNK_OVERLAP_SENTENCES,
                         "retriever_weight": RETRIEVER_WEIGHT,
                         "reader_weight": READER_WEIGHT,
                         "answer_threshold": ANSWER_THRESHOLD,
+                        "reader_fallback_threshold": READER_FALLBACK_THRESHOLD,
+                        "sentence_fallback_threshold": SENTENCE_FALLBACK_THRESHOLD,
                     },
                 }
             )

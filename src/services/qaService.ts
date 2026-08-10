@@ -4,11 +4,17 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000
 const USE_MOCK_API = String(import.meta.env.VITE_USE_MOCK_API ?? 'false').toLowerCase() === 'true';
 const QA_ERROR_MESSAGE = 'Không thể xử lý câu hỏi do hệ thống QA gặp lỗi.';
 
+async function readApiError(response: Response): Promise<string> {
+  const errorBody = await response.json().catch(() => null) as { error?: string } | null;
+  return errorBody?.error || QA_ERROR_MESSAGE;
+}
+
 function normalizeQaResponse(data: QaResponse): QaResponse {
   return {
     ...data,
     has_answer: data.has_answer ?? Boolean(data.answer),
-    selected_passage_id: data.selected_passage_id ?? data.source?.passage_id ?? null,
+    selected_passage_id: data.selected_passage_id ?? data.answer_source?.passage_id ?? data.source?.passage_id ?? null,
+    source: data.answer_source ?? data.source ?? null,
     passages: data.passages ?? [],
   };
 }
@@ -33,7 +39,7 @@ export async function askQuestion(request: AskQuestionRequest): Promise<QaRespon
   }
 
   if (!response.ok) {
-    throw new Error(QA_ERROR_MESSAGE);
+    throw new Error(await readApiError(response));
   }
 
   const data = (await response.json()) as QaResponse;
@@ -60,7 +66,7 @@ export async function compareRetrievers(question: string): Promise<RetrieverComp
   }
 
   if (!response.ok) {
-    throw new Error(QA_ERROR_MESSAGE);
+    throw new Error(await readApiError(response));
   }
 
   return (await response.json()) as RetrieverComparisonRow[];
