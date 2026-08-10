@@ -1,5 +1,5 @@
 import { Html } from '@react-three/drei';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MutableRefObject } from 'react';
 import * as THREE from 'three';
@@ -154,7 +154,28 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
   const lookAtController = useMemo(() => new AvatarLookAtController(), []);
   const hairControllerRef = useRef<AvatarHairMotionController | null>(null);
   const poseControllerRef = useRef<AvatarPoseController | null>(null);
-  const { pointer } = useThree();
+  const globalPointerRef = useRef(new THREE.Vector2(0, 0));
+  const targetPointerRef = useRef(new THREE.Vector2(0, 0));
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      const x = (e.clientX / window.innerWidth) * 2 - 1;
+      const y = -(e.clientY / window.innerHeight) * 2 + 1;
+      targetPointerRef.current.set(x, y);
+    };
+
+    const handleMouseLeave = () => {
+      targetPointerRef.current.set(0, 0);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
 
   const expressionNames = useMemo(
     () => ['neutral', 'happy', 'relaxed', 'sad', 'surprised', 'angry', 'aa', 'A', 'mouthOpen', 'blink'],
@@ -215,7 +236,18 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
       upperChest.rotation.y = THREE.MathUtils.lerp(upperChest.rotation.y, 0, 0.04);
     }
 
-    lookAtController.update(currentVrm, state, pointer, elapsed, delta);
+    globalPointerRef.current.x = THREE.MathUtils.lerp(
+      globalPointerRef.current.x,
+      targetPointerRef.current.x,
+      0.15,
+    );
+    globalPointerRef.current.y = THREE.MathUtils.lerp(
+      globalPointerRef.current.y,
+      targetPointerRef.current.y,
+      0.15,
+    );
+
+    lookAtController.update(currentVrm, state, globalPointerRef.current, elapsed, delta);
     poseControllerRef.current?.update(state, delta);
 
     const activeExpression = stateExpression(state);

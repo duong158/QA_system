@@ -1,5 +1,6 @@
-import { motion } from 'framer-motion';
-import { Clock3, Cpu, Database, MessageSquareText, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Clock3, Cpu, Database, MessageSquareText, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PipelineState } from '@/types/pipeline';
 import type { PassageResult, QaResponse } from '@/types/qa';
 import { formatLatency } from '@/utils/formatScore';
@@ -15,6 +16,7 @@ interface AnswerPanelProps {
 }
 
 export function AnswerPanel({ response, state, compareMode, onViewSource }: AnswerPanelProps) {
+  const [isPassagesCollapsed, setIsPassagesCollapsed] = useState(false);
   const hasAnswer = response?.has_answer ?? Boolean(response?.answer);
   const lowConfidence = Boolean(response && hasAnswer && response.confidence < 0.5);
   const noAnswerWithRetrievedPassage = Boolean(response && !hasAnswer && response.passages?.length);
@@ -23,7 +25,10 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
     <motion.section
       initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
-      className="viqa-panel flex h-full min-h-[580px] flex-col gap-4 p-4 lg:p-5"
+      layout
+      className={`viqa-panel flex flex-col gap-4 p-4 lg:p-5 transition-all duration-300 ${
+        isPassagesCollapsed ? 'h-auto min-h-0' : 'h-full min-h-[580px]'
+      }`}
     >
       <div className="flex items-center gap-3">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-viqa-cyan/10 text-viqa-cyan">
@@ -84,29 +89,68 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
         <span className="capitalize text-slate-500">Status: {state}</span>
       </div>
 
-      <div className="flex-1">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h3 className="font-display text-base font-semibold text-slate-100">Source passages</h3>
-          {compareMode ? <span className="rounded-full border border-viqa-cyan/20 bg-viqa-cyan/10 px-3 py-1 text-xs text-viqa-cyan">Compare mode</span> : null}
+      <div className={isPassagesCollapsed ? 'flex-none' : 'flex-1'}>
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <h3 className="font-display text-base font-semibold text-slate-100">Source passages</h3>
+            {response?.passages?.length ? (
+              <span className="rounded-full bg-slate-800 px-2.5 py-0.5 text-xs font-medium text-slate-400">
+                {response.passages.length}
+              </span>
+            ) : null}
+          </div>
+          <div className="flex items-center gap-2">
+            {compareMode ? <span className="rounded-full border border-viqa-cyan/20 bg-viqa-cyan/10 px-3 py-1 text-xs text-viqa-cyan">Compare mode</span> : null}
+            {response?.passages?.length ? (
+              <button
+                type="button"
+                onClick={() => setIsPassagesCollapsed(!isPassagesCollapsed)}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-400/15 bg-slate-800/80 px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
+                title={isPassagesCollapsed ? 'Mở rộng danh sách nguồn' : 'Thu gọn danh sách nguồn'}
+              >
+                {isPassagesCollapsed ? (
+                  <>
+                    <ChevronDown className="h-3.5 w-3.5" />
+                    <span>Mở rộng</span>
+                  </>
+                ) : (
+                  <>
+                    <ChevronUp className="h-3.5 w-3.5" />
+                    <span>Thu gọn</span>
+                  </>
+                )}
+              </button>
+            ) : null}
+          </div>
         </div>
 
-        <div className="grid gap-3">
-          {response?.passages?.length ? (
-            response.passages.map((passage) => (
-              <PassageCard
-                key={passage.passage_id}
-                passage={passage}
-                answer={response.answer || response.answer_span?.text}
-                highlighted={passage.passage_id === response.selected_passage_id}
-                onViewSource={onViewSource}
-              />
-            ))
-          ) : (
-            <div className="rounded-lg border border-dashed border-slate-400/15 bg-slate-800/35 px-4 py-8 text-center text-sm text-slate-400">
-              Retrieved passages will appear here.
-            </div>
+        <AnimatePresence initial={false}>
+          {!isPassagesCollapsed && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.25 }}
+              className="mt-3 grid gap-3 overflow-hidden"
+            >
+              {response?.passages?.length ? (
+                response.passages.map((passage) => (
+                  <PassageCard
+                    key={passage.passage_id}
+                    passage={passage}
+                    answer={response.answer || response.answer_span?.text}
+                    highlighted={passage.passage_id === response.selected_passage_id}
+                    onViewSource={onViewSource}
+                  />
+                ))
+              ) : (
+                <div className="rounded-lg border border-dashed border-slate-400/15 bg-slate-800/35 px-4 py-8 text-center text-sm text-slate-400">
+                  Retrieved passages will appear here.
+                </div>
+              )}
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </div>
     </motion.section>
   );

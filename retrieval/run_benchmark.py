@@ -43,15 +43,14 @@ def load_eval_data(eval_set: str):
     Returns:
         (qa_df, corpus_df)
     """
-    # QA data
-    if eval_set == "dev":
-        qa_path = DATA_DIR / "viquad_dev_clean.parquet"
+    if eval_set in ("val", "dev"):
+        qa_path = DATA_DIR / "viquad_val_clean.parquet"
     elif eval_set == "test":
         qa_path = DATA_DIR / "viquad_test_clean.parquet"
     elif eval_set == "train":
         qa_path = DATA_DIR / "viquad_train_clean.parquet"
     else:
-        raise ValueError(f"Unknown eval_set: {eval_set}. Use 'dev', 'test', or 'train'.")
+        raise ValueError(f"Unknown eval_set: {eval_set}. Use 'val', 'test', or 'train'.")
 
     if not qa_path.exists():
         raise FileNotFoundError(f"QA data not found: {qa_path}")
@@ -266,8 +265,8 @@ def main():
     parser.add_argument(
         "--eval-set",
         type=str,
-        default="dev",
-        choices=["dev", "test", "train"],
+        default="val",
+        choices=["val", "dev", "test", "train"],
         help="Tập dữ liệu đánh giá."
     )
     parser.add_argument(

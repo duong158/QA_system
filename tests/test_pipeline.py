@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from backend.chunking import Passage
-from backend.viqa_api import IndexedPassage, SearchHit, ask_question
+from backend.viqa_api import IndexedPassage, SearchHit, ask_question, expand_answer_to_sentence
 
 
 def make_hit(passage_id: str, text: str, raw: float, normalized: float) -> SearchHit:
@@ -27,6 +27,18 @@ class LowConfidencePredictor:
 
 
 class PipelineTests(unittest.TestCase):
+    def test_expands_reader_span_to_containing_sentence(self):
+        context = "Paris is the capital of France. The city sits on the Seine river."
+
+        answer = expand_answer_to_sentence(
+            context,
+            "Seine river",
+            context.index("Seine"),
+            context.index("river") + len("river"),
+        )
+
+        self.assertEqual(answer, "The city sits on the Seine river.")
+
     def test_reader_runs_on_every_top_k_and_reranks(self):
         hits = [
             make_hit("DOC_P0001", "retriever favorite", 12.0, 1.0),
@@ -42,7 +54,8 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["answer_source"]["passage_id"], "DOC_P0002")
         self.assertEqual(result["scoring"]["retriever_weight"], 0.15)
         self.assertEqual(result["scoring"]["reader_weight"], 0.85)
-        self.assertGreater(result["passages"][1]["final_score"], result["passages"][0]["final_score"])
+        self.assertEqual(result["passages"][0]["passage_id"], "DOC_P0002")
+        self.assertGreater(result["passages"][0]["final_score"], result["passages"][1]["final_score"])
 
     def test_low_reader_scores_return_no_answer_without_answer_source(self):
         hits = [
