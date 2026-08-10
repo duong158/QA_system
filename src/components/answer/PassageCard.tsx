@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowUpRight } from 'lucide-react';
+import { ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PassageResult } from '@/types/qa';
 import { formatScore } from '@/utils/formatScore';
 import { highlightAnswer } from '@/utils/highlightAnswer';
@@ -14,6 +15,10 @@ interface PassageCardProps {
 const showDebugScores = import.meta.env.DEV || String(import.meta.env.VITE_QA_DEBUG ?? 'false').toLowerCase() === 'true';
 
 export function PassageCard({ passage, answer, highlighted = false, onViewSource }: PassageCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const isLongText = passage.text.length > 220;
+  const displayedText = isLongText && !isExpanded ? `${passage.text.slice(0, 220)}...` : passage.text;
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 12 }}
@@ -37,7 +42,7 @@ export function PassageCard({ passage, answer, highlighted = false, onViewSource
         </div>
       </div>
 
-      <p className="mt-4 text-sm leading-7 text-slate-200">{highlightAnswer(passage.text, answer ?? undefined)}</p>
+      <p className="mt-4 text-sm leading-7 text-slate-200">{highlightAnswer(displayedText, answer ?? undefined)}</p>
 
       {showDebugScores ? (
         <div className="mt-3 border-t border-slate-400/15 pt-3 text-xs leading-6 text-slate-400">
@@ -48,7 +53,29 @@ export function PassageCard({ passage, answer, highlighted = false, onViewSource
         </div>
       ) : null}
 
-      <div className="mt-4 flex items-center justify-end">
+      <div className="mt-4 flex items-center justify-between gap-2 border-t border-slate-400/10 pt-3">
+        {isLongText ? (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="inline-flex items-center gap-1 text-xs font-medium text-viqa-cyan transition hover:underline"
+          >
+            {isExpanded ? (
+              <>
+                <ChevronUp className="h-3.5 w-3.5" />
+                <span>Thu gọn văn bản</span>
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-3.5 w-3.5" />
+                <span>Xem thêm</span>
+              </>
+            )}
+          </button>
+        ) : (
+          <div />
+        )}
+
         <button
           type="button"
           onClick={() => onViewSource?.(passage)}
