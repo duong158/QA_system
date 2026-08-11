@@ -49,21 +49,21 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
         ) : isProcessing ? (
           <div className="flex items-center gap-3 text-base leading-7 text-slate-300" role="status" aria-live="polite">
             <LoaderCircle className="h-5 w-5 shrink-0 animate-spin text-viqa-cyan" />
-            <span>Đang tìm và trích xuất câu trả lời...</span>
+            <span>Thinking about the answer...</span>
           </div>
         ) : isConfirmedNoAnswer ? (
           <p className="text-base leading-7 text-slate-300">
-            Không tìm thấy câu trả lời đủ tin cậy trong tập tài liệu.
+            No sufficiently reliable answer was found in the documents.
           </p>
         ) : (
           <p className="text-base leading-7 text-slate-300">
-            Hãy đặt câu hỏi để bắt đầu.
+            Ask a question to get started.
           </p>
         )}
         {lowConfidence ? (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2.5 text-sm text-amber-100">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            Câu trả lời có độ tin cậy thấp. Vui lòng kiểm tra nguồn.
+            This answer has low confidence. Please verify the source.
           </div>
         ) : null}
       </div>
@@ -116,17 +116,17 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
                 type="button"
                 onClick={() => setIsPassagesCollapsed(!isPassagesCollapsed)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-400/15 bg-slate-800/80 px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
-                title={isPassagesCollapsed ? 'Mở rộng danh sách nguồn' : 'Thu gọn danh sách nguồn'}
+                title={isPassagesCollapsed ? 'Expand source passages' : 'Collapse source passages'}
               >
                 {isPassagesCollapsed ? (
                   <>
                     <ChevronDown className="h-3.5 w-3.5" />
-                    <span>Mở rộng</span>
+                    <span>Expand</span>
                   </>
                 ) : (
                   <>
                     <ChevronUp className="h-3.5 w-3.5" />
-                    <span>Thu gọn</span>
+                    <span>Collapse</span>
                   </>
                 )}
               </button>

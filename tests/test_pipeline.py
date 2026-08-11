@@ -27,13 +27,34 @@ class FakePredictor:
     def predict(self, question, context, no_answer_threshold):
         self.calls.append(context)
         if context == "retriever favorite":
-            return {"answer": "weak", "confidence": 0.2, "score": 1.0, "null_score": 2.0, "score_margin": -1.0, "start": 0, "end": 4}
-        return {"answer": "reader wins", "confidence": 0.9, "score": 5.0, "null_score": 1.0, "score_margin": 4.0, "start": 0, "end": 11}
+            return {"answer": "retriever", "confidence": 0.2, "score": 1.0, "null_score": 2.0, "score_margin": -1.0, "start": 0, "end": 9}
+        return {"answer": "reader favorite", "confidence": 0.9, "score": 5.0, "null_score": 1.0, "score_margin": 4.0, "start": 0, "end": 15}
 
 
 class LowConfidencePredictor:
     def predict(self, question, context, no_answer_threshold):
-        return {"answer": "weak span", "confidence": 0.04, "score": 1.0, "null_score": 4.0, "score_margin": -3.0, "start": 0, "end": 9}
+        answer = context.split()[0]
+        return {"answer": answer, "confidence": 0.04, "score": 1.0, "null_score": 4.0, "score_margin": -3.0, "start": 0, "end": len(answer)}
+
+
+class BatchPredictor:
+    def __init__(self):
+        self.calls = []
+
+    def predict_many(self, question, contexts, no_answer_threshold):
+        self.calls.append((question, list(contexts)))
+        return [
+            {
+                "answer": context,
+                "confidence": 0.8,
+                "score": 4.0,
+                "null_score": 1.0,
+                "score_margin": 3.0,
+                "start": 0,
+                "end": len(context),
+            }
+            for context in contexts
+        ]
 
 
 class PipelineTests(unittest.TestCase):
@@ -52,10 +73,47 @@ class PipelineTests(unittest.TestCase):
             "end": 45,
         }
 
-        chosen = choose_reader_output(question, neural, fallback)
+        context = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng (1 th\u00e1ng 3 n\u0103m 1906 - 29 th\u00e1ng 4 n\u0103m 2000) l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam."
+        chosen = choose_reader_output(question, context, neural, fallback)
 
         self.assertEqual(chosen["method"], "sentence_fallback")
         self.assertEqual(chosen["confidence"], 0.70)
+
+    def test_neural_span_cut_inside_a_word_is_rejected(self):
+        question = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 ai?"
+        context = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng c\u00f3 v\u1ee3 l\u00e0 b\u00e0 Ph\u1ea1m Th\u1ecb C\u00fac."
+        start = context.index("v\u1ee3") + 1
+        neural = {
+            "answer": context[start : start + 15],
+            "confidence": 0.63,
+            "start": start,
+            "end": start + 15,
+        }
+        fallback = {"answer": "", "confidence": 0.35, "start": -1, "end": -1}
+
+        chosen = choose_reader_output(question, context, neural, fallback)
+
+        self.assertEqual(chosen["method"], "no_answer")
+        self.assertEqual(chosen["confidence"], 0.0)
+        self.assertIsNone(chosen["answer"])
+
+    def test_definition_question_rejects_an_unrelated_neural_relation(self):
+        question = "Phạm Văn Đồng là ai?"
+        context = "Phạm Văn Đồng có vợ là bà Phạm Thị Cúc."
+        start = context.index("vợ")
+        answer = "vợ là bà Phạm Thị Cúc"
+        neural = {
+            "answer": answer,
+            "confidence": 0.95,
+            "start": start,
+            "end": start + len(answer),
+        }
+        fallback = {"answer": "", "confidence": 0.35, "start": -1, "end": -1}
+
+        chosen = choose_reader_output(question, context, neural, fallback)
+
+        self.assertEqual(chosen["method"], "no_answer")
+        self.assertIsNone(chosen["answer"])
 
     def test_vietnamese_sentence_split_does_not_merge_the_next_sentence(self):
         text = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam. Tr\u01b0\u1edbc \u0111\u00f3 \u00f4ng gi\u1eef m\u1ed9t ch\u1ee9c v\u1ee5 kh\u00e1c."
@@ -149,12 +207,29 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(len(predictor.calls), 2)
         self.assertEqual(result["selected_passage_id"], "DOC_P0002")
-        self.assertEqual(result["answer"], "reader wins")
+        self.assertEqual(result["answer"], "reader favorite")
         self.assertEqual(result["answer_source"]["passage_id"], "DOC_P0002")
         self.assertEqual(result["scoring"]["retriever_weight"], 0.15)
         self.assertEqual(result["scoring"]["reader_weight"], 0.85)
         self.assertEqual(result["passages"][0]["passage_id"], "DOC_P0002")
         self.assertGreater(result["passages"][0]["final_score"], result["passages"][1]["final_score"])
+
+    def test_reader_passages_are_sent_in_one_batch(self):
+        hits = [
+            make_hit("DOC_P0001", "first useful answer", 12.0, 1.0),
+            make_hit("DOC_P0002", "second useful answer", 8.0, 0.5),
+        ]
+        predictor = BatchPredictor()
+        with patch("backend.viqa_api.INDEX.retrieve", return_value=hits), patch(
+            "backend.viqa_api.READERS.get", return_value=predictor
+        ):
+            result = ask_question(
+                {"question": "test question", "retriever": "bm25", "reader": "phobert", "top_k": 2}
+            )
+
+        self.assertEqual(len(predictor.calls), 1)
+        self.assertEqual(predictor.calls[0][1], ["first useful answer", "second useful answer"])
+        self.assertEqual(len(result["passages"]), 2)
 
     def test_low_reader_scores_return_no_answer_without_answer_source(self):
         hits = [
