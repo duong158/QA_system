@@ -48,9 +48,9 @@ export function PassageCard({ passage, answer, highlighted = false, onViewSource
         <div className="mt-3 border-t border-slate-400/15 pt-3 text-xs leading-6 text-slate-400">
           <p>Retriever raw: {passage.retrieval_score_raw?.toFixed(4) ?? '--'}</p>
           <p>Retriever normalized: {passage.retrieval_score_normalized?.toFixed(4) ?? '--'}</p>
-          <p>Reader method: {passage.reader_method ?? 'phobert'}</p>
+          <p>Reader method: {passage.reader_method ?? 'neural'}</p>
           <p>Reader candidate: {passage.reader_answer || 'No span'}</p>
-          <p>PhoBERT score: {passage.neural_reader_score?.toFixed(4) ?? '--'}</p>
+          <p>Neural score: {passage.neural_reader_score?.toFixed(4) ?? '--'}</p>
           <p>Fallback score: {passage.fallback_score?.toFixed(4) ?? '--'}</p>
           <p>Reader margin: {passage.reader_score_margin?.toFixed(4) ?? '--'}</p>
         </div>

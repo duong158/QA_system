@@ -1,6 +1,6 @@
 import unittest
 
-from reader.predict import map_segmented_span_to_raw, select_best_span
+from reader.predict import map_segmented_span_to_raw, select_best_span, select_span_candidates
 
 
 class ReaderSpanTests(unittest.TestCase):
@@ -34,6 +34,23 @@ class ReaderSpanTests(unittest.TestCase):
         raw_start, raw_end = map_segmented_span_to_raw(raw, segmented, start, end)
 
         self.assertEqual(raw[raw_start:raw_end], "Chính phủ Việt Nam")
+
+    def test_returns_ranked_alternative_spans_for_boundary_validation(self):
+        offsets = [(0, 0), (0, 0), (0, 4), (5, 9), (0, 0)]
+        sequence_ids = [None, None, 1, 1, None]
+        start_logits = [0.0, 0.0, 8.0, 7.0, 0.0]
+        end_logits = [0.0, 0.0, 8.0, 7.0, 0.0]
+
+        candidates = select_span_candidates(
+            start_logits,
+            end_logits,
+            offsets,
+            sequence_ids,
+            limit=3,
+        )
+
+        self.assertGreaterEqual(len(candidates), 2)
+        self.assertGreaterEqual(candidates[0].score, candidates[1].score)
 
 
 if __name__ == "__main__":

@@ -5,7 +5,10 @@ from dataclasses import dataclass
 from typing import Callable, Iterable
 
 
-SENTENCE_BOUNDARY = re.compile(r"(?<=[.!?…])(?:[\"'”’)]*)\s+(?=[A-ZÀ-Ỹ0-9\"'“‘(])")
+SENTENCE_BOUNDARY = re.compile(
+    r"(?<=[.!?…])(?:[\"'”’)]*)\s+(?=(?:[\"'“‘(]*[^\W_]))",
+    flags=re.UNICODE,
+)
 PARAGRAPH_BOUNDARY = re.compile(r"\n\s*\n+")
 
 

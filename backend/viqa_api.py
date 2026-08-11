@@ -6,6 +6,7 @@ import os
 import re
 import sqlite3
 import sys
+import threading
 import time
 import traceback
 import unicodedata
@@ -27,14 +28,15 @@ HOST = os.getenv("QA_HOST", "0.0.0.0")
 PORT = int(os.getenv("QA_PORT", "8000"))
 CHUNK_MAX_TOKENS = int(os.getenv("QA_CHUNK_MAX_TOKENS", "220"))
 CHUNK_OVERLAP_SENTENCES = int(os.getenv("QA_CHUNK_OVERLAP_SENTENCES", "2"))
-RETRIEVER_CANDIDATE_MULTIPLIER = int(os.getenv("QA_RETRIEVER_CANDIDATE_MULTIPLIER", "3"))
-RETRIEVER_MIN_CANDIDATES = int(os.getenv("QA_RETRIEVER_MIN_CANDIDATES", "8"))
+RETRIEVER_CANDIDATE_MULTIPLIER = int(os.getenv("QA_RETRIEVER_CANDIDATE_MULTIPLIER", "2"))
+RETRIEVER_MIN_CANDIDATES = int(os.getenv("QA_RETRIEVER_MIN_CANDIDATES", "6"))
 RETRIEVER_WEIGHT = float(os.getenv("QA_RETRIEVER_WEIGHT", "0.15"))
 READER_WEIGHT = float(os.getenv("QA_READER_WEIGHT", "0.85"))
 ANSWER_THRESHOLD = float(os.getenv("QA_ANSWER_THRESHOLD", "0.30"))
 READER_FALLBACK_THRESHOLD = float(os.getenv("QA_READER_FALLBACK_THRESHOLD", "0.30"))
 SENTENCE_FALLBACK_THRESHOLD = float(os.getenv("QA_SENTENCE_FALLBACK_THRESHOLD", "0.42"))
 QA_DEBUG = os.getenv("QA_DEBUG", "false").lower() in {"1", "true", "yes", "on"}
+PRELOAD_READER = os.getenv("QA_PRELOAD_READER", "true").lower() in {"1", "true", "yes", "on"}
 SUPPORTED_RETRIEVERS = {"tfidf", "bm25"}
 UNIMPLEMENTED_RETRIEVERS = {
     "dense": "Dense retrieval is not wired into this API yet: no embedding model/vector index is configured for online serving.",
@@ -44,7 +46,7 @@ SUPPORTED_READERS = {"phobert"}
 UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
-    "xlmr": "XLM-R QA is not implemented: no XLM-R QA checkpoint is available under models/reader.",
+    "xlmr": "XLM-R QA is not implemented: the training notebook exists, but no runnable checkpoint is available under models/reader.",
 }
 
 if RETRIEVER_WEIGHT < 0 or READER_WEIGHT < 0 or RETRIEVER_WEIGHT + READER_WEIGHT <= 0:
@@ -176,6 +178,46 @@ ANSWER_CUE_PATTERNS = (
 )
 
 
+def definition_subject(question: str) -> str:
+    normalized = normalize_text(question).strip(" ?!.")
+    match = re.match(
+        r"^(?:cho biet\s+)?(.+?)\s+(?:la ai|la gi|co nghia la gi|duoc dinh nghia nhu the nao)$",
+        normalized,
+    )
+    return re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
+
+
+def relation_follows_subject(sentence: str, subject: str) -> bool:
+    if not subject:
+        return False
+    normalized = normalize_text(sentence)
+    match = re.search(rf"\b{re.escape(subject)}\b", normalized)
+    if not match:
+        return False
+    tail = normalized[match.end() : match.end() + 180]
+    tail = re.sub(r"^\s*\([^)]{0,120}\)", "", tail)
+    return bool(
+        re.match(
+            r"^\s*,?\s*(?:(?:hien|tung|chinh|duoc xem la|duoc biet den nhu)\s+)?la\b",
+            tail,
+        )
+    )
+
+
+def answer_repeats_question(question: str, answer: str) -> bool:
+    answer_tokens = set(tokenize(answer))
+    question_tokens = set(tokenize(question))
+    return bool(answer_tokens) and answer_tokens <= question_tokens
+
+
+def span_has_clean_word_boundaries(context: str, start: int, end: int) -> bool:
+    if start < 0 or end <= start or end > len(context):
+        return False
+    starts_inside_word = start > 0 and context[start - 1].isalnum() and context[start].isalnum()
+    ends_inside_word = end < len(context) and context[end - 1].isalnum() and context[end].isalnum()
+    return not starts_inside_word and not ends_inside_word
+
+
 def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
     """Extract a useful full-sentence answer when the neural reader is not confident.
 
@@ -187,6 +229,7 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
         return {"answer": "", "confidence": 0.0, "start": -1, "end": -1, "reason": "empty_question_tokens"}
 
     normalized_question = normalize_text(question)
+    subject = definition_subject(question)
     subject_phrase = re.sub(
         r"\b(bao gom nhung gi|gom nhung gi|co nhung gi|duoc chia thanh|duoc chia lam|duoc chia|chia thanh|chia lam|nhu the nao|nhu nao|la gi|la ai|chia|duoc|nao|gi|ai)\b",
         " ",
@@ -217,7 +260,13 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
             cue_bonus += 0.04
         if len(sentence) > 520:
             cue_bonus -= 0.12
-        score = max(0.0, min(0.92, overlap * 0.78 + cue_bonus))
+        score = max(0.0, min(0.70, overlap * 0.78 + cue_bonus))
+        relation_matched = relation_follows_subject(sentence, subject)
+        if subject:
+            if relation_matched:
+                score = min(0.70, score + 0.18)
+            else:
+                score = min(score, SENTENCE_FALLBACK_THRESHOLD - 0.07)
 
         if score > best["confidence"]:
             best = {
@@ -225,23 +274,43 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
                 "confidence": round(score, 6),
                 "start": start,
                 "end": end,
-                "reason": "sentence_overlap_cue",
+                "reason": "definition_relation" if relation_matched else "sentence_overlap_cue",
             }
     return best
 
 
-def choose_reader_output(neural_output: dict[str, Any], fallback_output: dict[str, Any]) -> dict[str, Any]:
+def choose_reader_output(
+    question: str,
+    context: str,
+    neural_output: dict[str, Any],
+    fallback_output: dict[str, Any],
+) -> dict[str, Any]:
     neural_confidence = float(neural_output["confidence"])
     fallback_confidence = float(fallback_output["confidence"])
-    if neural_output.get("answer") and neural_confidence >= READER_FALLBACK_THRESHOLD:
-        return {
-            "method": "phobert",
-            "answer": neural_output["answer"],
-            "confidence": neural_confidence,
-            "start": int(neural_output["start"]),
-            "end": int(neural_output["end"]),
-        }
-    if fallback_output.get("answer") and fallback_confidence >= SENTENCE_FALLBACK_THRESHOLD:
+    neural_answer = str(neural_output.get("answer") or "").strip()
+    neural_is_echo = answer_repeats_question(question, neural_answer)
+    subject = definition_subject(question)
+    definition_supported = not subject or any(
+        relation_follows_subject(sentence, subject) for sentence in split_sentences(context)
+    )
+    neural_span_is_clean = span_has_clean_word_boundaries(
+        context,
+        int(neural_output["start"]),
+        int(neural_output["end"]),
+    )
+    neural_ready = (
+        bool(neural_answer)
+        and not neural_is_echo
+        and definition_supported
+        and neural_span_is_clean
+        and neural_confidence >= READER_FALLBACK_THRESHOLD
+    )
+    fallback_ready = bool(fallback_output.get("answer")) and fallback_confidence >= SENTENCE_FALLBACK_THRESHOLD
+    prefer_fallback = fallback_ready and (
+        not neural_ready or fallback_confidence >= neural_confidence + 0.08
+    )
+
+    if prefer_fallback:
         return {
             "method": "sentence_fallback",
             "answer": fallback_output["answer"],
@@ -249,8 +318,32 @@ def choose_reader_output(neural_output: dict[str, Any], fallback_output: dict[st
             "start": int(fallback_output["start"]),
             "end": int(fallback_output["end"]),
         }
+    if neural_ready:
+        return {
+            "method": "neural",
+            "answer": neural_output["answer"],
+            "confidence": neural_confidence,
+            "start": int(neural_output["start"]),
+            "end": int(neural_output["end"]),
+        }
+    if fallback_ready:
+        return {
+            "method": "sentence_fallback",
+            "answer": fallback_output["answer"],
+            "confidence": fallback_confidence,
+            "start": int(fallback_output["start"]),
+            "end": int(fallback_output["end"]),
+        }
+    if neural_is_echo or not neural_span_is_clean or not definition_supported:
+        return {
+            "method": "no_answer",
+            "answer": None,
+            "confidence": 0.0,
+            "start": -1,
+            "end": -1,
+        }
     return {
-        "method": "phobert",
+        "method": "neural",
         "answer": neural_output.get("answer") or None,
         "confidence": neural_confidence,
         "start": int(neural_output["start"]),
@@ -283,6 +376,67 @@ def expand_answer_to_sentence(context: str, answer: str, start: int, end: int) -
     if len(sentence) <= len(answer) or len(sentence) > max_chars:
         return answer
     return sentence
+
+
+def concise_source_answer(question: str, answer: str, max_chars: int = 280) -> str:
+    answer = re.sub(r"\s+", " ", str(answer or "")).strip()
+    if not answer:
+        return ""
+
+    normalized_question = normalize_text(question)
+    if re.search(r"\b(?:chia|bao gom|gom)\b", normalized_question):
+        answer = re.sub(r"\s*\([^)]*\)", "", answer)
+        answer = re.sub(r"\s+([,.;:])", r"\1", answer)
+
+    subject = definition_subject(question)
+    if subject and relation_follows_subject(answer, subject):
+        normalized = normalize_text(answer)
+        subject_match = re.search(rf"\b{re.escape(subject)}\b", normalized)
+        if subject_match:
+            tail = normalized[subject_match.end() :]
+            cue_match = re.search(r"\bla\b", tail)
+            if cue_match:
+                predicate_start = subject_match.end() + cue_match.end()
+                predicate = answer[predicate_start:].strip(" ,:-")
+                predicate = re.sub(r"\s*\([^)]*\)\s*", " ", predicate).strip()
+                stop = re.search(
+                    r"\s+(?:tu nam|ke tu|trong giai doan|cho den khi|vao nam)\s+",
+                    normalize_text(predicate),
+                )
+                if stop and len(predicate[: stop.start()].split()) >= 4:
+                    predicate = predicate[: stop.start()].rstrip(" ,;:")
+                if predicate:
+                    subject_text = answer[subject_match.start() : subject_match.end()].strip()
+                    answer = f"{subject_text} là {predicate}"
+
+    answer = answer.split(";", 1)[0].strip()
+    if len(answer) > max_chars:
+        shortened = answer[: max_chars + 1].rsplit(" ", 1)[0].rstrip(" ,;:")
+        answer = f"{shortened}…"
+    elif answer[-1:] not in ".!?":
+        answer = f"{answer}."
+    return answer
+
+
+def format_display_answer(
+    question: str,
+    context: str,
+    chosen_output: dict[str, Any],
+) -> str:
+    answer = str(chosen_output.get("answer") or "").strip()
+    if not answer:
+        return ""
+    if chosen_output.get("method") == "sentence_fallback":
+        return concise_source_answer(question, answer)
+    if answer_repeats_question(question, answer):
+        expanded = expand_answer_to_sentence(
+            context,
+            answer,
+            int(chosen_output["start"]),
+            int(chosen_output["end"]),
+        )
+        return concise_source_answer(question, expanded)
+    return answer
 
 
 class PassageIndex:
@@ -469,24 +623,28 @@ class PassageIndex:
 class ReaderManager:
     MODEL_FOLDERS = {
         "phobert": "vinai_phobert-base-v2",
+        "xlmr": "xlm-roberta-large-viquad",
     }
 
     def __init__(self) -> None:
         self.predictors: dict[str, Any] = {}
+        self._load_lock = threading.Lock()
 
     def get(self, reader_name: str):
         validate_reader(reader_name)
         folder = self.MODEL_FOLDERS.get(reader_name)
         if reader_name not in self.predictors:
-            model_dir = ROOT / "models" / "reader" / folder
-            if not model_dir.exists():
-                raise PipelineError(f"Reader checkpoint is missing: {model_dir}")
-            try:
-                from reader.predict import ReaderPredictor
+            with self._load_lock:
+                if reader_name not in self.predictors:
+                    model_dir = ROOT / "models" / "reader" / folder
+                    if not model_dir.exists():
+                        raise PipelineError(f"Reader checkpoint is missing: {model_dir}")
+                    try:
+                        from reader.predict import ReaderPredictor
 
-                self.predictors[reader_name] = ReaderPredictor(str(model_dir))
-            except Exception as error:
-                raise PipelineError(f"Failed to load reader '{reader_name}': {error}") from error
+                        self.predictors[reader_name] = ReaderPredictor(str(model_dir))
+                    except Exception as error:
+                        raise PipelineError(f"Failed to load reader '{reader_name}': {error}") from error
         return self.predictors[reader_name]
 
 
@@ -516,6 +674,11 @@ def _empty_response(question: str, retriever: str, reader: str, elapsed: int) ->
 def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     started = time.perf_counter()
     question = str(payload.get("question", "")).strip()
+    # If the user types in ALL CAPS, it destroys the semantic tokenization in Transformer models.
+    # Lowercase it to preserve meaning.
+    if question.isupper():
+        question = question.lower()
+
     retriever = str(payload.get("retriever", "bm25")).lower()
     reader_name = str(payload.get("reader", "phobert")).lower()
     try:
@@ -541,24 +704,36 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         )
 
     predictor = READERS.get(reader_name)
-    passages: list[dict[str, Any]] = []
-    for hit in hits:
-        output = predictor.predict(
+    contexts = [hit.passage.metadata.text for hit in hits]
+    predict_many = getattr(predictor, "predict_many", None)
+    if callable(predict_many):
+        outputs = predict_many(
             question,
-            hit.passage.metadata.text,
+            contexts,
             no_answer_threshold=ANSWER_THRESHOLD,
         )
+    else:
+        outputs = [
+            predictor.predict(question, context, no_answer_threshold=ANSWER_THRESHOLD)
+            for context in contexts
+        ]
+    if len(outputs) != len(hits):
+        raise PipelineError(
+            f"Reader returned {len(outputs)} outputs for {len(hits)} retrieved passages"
+        )
+
+    passages: list[dict[str, Any]] = []
+    for hit, output in zip(hits, outputs):
         fallback_output = sentence_fallback_predict(question, hit.passage.metadata.text)
-        chosen_output = choose_reader_output(output, fallback_output)
+        chosen_output = choose_reader_output(question, hit.passage.metadata.text, output, fallback_output)
         reader_score = float(chosen_output["confidence"])
         final_score = RETRIEVER_WEIGHT * hit.retrieval_score_normalized + READER_WEIGHT * reader_score
         metadata = hit.passage.metadata
         chosen_span_answer = str(chosen_output["answer"] or "")
-        display_answer = expand_answer_to_sentence(
+        display_answer = format_display_answer(
+            question,
             metadata.text,
-            chosen_span_answer,
-            int(chosen_output["start"]),
-            int(chosen_output["end"]),
+            chosen_output,
         )
         passages.append(
             {
@@ -603,17 +778,20 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         and item["reader_score_margin"] is not None
         and math.isfinite(float(item["reader_score_margin"]))
     ]
-    margin_scores = softmax_normalize(margins)
+    margin_scores = min_max_normalize(margins)
     margin_index = 0
     for item in passages:
         if item["reader_method"] == "sentence_fallback":
-            item["reader_margin_score"] = float(item["reader_score"])
+            item["reader_margin_score"] = 0.0
         elif item["reader_score_margin"] is not None and math.isfinite(float(item["reader_score_margin"])):
             item["reader_margin_score"] = round(margin_scores[margin_index], 6)
             margin_index += 1
         else:
             item["reader_margin_score"] = 0.0
-        reader_signal = 0.75 * float(item["reader_score"]) + 0.25 * float(item["reader_margin_score"])
+        if item["reader_method"] == "sentence_fallback":
+            reader_signal = float(item["reader_score"])
+        else:
+            reader_signal = 0.75 * float(item["reader_score"]) + 0.25 * float(item["reader_margin_score"])
         item["final_score"] = round(
             RETRIEVER_WEIGHT * float(item["retrieval_score_normalized"])
             + READER_WEIGHT * reader_signal,
@@ -673,7 +851,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "retrieval_normalization": "min_max_within_top_k",
             "candidate_count": candidate_count,
             "rerank": "retrieval_reader_margin",
-            "final_score_formula": "retriever_weight*retrieval + reader_weight*(0.75*reader_confidence + 0.25*reader_margin)",
+            "final_score_formula": "retriever_weight*retrieval + reader_weight*reader_signal; fallback reader_signal=confidence, neural reader_signal=0.75*confidence+0.25*margin",
         },
     }
     if QA_DEBUG:
@@ -795,6 +973,24 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     print(f"VIQA API indexed {len(INDEX.passages)} sentence-aware passages from {DOCS_DB}")
+    if PRELOAD_READER:
+        print("Preloading reader model before accepting requests...")
+        predictor = READERS.get("phobert")
+        warmup_context = "Việt Nam là một quốc gia ở Đông Nam Á."
+        predict_many = getattr(predictor, "predict_many", None)
+        if callable(predict_many):
+            predict_many(
+                "Việt Nam là gì?",
+                [warmup_context] * min(8, RETRIEVER_MIN_CANDIDATES),
+                no_answer_threshold=ANSWER_THRESHOLD,
+            )
+        else:
+            predictor.predict(
+                "Việt Nam là gì?",
+                warmup_context,
+                no_answer_threshold=ANSWER_THRESHOLD,
+            )
+        print("Reader model is ready")
     print(f"Serving http://localhost:{PORT}")
     ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
 

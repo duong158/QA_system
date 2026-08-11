@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock3, Cpu, Database, MessageSquareText, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock3, Cpu, Database, MessageSquareText, ShieldAlert, ChevronDown, ChevronUp, LoaderCircle } from 'lucide-react';
 import type { PipelineState } from '@/types/pipeline';
 import type { PassageResult, QaResponse } from '@/types/qa';
 import { formatLatency } from '@/utils/formatScore';
@@ -20,14 +20,15 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
   const hasAnswer = response?.has_answer ?? Boolean(response?.answer);
   const lowConfidence = Boolean(response && hasAnswer && response.confidence < 0.5);
   const noAnswerWithRetrievedPassage = Boolean(response && !hasAnswer && response.passages?.length);
+  const isProcessing = !response && ['retrieving', 'reading', 'extracting'].includes(state);
+  const isConfirmedNoAnswer = Boolean(response && !hasAnswer);
 
   return (
     <motion.section
       initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
-      layout
-      className={`viqa-panel flex flex-col gap-4 p-4 lg:p-5 transition-all duration-300 ${
-        isPassagesCollapsed ? 'h-auto min-h-0' : 'h-full min-h-[580px]'
+      className={`viqa-panel flex flex-col gap-4 p-4 lg:p-5 ${
+        isPassagesCollapsed ? 'h-auto min-h-0' : 'h-auto min-h-[580px]'
       }`}
     >
       <div className="flex items-center gap-3">
@@ -45,15 +46,24 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
           <p className="text-lg font-medium leading-8 text-slate-50">
             <span className="text-amber-200">{response.answer}</span>
           </p>
+        ) : isProcessing ? (
+          <div className="flex items-center gap-3 text-base leading-7 text-slate-300" role="status" aria-live="polite">
+            <LoaderCircle className="h-5 w-5 shrink-0 animate-spin text-viqa-cyan" />
+            <span>Thinking about the answer...</span>
+          </div>
+        ) : isConfirmedNoAnswer ? (
+          <p className="text-base leading-7 text-slate-300">
+            No sufficiently reliable answer was found in the documents.
+          </p>
         ) : (
           <p className="text-base leading-7 text-slate-300">
-            Không tìm thấy câu trả lời đủ tin cậy trong tập tài liệu.
+            Ask a question to get started.
           </p>
         )}
         {lowConfidence ? (
           <div className="mt-4 flex items-start gap-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2.5 text-sm text-amber-100">
             <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            Câu trả lời có độ tin cậy thấp. Vui lòng kiểm tra nguồn.
+            This answer has low confidence. Please verify the source.
           </div>
         ) : null}
       </div>
@@ -106,17 +116,17 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
                 type="button"
                 onClick={() => setIsPassagesCollapsed(!isPassagesCollapsed)}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-slate-400/15 bg-slate-800/80 px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
-                title={isPassagesCollapsed ? 'Mở rộng danh sách nguồn' : 'Thu gọn danh sách nguồn'}
+                title={isPassagesCollapsed ? 'Expand source passages' : 'Collapse source passages'}
               >
                 {isPassagesCollapsed ? (
                   <>
                     <ChevronDown className="h-3.5 w-3.5" />
-                    <span>Mở rộng</span>
+                    <span>Expand</span>
                   </>
                 ) : (
                   <>
                     <ChevronUp className="h-3.5 w-3.5" />
-                    <span>Thu gọn</span>
+                    <span>Collapse</span>
                   </>
                 )}
               </button>

@@ -1,8 +1,18 @@
 import unittest
 from unittest.mock import patch
 
-from backend.chunking import Passage
-from backend.viqa_api import IndexedPassage, SearchHit, ask_question, expand_answer_to_sentence
+from backend.chunking import Passage, split_sentences
+from backend.viqa_api import (
+    SENTENCE_FALLBACK_THRESHOLD,
+    IndexedPassage,
+    SearchHit,
+    ask_question,
+    choose_reader_output,
+    concise_source_answer,
+    expand_answer_to_sentence,
+    format_display_answer,
+    sentence_fallback_predict,
+)
 
 
 def make_hit(passage_id: str, text: str, raw: float, normalized: float) -> SearchHit:
@@ -17,16 +27,105 @@ class FakePredictor:
     def predict(self, question, context, no_answer_threshold):
         self.calls.append(context)
         if context == "retriever favorite":
-            return {"answer": "weak", "confidence": 0.2, "score": 1.0, "null_score": 2.0, "score_margin": -1.0, "start": 0, "end": 4}
-        return {"answer": "reader wins", "confidence": 0.9, "score": 5.0, "null_score": 1.0, "score_margin": 4.0, "start": 0, "end": 11}
+            return {"answer": "retriever", "confidence": 0.2, "score": 1.0, "null_score": 2.0, "score_margin": -1.0, "start": 0, "end": 9}
+        return {"answer": "reader favorite", "confidence": 0.9, "score": 5.0, "null_score": 1.0, "score_margin": 4.0, "start": 0, "end": 15}
 
 
 class LowConfidencePredictor:
     def predict(self, question, context, no_answer_threshold):
-        return {"answer": "weak span", "confidence": 0.04, "score": 1.0, "null_score": 4.0, "score_margin": -3.0, "start": 0, "end": 9}
+        answer = context.split()[0]
+        return {"answer": answer, "confidence": 0.04, "score": 1.0, "null_score": 4.0, "score_margin": -3.0, "start": 0, "end": len(answer)}
+
+
+class BatchPredictor:
+    def __init__(self):
+        self.calls = []
+
+    def predict_many(self, question, contexts, no_answer_threshold):
+        self.calls.append((question, list(contexts)))
+        return [
+            {
+                "answer": context,
+                "confidence": 0.8,
+                "score": 4.0,
+                "null_score": 1.0,
+                "score_margin": 3.0,
+                "start": 0,
+                "end": len(context),
+            }
+            for context in contexts
+        ]
 
 
 class PipelineTests(unittest.TestCase):
+    def test_stronger_definition_fallback_beats_a_barely_accepted_neural_span(self):
+        question = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 ai?"
+        neural = {
+            "answer": "Ph\u1ea1m V\u0103n \u0110\u1ed3ng (1 th\u00e1ng 3 n\u0103m 1906 - 29",
+            "confidence": 0.346,
+            "start": 0,
+            "end": 40,
+        }
+        fallback = {
+            "answer": "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam.",
+            "confidence": 0.70,
+            "start": 0,
+            "end": 45,
+        }
+
+        context = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng (1 th\u00e1ng 3 n\u0103m 1906 - 29 th\u00e1ng 4 n\u0103m 2000) l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam."
+        chosen = choose_reader_output(question, context, neural, fallback)
+
+        self.assertEqual(chosen["method"], "sentence_fallback")
+        self.assertEqual(chosen["confidence"], 0.70)
+
+    def test_neural_span_cut_inside_a_word_is_rejected(self):
+        question = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 ai?"
+        context = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng c\u00f3 v\u1ee3 l\u00e0 b\u00e0 Ph\u1ea1m Th\u1ecb C\u00fac."
+        start = context.index("v\u1ee3") + 1
+        neural = {
+            "answer": context[start : start + 15],
+            "confidence": 0.63,
+            "start": start,
+            "end": start + 15,
+        }
+        fallback = {"answer": "", "confidence": 0.35, "start": -1, "end": -1}
+
+        chosen = choose_reader_output(question, context, neural, fallback)
+
+        self.assertEqual(chosen["method"], "no_answer")
+        self.assertEqual(chosen["confidence"], 0.0)
+        self.assertIsNone(chosen["answer"])
+
+    def test_definition_question_rejects_an_unrelated_neural_relation(self):
+        question = "Phạm Văn Đồng là ai?"
+        context = "Phạm Văn Đồng có vợ là bà Phạm Thị Cúc."
+        start = context.index("vợ")
+        answer = "vợ là bà Phạm Thị Cúc"
+        neural = {
+            "answer": answer,
+            "confidence": 0.95,
+            "start": start,
+            "end": start + len(answer),
+        }
+        fallback = {"answer": "", "confidence": 0.35, "start": -1, "end": -1}
+
+        chosen = choose_reader_output(question, context, neural, fallback)
+
+        self.assertEqual(chosen["method"], "no_answer")
+        self.assertIsNone(chosen["answer"])
+
+    def test_vietnamese_sentence_split_does_not_merge_the_next_sentence(self):
+        text = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam. Tr\u01b0\u1edbc \u0111\u00f3 \u00f4ng gi\u1eef m\u1ed9t ch\u1ee9c v\u1ee5 kh\u00e1c."
+
+        self.assertEqual(
+            split_sentences(text),
+            [
+                "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam.",
+                "Tr\u01b0\u1edbc \u0111\u00f3 \u00f4ng gi\u1eef m\u1ed9t ch\u1ee9c v\u1ee5 kh\u00e1c.",
+            ],
+        )
+
     def test_expands_reader_span_to_containing_sentence(self):
         context = "Paris is the capital of France. The city sits on the Seine river."
 
@@ -39,6 +138,64 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(answer, "The city sits on the Seine river.")
 
+    def test_definition_fallback_requires_relation_to_the_question_subject(self):
+        question = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 ai?"
+        biography = (
+            "Ph\u1ea1m V\u0103n \u0110\u1ed3ng (1906-2000) l\u00e0 Th\u1ee7 t\u01b0\u1edbng \u0111\u1ea7u ti\u00ean c\u1ee7a "
+            "n\u01b0\u1edbc C\u1ed9ng h\u00f2a X\u00e3 h\u1ed9i ch\u1ee7 ngh\u0129a Vi\u1ec7t Nam t\u1eeb n\u0103m 1976."
+        )
+        unrelated = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng c\u00f3 v\u1ee3 l\u00e0 b\u00e0 Ph\u1ea1m Th\u1ecb C\u00fac v\u00e0 c\u00f3 m\u1ed9t ng\u01b0\u1eddi con trai."
+
+        good = sentence_fallback_predict(question, biography)
+        bad = sentence_fallback_predict(question, unrelated)
+
+        self.assertGreaterEqual(good["confidence"], SENTENCE_FALLBACK_THRESHOLD)
+        self.assertLess(bad["confidence"], SENTENCE_FALLBACK_THRESHOLD)
+
+    def test_definition_answer_is_complete_but_concise(self):
+        question = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 ai?"
+        source = (
+            "Ph\u1ea1m V\u0103n \u0110\u1ed3ng (1 th\u00e1ng 3 n\u0103m 1906 - 29 th\u00e1ng 4 n\u0103m 2000) l\u00e0 Th\u1ee7 t\u01b0\u1edbng "
+            "\u0111\u1ea7u ti\u00ean c\u1ee7a n\u01b0\u1edbc C\u1ed9ng h\u00f2a X\u00e3 h\u1ed9i ch\u1ee7 ngh\u0129a Vi\u1ec7t Nam t\u1eeb n\u0103m 1976."
+        )
+
+        answer = concise_source_answer(question, source)
+
+        self.assertEqual(
+            answer,
+            "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 Th\u1ee7 t\u01b0\u1edbng \u0111\u1ea7u ti\u00ean c\u1ee7a n\u01b0\u1edbc C\u1ed9ng h\u00f2a X\u00e3 h\u1ed9i ch\u1ee7 ngh\u0129a Vi\u1ec7t Nam.",
+        )
+
+    def test_factoid_reader_answer_keeps_the_exact_span(self):
+        output = {
+            "method": "phobert",
+            "answer": "29 th\u00e1ng 4 n\u0103m 2000",
+            "start": 26,
+            "end": 46,
+        }
+
+        answer = format_display_answer(
+            "Ph\u1ea1m V\u0103n \u0110\u1ed3ng m\u1ea5t khi n\u00e0o?",
+            "Ph\u1ea1m V\u0103n \u0110\u1ed3ng m\u1ea5t ng\u00e0y 29 th\u00e1ng 4 n\u0103m 2000 t\u1ea1i H\u00e0 N\u1ed9i.",
+            output,
+        )
+
+        self.assertEqual(answer, "29 th\u00e1ng 4 n\u0103m 2000")
+
+    def test_list_answer_removes_parenthetical_details(self):
+        question = "Th\u1ef1c v\u1eadt c\u00f3 hoa \u0111\u01b0\u1ee3c chia nh\u01b0 n\u00e0o?"
+        source = (
+            "Th\u1ef1c v\u1eadt c\u00f3 hoa \u0111\u01b0\u1ee3c chia th\u00e0nh hai nh\u00f3m ch\u00ednh l\u00e0 Magnoliopsida "
+            "(\u1edf c\u1ea5p \u0111\u1ed9 l\u1edbp) v\u00e0 Liliopsida (d\u1ef1a tr\u00ean t\u00ean g\u1ecdi Lilium)."
+        )
+
+        answer = concise_source_answer(question, source)
+
+        self.assertEqual(
+            answer,
+            "Th\u1ef1c v\u1eadt c\u00f3 hoa \u0111\u01b0\u1ee3c chia th\u00e0nh hai nh\u00f3m ch\u00ednh l\u00e0 Magnoliopsida v\u00e0 Liliopsida.",
+        )
+
     def test_reader_runs_on_every_top_k_and_reranks(self):
         hits = [
             make_hit("DOC_P0001", "retriever favorite", 12.0, 1.0),
@@ -50,12 +207,29 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(len(predictor.calls), 2)
         self.assertEqual(result["selected_passage_id"], "DOC_P0002")
-        self.assertEqual(result["answer"], "reader wins")
+        self.assertEqual(result["answer"], "reader favorite")
         self.assertEqual(result["answer_source"]["passage_id"], "DOC_P0002")
         self.assertEqual(result["scoring"]["retriever_weight"], 0.15)
         self.assertEqual(result["scoring"]["reader_weight"], 0.85)
         self.assertEqual(result["passages"][0]["passage_id"], "DOC_P0002")
         self.assertGreater(result["passages"][0]["final_score"], result["passages"][1]["final_score"])
+
+    def test_reader_passages_are_sent_in_one_batch(self):
+        hits = [
+            make_hit("DOC_P0001", "first useful answer", 12.0, 1.0),
+            make_hit("DOC_P0002", "second useful answer", 8.0, 0.5),
+        ]
+        predictor = BatchPredictor()
+        with patch("backend.viqa_api.INDEX.retrieve", return_value=hits), patch(
+            "backend.viqa_api.READERS.get", return_value=predictor
+        ):
+            result = ask_question(
+                {"question": "test question", "retriever": "bm25", "reader": "phobert", "top_k": 2}
+            )
+
+        self.assertEqual(len(predictor.calls), 1)
+        self.assertEqual(predictor.calls[0][1], ["first useful answer", "second useful answer"])
+        self.assertEqual(len(result["passages"]), 2)
 
     def test_low_reader_scores_return_no_answer_without_answer_source(self):
         hits = [
