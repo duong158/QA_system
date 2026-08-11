@@ -44,7 +44,7 @@ SUPPORTED_READERS = {"phobert"}
 UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
-    "xlmr": "XLM-R QA is not implemented: no XLM-R QA checkpoint is available under models/reader.",
+    "xlmr": "XLM-R QA is not implemented: the training notebook exists, but no runnable checkpoint is available under models/reader.",
 }
 
 if RETRIEVER_WEIGHT < 0 or READER_WEIGHT < 0 or RETRIEVER_WEIGHT + READER_WEIGHT <= 0:
@@ -250,11 +250,11 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
             cue_bonus += 0.04
         if len(sentence) > 520:
             cue_bonus -= 0.12
-        score = max(0.0, min(0.92, overlap * 0.78 + cue_bonus))
+        score = max(0.0, min(0.70, overlap * 0.78 + cue_bonus))
         relation_matched = relation_follows_subject(sentence, subject)
         if subject:
             if relation_matched:
-                score = min(0.92, score + 0.18)
+                score = min(0.70, score + 0.18)
             else:
                 score = min(score, SENTENCE_FALLBACK_THRESHOLD - 0.07)
 
@@ -280,7 +280,7 @@ def choose_reader_output(
     neural_is_echo = answer_repeats_question(question, neural_answer)
     if neural_answer and not neural_is_echo and neural_confidence >= READER_FALLBACK_THRESHOLD:
         return {
-            "method": "phobert",
+            "method": "neural",
             "answer": neural_output["answer"],
             "confidence": neural_confidence,
             "start": int(neural_output["start"]),
@@ -303,7 +303,7 @@ def choose_reader_output(
             "end": -1,
         }
     return {
-        "method": "phobert",
+        "method": "neural",
         "answer": neural_output.get("answer") or None,
         "confidence": neural_confidence,
         "start": int(neural_output["start"]),
@@ -583,6 +583,7 @@ class PassageIndex:
 class ReaderManager:
     MODEL_FOLDERS = {
         "phobert": "vinai_phobert-base-v2",
+        "xlmr": "xlm-roberta-large-viquad",
     }
 
     def __init__(self) -> None:
@@ -630,6 +631,11 @@ def _empty_response(question: str, retriever: str, reader: str, elapsed: int) ->
 def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     started = time.perf_counter()
     question = str(payload.get("question", "")).strip()
+    # If the user types in ALL CAPS, it destroys the semantic tokenization in Transformer models.
+    # Lowercase it to preserve meaning.
+    if question.isupper():
+        question = question.lower()
+
     retriever = str(payload.get("retriever", "bm25")).lower()
     reader_name = str(payload.get("reader", "phobert")).lower()
     try:
@@ -716,11 +722,11 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         and item["reader_score_margin"] is not None
         and math.isfinite(float(item["reader_score_margin"]))
     ]
-    margin_scores = softmax_normalize(margins)
+    margin_scores = min_max_normalize(margins)
     margin_index = 0
     for item in passages:
         if item["reader_method"] == "sentence_fallback":
-            item["reader_margin_score"] = float(item["reader_score"])
+            item["reader_margin_score"] = 0.0
         elif item["reader_score_margin"] is not None and math.isfinite(float(item["reader_score_margin"])):
             item["reader_margin_score"] = round(margin_scores[margin_index], 6)
             margin_index += 1

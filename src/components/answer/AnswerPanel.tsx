@@ -27,9 +27,8 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
     <motion.section
       initial={{ opacity: 0, x: 16 }}
       animate={{ opacity: 1, x: 0 }}
-      layout
-      className={`viqa-panel flex flex-col gap-4 p-4 lg:p-5 transition-all duration-300 ${
-        isPassagesCollapsed ? 'h-auto min-h-0' : 'h-full min-h-[580px]'
+      className={`viqa-panel flex flex-col gap-4 p-4 lg:p-5 ${
+        isPassagesCollapsed ? 'h-auto min-h-0' : 'h-auto min-h-[580px]'
       }`}
     >
       <div className="flex items-center gap-3">

@@ -101,8 +101,8 @@ export function HomePage() {
         onToggleSettings={toggleSettings}
       />
 
-      <main className="mt-4 grid flex-1 gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(500px,1.08fr)]">
-        <div className="flex min-w-0 flex-col gap-4">
+      <main className="mt-4 grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(500px,1.08fr)]">
+        <div className="flex min-w-0 flex-col gap-4 overflow-y-auto pb-4 pr-1">
           <AvatarScene state={displayedAvatarState} />
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -131,9 +131,11 @@ export function HomePage() {
           {comparisonEnabled && comparisonRows.length ? <RetrieverComparison rows={comparisonRows} /> : null}
         </div>
 
-        <div className="flex min-w-0 flex-col gap-4">
-          <AnswerPanel response={answer} state={pipelineState} compareMode={comparisonEnabled} onViewSource={viewSource} />
-          <PipelineFlow state={speech.isListening ? 'listening' : pipelineState} />
+        <div className="flex min-w-0 flex-col gap-4 overflow-y-auto pb-4 pr-1">
+          <div className="flex shrink-0 flex-col gap-4">
+            <AnswerPanel response={answer} state={pipelineState} compareMode={comparisonEnabled} onViewSource={viewSource} />
+            <PipelineFlow state={speech.isListening ? 'listening' : pipelineState} />
+          </div>
         </div>
       </main>
 
