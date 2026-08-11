@@ -7,6 +7,7 @@ from backend.viqa_api import (
     IndexedPassage,
     SearchHit,
     ask_question,
+    choose_reader_output,
     concise_source_answer,
     expand_answer_to_sentence,
     format_display_answer,
@@ -36,6 +37,26 @@ class LowConfidencePredictor:
 
 
 class PipelineTests(unittest.TestCase):
+    def test_stronger_definition_fallback_beats_a_barely_accepted_neural_span(self):
+        question = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 ai?"
+        neural = {
+            "answer": "Ph\u1ea1m V\u0103n \u0110\u1ed3ng (1 th\u00e1ng 3 n\u0103m 1906 - 29",
+            "confidence": 0.346,
+            "start": 0,
+            "end": 40,
+        }
+        fallback = {
+            "answer": "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam.",
+            "confidence": 0.70,
+            "start": 0,
+            "end": 45,
+        }
+
+        chosen = choose_reader_output(question, neural, fallback)
+
+        self.assertEqual(chosen["method"], "sentence_fallback")
+        self.assertEqual(chosen["confidence"], 0.70)
+
     def test_vietnamese_sentence_split_does_not_merge_the_next_sentence(self):
         text = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 Th\u1ee7 t\u01b0\u1edbng Vi\u1ec7t Nam. Tr\u01b0\u1edbc \u0111\u00f3 \u00f4ng gi\u1eef m\u1ed9t ch\u1ee9c v\u1ee5 kh\u00e1c."
 

@@ -278,7 +278,21 @@ def choose_reader_output(
     fallback_confidence = float(fallback_output["confidence"])
     neural_answer = str(neural_output.get("answer") or "").strip()
     neural_is_echo = answer_repeats_question(question, neural_answer)
-    if neural_answer and not neural_is_echo and neural_confidence >= READER_FALLBACK_THRESHOLD:
+    neural_ready = bool(neural_answer) and not neural_is_echo and neural_confidence >= READER_FALLBACK_THRESHOLD
+    fallback_ready = bool(fallback_output.get("answer")) and fallback_confidence >= SENTENCE_FALLBACK_THRESHOLD
+    prefer_fallback = fallback_ready and (
+        not neural_ready or fallback_confidence >= neural_confidence + 0.08
+    )
+
+    if prefer_fallback:
+        return {
+            "method": "sentence_fallback",
+            "answer": fallback_output["answer"],
+            "confidence": fallback_confidence,
+            "start": int(fallback_output["start"]),
+            "end": int(fallback_output["end"]),
+        }
+    if neural_ready:
         return {
             "method": "neural",
             "answer": neural_output["answer"],
@@ -286,7 +300,7 @@ def choose_reader_output(
             "start": int(neural_output["start"]),
             "end": int(neural_output["end"]),
         }
-    if fallback_output.get("answer") and fallback_confidence >= SENTENCE_FALLBACK_THRESHOLD:
+    if fallback_ready:
         return {
             "method": "sentence_fallback",
             "answer": fallback_output["answer"],
