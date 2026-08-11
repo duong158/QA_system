@@ -176,6 +176,38 @@ ANSWER_CUE_PATTERNS = (
 )
 
 
+def definition_subject(question: str) -> str:
+    normalized = normalize_text(question).strip(" ?!.")
+    match = re.match(
+        r"^(?:cho biet\s+)?(.+?)\s+(?:la ai|la gi|co nghia la gi|duoc dinh nghia nhu the nao)$",
+        normalized,
+    )
+    return re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
+
+
+def relation_follows_subject(sentence: str, subject: str) -> bool:
+    if not subject:
+        return False
+    normalized = normalize_text(sentence)
+    match = re.search(rf"\b{re.escape(subject)}\b", normalized)
+    if not match:
+        return False
+    tail = normalized[match.end() : match.end() + 180]
+    tail = re.sub(r"^\s*\([^)]{0,120}\)", "", tail)
+    return bool(
+        re.match(
+            r"^\s*,?\s*(?:(?:hien|tung|chinh|duoc xem la|duoc biet den nhu)\s+)?la\b",
+            tail,
+        )
+    )
+
+
+def answer_repeats_question(question: str, answer: str) -> bool:
+    answer_tokens = set(tokenize(answer))
+    question_tokens = set(tokenize(question))
+    return bool(answer_tokens) and answer_tokens <= question_tokens
+
+
 def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
     """Extract a useful full-sentence answer when the neural reader is not confident.
 
@@ -187,6 +219,7 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
         return {"answer": "", "confidence": 0.0, "start": -1, "end": -1, "reason": "empty_question_tokens"}
 
     normalized_question = normalize_text(question)
+    subject = definition_subject(question)
     subject_phrase = re.sub(
         r"\b(bao gom nhung gi|gom nhung gi|co nhung gi|duoc chia thanh|duoc chia lam|duoc chia|chia thanh|chia lam|nhu the nao|nhu nao|la gi|la ai|chia|duoc|nao|gi|ai)\b",
         " ",
@@ -218,6 +251,12 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
         if len(sentence) > 520:
             cue_bonus -= 0.12
         score = max(0.0, min(0.92, overlap * 0.78 + cue_bonus))
+        relation_matched = relation_follows_subject(sentence, subject)
+        if subject:
+            if relation_matched:
+                score = min(0.92, score + 0.18)
+            else:
+                score = min(score, SENTENCE_FALLBACK_THRESHOLD - 0.07)
 
         if score > best["confidence"]:
             best = {
@@ -225,15 +264,21 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
                 "confidence": round(score, 6),
                 "start": start,
                 "end": end,
-                "reason": "sentence_overlap_cue",
+                "reason": "definition_relation" if relation_matched else "sentence_overlap_cue",
             }
     return best
 
 
-def choose_reader_output(neural_output: dict[str, Any], fallback_output: dict[str, Any]) -> dict[str, Any]:
+def choose_reader_output(
+    question: str,
+    neural_output: dict[str, Any],
+    fallback_output: dict[str, Any],
+) -> dict[str, Any]:
     neural_confidence = float(neural_output["confidence"])
     fallback_confidence = float(fallback_output["confidence"])
-    if neural_output.get("answer") and neural_confidence >= READER_FALLBACK_THRESHOLD:
+    neural_answer = str(neural_output.get("answer") or "").strip()
+    neural_is_echo = answer_repeats_question(question, neural_answer)
+    if neural_answer and not neural_is_echo and neural_confidence >= READER_FALLBACK_THRESHOLD:
         return {
             "method": "phobert",
             "answer": neural_output["answer"],
@@ -248,6 +293,14 @@ def choose_reader_output(neural_output: dict[str, Any], fallback_output: dict[st
             "confidence": fallback_confidence,
             "start": int(fallback_output["start"]),
             "end": int(fallback_output["end"]),
+        }
+    if neural_is_echo:
+        return {
+            "method": "no_answer",
+            "answer": None,
+            "confidence": 0.0,
+            "start": -1,
+            "end": -1,
         }
     return {
         "method": "phobert",
@@ -283,6 +336,67 @@ def expand_answer_to_sentence(context: str, answer: str, start: int, end: int) -
     if len(sentence) <= len(answer) or len(sentence) > max_chars:
         return answer
     return sentence
+
+
+def concise_source_answer(question: str, answer: str, max_chars: int = 280) -> str:
+    answer = re.sub(r"\s+", " ", str(answer or "")).strip()
+    if not answer:
+        return ""
+
+    normalized_question = normalize_text(question)
+    if re.search(r"\b(?:chia|bao gom|gom)\b", normalized_question):
+        answer = re.sub(r"\s*\([^)]*\)", "", answer)
+        answer = re.sub(r"\s+([,.;:])", r"\1", answer)
+
+    subject = definition_subject(question)
+    if subject and relation_follows_subject(answer, subject):
+        normalized = normalize_text(answer)
+        subject_match = re.search(rf"\b{re.escape(subject)}\b", normalized)
+        if subject_match:
+            tail = normalized[subject_match.end() :]
+            cue_match = re.search(r"\bla\b", tail)
+            if cue_match:
+                predicate_start = subject_match.end() + cue_match.end()
+                predicate = answer[predicate_start:].strip(" ,:-")
+                predicate = re.sub(r"\s*\([^)]*\)\s*", " ", predicate).strip()
+                stop = re.search(
+                    r"\s+(?:tu nam|ke tu|trong giai doan|cho den khi|vao nam)\s+",
+                    normalize_text(predicate),
+                )
+                if stop and len(predicate[: stop.start()].split()) >= 4:
+                    predicate = predicate[: stop.start()].rstrip(" ,;:")
+                if predicate:
+                    subject_text = answer[subject_match.start() : subject_match.end()].strip()
+                    answer = f"{subject_text} là {predicate}"
+
+    answer = answer.split(";", 1)[0].strip()
+    if len(answer) > max_chars:
+        shortened = answer[: max_chars + 1].rsplit(" ", 1)[0].rstrip(" ,;:")
+        answer = f"{shortened}…"
+    elif answer[-1:] not in ".!?":
+        answer = f"{answer}."
+    return answer
+
+
+def format_display_answer(
+    question: str,
+    context: str,
+    chosen_output: dict[str, Any],
+) -> str:
+    answer = str(chosen_output.get("answer") or "").strip()
+    if not answer:
+        return ""
+    if chosen_output.get("method") == "sentence_fallback":
+        return concise_source_answer(question, answer)
+    if answer_repeats_question(question, answer):
+        expanded = expand_answer_to_sentence(
+            context,
+            answer,
+            int(chosen_output["start"]),
+            int(chosen_output["end"]),
+        )
+        return concise_source_answer(question, expanded)
+    return answer
 
 
 class PassageIndex:
@@ -549,16 +663,15 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             no_answer_threshold=ANSWER_THRESHOLD,
         )
         fallback_output = sentence_fallback_predict(question, hit.passage.metadata.text)
-        chosen_output = choose_reader_output(output, fallback_output)
+        chosen_output = choose_reader_output(question, output, fallback_output)
         reader_score = float(chosen_output["confidence"])
         final_score = RETRIEVER_WEIGHT * hit.retrieval_score_normalized + READER_WEIGHT * reader_score
         metadata = hit.passage.metadata
         chosen_span_answer = str(chosen_output["answer"] or "")
-        display_answer = expand_answer_to_sentence(
+        display_answer = format_display_answer(
+            question,
             metadata.text,
-            chosen_span_answer,
-            int(chosen_output["start"]),
-            int(chosen_output["end"]),
+            chosen_output,
         )
         passages.append(
             {
