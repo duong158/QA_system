@@ -169,7 +169,7 @@ export const useAppStore = create<AppState>()(
             ...defaultSettings,
             ...settings,
             retriever: settings.retriever === 'tfidf' || settings.retriever === 'bm25' ? settings.retriever : defaultSettings.retriever,
-            reader: settings.reader === 'phobert' ? settings.reader : defaultSettings.reader,
+            reader: settings.reader === 'phobert' || settings.reader === 'xlmr' ? settings.reader : defaultSettings.reader,
             voice: {
               ...defaultSettings.voice,
               ...settings.voice,

@@ -5,6 +5,13 @@ import argparse
 import string
 from pathlib import Path
 
+# Fix Windows console encoding for Vietnamese characters
+try:
+    sys.stdout.reconfigure(encoding='utf-8')
+    sys.stderr.reconfigure(encoding='utf-8')
+except AttributeError:
+    pass
+
 # Add project root to path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))

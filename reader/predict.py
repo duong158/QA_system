@@ -155,6 +155,10 @@ class ReaderPredictor:
             max_seq_len = min(max_seq_len, max(8, model_limit - 2))
         doc_stride = min(doc_stride, max(1, max_seq_len // 3))
 
+        # Truncate exceptionally long questions to prevent HuggingFace Tokenizer PanicException
+        # (stride must be strictly less than max_len)
+        question = question[:120]
+
         raw_context = context
         if self.is_phobert:
             if not HAS_PYVI:
@@ -165,17 +169,32 @@ class ReaderPredictor:
             model_question = question
             model_context = context
 
-        inputs = self.tokenizer(
-            model_question,
-            model_context,
-            truncation="only_second",
-            max_length=max_seq_len,
-            stride=doc_stride,
-            return_overflowing_tokens=True,
-            return_offsets_mapping=True,
-            padding="max_length",
-            return_tensors="pt",
-        )
+        try:
+            inputs = self.tokenizer(
+                model_question,
+                model_context,
+                truncation="only_second",
+                max_length=max_seq_len,
+                stride=doc_stride,
+                return_overflowing_tokens=True,
+                return_offsets_mapping=True,
+                padding="max_length",
+                return_tensors="pt",
+            )
+        except BaseException as e:
+            print("--- TOKENIZATION FAILURE DIAGNOSTICS ---")
+            print(f"question (truncated to 120 chars): {question!r}")
+            print(f"model_question: {model_question!r}")
+            print(f"max_seq_len: {max_seq_len}")
+            print(f"doc_stride: {doc_stride}")
+            try:
+                q_tokens = self.tokenizer.tokenize(model_question)
+                print(f"Question tokens count: {len(q_tokens)}")
+                print(f"Question tokens: {q_tokens}")
+            except Exception as tokenize_err:
+                print(f"Failed to tokenize question alone: {tokenize_err}")
+            print("----------------------------------------")
+            raise e
         model_inputs = {
             key: value.to(self.device)
             for key, value in inputs.items()
@@ -225,7 +244,11 @@ class ReaderPredictor:
 
         null_score = min(null_scores, default=best.score)
         margin = best.score - null_score
-        confidence = _sigmoid(margin)
+        
+        # Scale margin down by a temperature factor to prevent overconfidence (sigmoid saturation)
+        temperature = 10.0
+        confidence = _sigmoid(margin / temperature)
+        
         if self.is_phobert:
             raw_start, raw_end = map_segmented_span_to_raw(
                 raw_context,
