@@ -49,6 +49,7 @@ export function useQaPipeline() {
     currentRunRef.current += 1;
     const runId = currentRunRef.current;
     setErrorMessage(null);
+    setAnswer(null);
     setSpeaking(false);
     setPipelineState('retrieving');
     setAvatarState('retrieving');

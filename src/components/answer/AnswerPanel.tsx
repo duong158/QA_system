@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Clock3, Cpu, Database, MessageSquareText, ShieldAlert, ChevronDown, ChevronUp } from 'lucide-react';
+import { Clock3, Cpu, Database, MessageSquareText, ShieldAlert, ChevronDown, ChevronUp, LoaderCircle } from 'lucide-react';
 import type { PipelineState } from '@/types/pipeline';
 import type { PassageResult, QaResponse } from '@/types/qa';
 import { formatLatency } from '@/utils/formatScore';
@@ -20,6 +20,8 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
   const hasAnswer = response?.has_answer ?? Boolean(response?.answer);
   const lowConfidence = Boolean(response && hasAnswer && response.confidence < 0.5);
   const noAnswerWithRetrievedPassage = Boolean(response && !hasAnswer && response.passages?.length);
+  const isProcessing = !response && ['retrieving', 'reading', 'extracting'].includes(state);
+  const isConfirmedNoAnswer = Boolean(response && !hasAnswer);
 
   return (
     <motion.section
@@ -45,9 +47,18 @@ export function AnswerPanel({ response, state, compareMode, onViewSource }: Answ
           <p className="text-lg font-medium leading-8 text-slate-50">
             <span className="text-amber-200">{response.answer}</span>
           </p>
-        ) : (
+        ) : isProcessing ? (
+          <div className="flex items-center gap-3 text-base leading-7 text-slate-300" role="status" aria-live="polite">
+            <LoaderCircle className="h-5 w-5 shrink-0 animate-spin text-viqa-cyan" />
+            <span>Đang tìm và trích xuất câu trả lời...</span>
+          </div>
+        ) : isConfirmedNoAnswer ? (
           <p className="text-base leading-7 text-slate-300">
             Không tìm thấy câu trả lời đủ tin cậy trong tập tài liệu.
+          </p>
+        ) : (
+          <p className="text-base leading-7 text-slate-300">
+            Hãy đặt câu hỏi để bắt đầu.
           </p>
         )}
         {lowConfidence ? (
