@@ -1,7 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { AudioLines, Settings2, BarChart3, Bot } from 'lucide-react';
-import { useAppStore } from '@/store/appStore';
+import { SystemStatus } from './SystemStatus';
 
 interface HeaderProps {
   onToggleAudio: () => void;
@@ -11,7 +10,6 @@ interface HeaderProps {
 
 export function Header({ onToggleAudio, onToggleSettings, audioEnabled }: HeaderProps) {
   const location = useLocation();
-  const status = useAppStore((state) => state.statusMessage);
 
   return (
     <header className="relative z-20 flex items-center justify-between gap-3 rounded-2xl border border-viqa-border bg-slate-800/75 px-4 py-3 shadow-glow backdrop-blur-xl lg:px-5">
@@ -26,15 +24,7 @@ export function Header({ onToggleAudio, onToggleSettings, audioEnabled }: Header
       </div>
 
       <div className="hidden items-center gap-3 md:flex">
-        <div className="flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 text-xs text-emerald-200">
-          <motion.span
-            className="h-2 w-2 rounded-full bg-emerald-300"
-            animate={{ opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
-          />
-          SYSTEM ONLINE
-        </div>
-        <div className="rounded-full border border-slate-400/15 bg-slate-700/45 px-3 py-1.5 text-xs text-slate-300">{status}</div>
+        <SystemStatus />
       </div>
 
       <div className="flex items-center gap-2">

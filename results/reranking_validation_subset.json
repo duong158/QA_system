@@ -1,0 +1,228 @@
+{
+  "dataset": "UIT-ViQuAD2.0 validation stratified subset",
+  "subset_size": 40,
+  "seed": 42,
+  "top_k": 10,
+  "question_type_counts": {
+    "DEFINITION": 6,
+    "ENTITY": 6,
+    "GENERAL": 6,
+    "LOCATION": 6,
+    "NUMBER": 6,
+    "PERSON": 6,
+    "TIME": 4
+  },
+  "latency_ms": {
+    "average": 4142.574537503242,
+    "p50": 3956.5241999807768,
+    "p95": 4120.387300034054
+  },
+  "methodology": "Reader inference is run once per question. A-E are post-hoc rescored on the same returned Top-10 candidates. A-C reproduce legacy score/gate semantics; D-E add answer-type gates and a sentence-fallback penalty. This subset benchmark is not the full validation benchmark.",
+  "configs": {
+    "A_retriever70_reader30": {
+      "weights": {
+        "retriever": 0.7,
+        "reader": 0.3,
+        "answer_type": 0.0,
+        "type_gate": false,
+        "fallback_penalty": 1.0
+      },
+      "metrics": {
+        "overall": {
+          "count": 40,
+          "em": 10.0,
+          "f1": 14.877687732547201
+        },
+        "answerable": {
+          "count": 20,
+          "em": 0.0,
+          "f1": 9.7553754650944,
+          "predicted_empty": 2,
+          "predicted_empty_rate": 10.0
+        },
+        "unanswerable": {
+          "count": 20,
+          "accuracy": 20.0,
+          "em": 20.0
+        },
+        "predicted_no_answer": {
+          "count": 6,
+          "rate": 15.0
+        },
+        "ranking": {
+          "gold_answer_passage_available_top10": 17,
+          "gold_passage_selected": 11,
+          "wrong_passage_selected": 7,
+          "no_answer_correctly_emitted": 4,
+          "false_positive_answer_emitted": 16,
+          "high_score_wrong_answer": 34,
+          "high_score_wrong_answer_rate": 85.0
+        }
+      }
+    },
+    "B_retriever60_reader40": {
+      "weights": {
+        "retriever": 0.6,
+        "reader": 0.4,
+        "answer_type": 0.0,
+        "type_gate": false,
+        "fallback_penalty": 1.0
+      },
+      "metrics": {
+        "overall": {
+          "count": 40,
+          "em": 10.0,
+          "f1": 14.877687732547201
+        },
+        "answerable": {
+          "count": 20,
+          "em": 0.0,
+          "f1": 9.7553754650944,
+          "predicted_empty": 2,
+          "predicted_empty_rate": 10.0
+        },
+        "unanswerable": {
+          "count": 20,
+          "accuracy": 20.0,
+          "em": 20.0
+        },
+        "predicted_no_answer": {
+          "count": 6,
+          "rate": 15.0
+        },
+        "ranking": {
+          "gold_answer_passage_available_top10": 17,
+          "gold_passage_selected": 11,
+          "wrong_passage_selected": 7,
+          "no_answer_correctly_emitted": 4,
+          "false_positive_answer_emitted": 16,
+          "high_score_wrong_answer": 31,
+          "high_score_wrong_answer_rate": 77.5
+        }
+      }
+    },
+    "C_retriever50_reader50": {
+      "weights": {
+        "retriever": 0.5,
+        "reader": 0.5,
+        "answer_type": 0.0,
+        "type_gate": false,
+        "fallback_penalty": 1.0
+      },
+      "metrics": {
+        "overall": {
+          "count": 40,
+          "em": 10.0,
+          "f1": 14.877687732547201
+        },
+        "answerable": {
+          "count": 20,
+          "em": 0.0,
+          "f1": 9.7553754650944,
+          "predicted_empty": 2,
+          "predicted_empty_rate": 10.0
+        },
+        "unanswerable": {
+          "count": 20,
+          "accuracy": 20.0,
+          "em": 20.0
+        },
+        "predicted_no_answer": {
+          "count": 6,
+          "rate": 15.0
+        },
+        "ranking": {
+          "gold_answer_passage_available_top10": 17,
+          "gold_passage_selected": 11,
+          "wrong_passage_selected": 7,
+          "no_answer_correctly_emitted": 4,
+          "false_positive_answer_emitted": 16,
+          "high_score_wrong_answer": 27,
+          "high_score_wrong_answer_rate": 67.5
+        }
+      }
+    },
+    "D_retriever50_reader30_type20": {
+      "weights": {
+        "retriever": 0.5,
+        "reader": 0.3,
+        "answer_type": 0.2,
+        "type_gate": true,
+        "fallback_penalty": 0.6
+      },
+      "metrics": {
+        "overall": {
+          "count": 40,
+          "em": 25.0,
+          "f1": 27.355475727412994
+        },
+        "answerable": {
+          "count": 20,
+          "em": 0.0,
+          "f1": 4.710951454825987,
+          "predicted_empty": 8,
+          "predicted_empty_rate": 40.0
+        },
+        "unanswerable": {
+          "count": 20,
+          "accuracy": 50.0,
+          "em": 50.0
+        },
+        "predicted_no_answer": {
+          "count": 18,
+          "rate": 45.0
+        },
+        "ranking": {
+          "gold_answer_passage_available_top10": 17,
+          "gold_passage_selected": 8,
+          "wrong_passage_selected": 4,
+          "no_answer_correctly_emitted": 10,
+          "false_positive_answer_emitted": 10,
+          "high_score_wrong_answer": 10,
+          "high_score_wrong_answer_rate": 25.0
+        }
+      }
+    },
+    "E_retriever40_reader40_type20": {
+      "weights": {
+        "retriever": 0.4,
+        "reader": 0.4,
+        "answer_type": 0.2,
+        "type_gate": true,
+        "fallback_penalty": 0.6
+      },
+      "metrics": {
+        "overall": {
+          "count": 40,
+          "em": 25.0,
+          "f1": 27.355475727412994
+        },
+        "answerable": {
+          "count": 20,
+          "em": 0.0,
+          "f1": 4.710951454825987,
+          "predicted_empty": 8,
+          "predicted_empty_rate": 40.0
+        },
+        "unanswerable": {
+          "count": 20,
+          "accuracy": 50.0,
+          "em": 50.0
+        },
+        "predicted_no_answer": {
+          "count": 18,
+          "rate": 45.0
+        },
+        "ranking": {
+          "gold_answer_passage_available_top10": 17,
+          "gold_passage_selected": 8,
+          "wrong_passage_selected": 4,
+          "no_answer_correctly_emitted": 10,
+          "false_positive_answer_emitted": 10,
+          "high_score_wrong_answer": 0,
+          "high_score_wrong_answer_rate": 0.0
+        }
+      }
+    }
+  }
+}

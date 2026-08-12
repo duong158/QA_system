@@ -1,0 +1,204 @@
+{
+  "dataset": "UIT-ViQuAD2.0 validation stratified subset",
+  "subset_size": 40,
+  "seed": 42,
+  "top_k": 10,
+  "question_type_filter": null,
+  "metrics": {
+    "overall": {
+      "count": 40,
+      "em": 25.0,
+      "f1": 28.495826604605973
+    },
+    "answerable": {
+      "count": 20,
+      "em": 0.0,
+      "f1": 6.991653209211952,
+      "predicted_empty": 6,
+      "predicted_empty_rate": 30.0
+    },
+    "unanswerable": {
+      "count": 20,
+      "accuracy": 50.0,
+      "em": 50.0
+    },
+    "predicted_no_answer": {
+      "count": 16,
+      "rate": 40.0
+    }
+  },
+  "ranking": {
+    "gold_answer_passage_available_top10": 17,
+    "gold_passage_selected": 10,
+    "wrong_passage_selected": 4,
+    "false_positive_answer_emitted": 10,
+    "false_negative_no_answer_emitted": 6,
+    "no_answer_correctly_emitted": 10
+  },
+  "location": {
+    "count": 6,
+    "correct": 0,
+    "wrong_location": 6,
+    "no_answer": 0,
+    "false_positive": 3,
+    "false_negative": 0,
+    "whole_sentence_accepted": 6,
+    "phrase_accepted": 0
+  },
+  "fallback": {
+    "fallback_candidates_total": 310,
+    "fallback_phrase_success": 39,
+    "fallback_whole_sentence": 271,
+    "fallback_rejected_type": 77,
+    "fallback_rejected_evidence": 0,
+    "fallback_rejected_ranking": 186,
+    "fallback_answered_correctly": 0,
+    "fallback_answered_incorrectly": 23,
+    "fallback_phrase_rate": 12.580645161290322,
+    "fallback_whole_sentence_rate": 87.41935483870968
+  },
+  "error_counts": {
+    "FALLBACK_PHRASE_NOT_EXTRACTED": 4,
+    "FALLBACK_TYPE_GATE_FALSE_NEGATIVE": 3,
+    "NEURAL_SPAN_WRONG_FALLBACK_CORRECT": 2,
+    "FALLBACK_WHOLE_SENTENCE_TOO_BROAD": 4,
+    "LOCATION_PROPER_NOUN_FALSE_POSITIVE": 2,
+    "LOCATION_RELATION_MISMATCH": 6,
+    "LOCATION_WHOLE_SENTENCE_TOO_BROAD": 6,
+    "LOCATION_PHRASE_NOT_EXTRACTED": 0,
+    "LOCATION_FALSE_NEGATIVE": 0
+  },
+  "error_analysis": [
+    {
+      "id": "0001-0090-0001",
+      "question": "Nội dung của \"An American in Paris\" là gì?",
+      "gold_answer": "một họa sĩ trẻ ở Paris, đã thành công rực rỡ, đạt giải Oscar cho phim hay nhất",
+      "predicted_answer": "",
+      "errors": [
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "NO_VALID_SPAN"
+    },
+    {
+      "id": "0001-0017-0005",
+      "question": "Vì sao vua Charles V cho xây dựng bức tường thành từcầu Pont Royal tới cửa ô Saint-Denis?",
+      "gold_answer": "nạn dịch hạch đen",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0002-0007-0002",
+      "question": "Đa số các quan chức Nouvelle-Calédonie được triển khai tại những nơi nào?",
+      "gold_answer": "",
+      "predicted_answer": "Lực lượng vũ trang Nouvelle-Calédonie FANC gồm khỏang 2.000 binh sĩ, chủ yếu được triển khai tại Koumac, Nandaï, Tontouta, Plum, và Nouméa.",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0003-0007",
+      "question": "Nước nào đã giúp Kuwait ngăn chặn ý định thâu tóm nước này của Iraq?",
+      "gold_answer": "Anh",
+      "predicted_answer": "Tại Kuwait, gia đình Emir được tái lập và những kẻ bị cho là cộng tác với Iraq bị đàn áp.",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0009-0008-0002",
+      "question": "Từ năm nào trở đi Mitterrand trở thành thành viên của ORA?",
+      "gold_answer": "1943",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "ANSWER_TYPE_MISMATCH"
+    },
+    {
+      "id": "0004-0019-0007",
+      "question": "Những hạm đội tàu chiến nào được Hải quân Mỹ triệu tập?",
+      "gold_answer": "USS Dwight D. Eisenhower và USS Independence",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0003-0023-0007",
+      "question": "Canada tiếp giáp với các quốc gia nào bằng biên giới trên biển?",
+      "gold_answer": "",
+      "predicted_answer": "Canada (phiên âm tiếng Việt: Ca-na-đa.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0021-0003",
+      "question": "Nhà thờ Sainte-Geneviève nằm ở đâu?",
+      "gold_answer": "Paris",
+      "predicted_answer": "Và hơn hết là việc xây dựng một nhà thờ ở Sainte-Geneviève vào năm 1754, chính là Điện Panthéon.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0044-0002",
+      "question": "Người di cư tới Canada chủ yêu tập trung sinh sông ở khu vực nào?",
+      "gold_answer": "Toronto, Montreal và Vancouver",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0001-0072-0001",
+      "question": "Những nước nào trên thế giới có sự hiện diện của ẩm thực Paris?",
+      "gold_answer": "",
+      "predicted_answer": "Mới nhất năm 2007, với vị trí kinh đô của ẩm thực, Paris lại xuất hiện trong bộ phim họat hình Mỹ Chú chuột đầu bếp (Ratatouille).",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0021-0004",
+      "question": "Để biện hộ cho sự can thiệp vào cuộc chiến, Mỹ đã viện cớ có mối quan hệ quan trọng với quốc gia nào?",
+      "gold_answer": "Ả Rập Xê Út",
+      "predicted_answer": "Tại Washington đã có cuộc tranh luận về việc Mỹ có nên trực tiếp can thiệp bằng quân sự để cứu viện cho Pháp, có tướng lĩnh còn đề nghị thả bom nguyên tử xuống Điện Biên Phủ.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    }
+  ],
+  "latency_ms": {
+    "average": 4836.929252494883,
+    "p50": 4632.958100002725,
+    "p95": 4952.889000007417
+  }
+}

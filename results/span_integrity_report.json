@@ -1,0 +1,52 @@
+{
+  "model": "models/reader/vinai_phobert-base-v2",
+  "max_length": 256,
+  "stride": 80,
+  "preprocessing": "raw text -> PyVi once -> model-compatible PhoBERT BPE with explicit offsets",
+  "gold_mapping": "answer_start + len(answer_text) -> offset_mapping context tokens",
+  "splits": [
+    {
+      "split": "train",
+      "total_rows": 28454,
+      "total_answerable_samples": 19238,
+      "valid_span_mappings": 18913,
+      "invalid_span_mappings": 325,
+      "span_mapping_accuracy": 98.31063520116436,
+      "overflow_features": 22349,
+      "features_containing_answer": 19779,
+      "maximum_input_token_id": 63998,
+      "model_vocab_size": 64001,
+      "features_with_out_of_range_token_id": 0,
+      "legacy_first_match_mapped": 19238,
+      "legacy_exact_annotated_offset": 18653,
+      "legacy_exact_annotated_offset_accuracy": 96.95914336209586,
+      "invalid_reason_counts": {
+        "ANSWER_LONGER_THAN_STRIDE": 3,
+        "TOKENIZER_BOUNDARY": 322
+      }
+    },
+    {
+      "split": "validation",
+      "total_rows": 3814,
+      "total_answerable_samples": 2653,
+      "valid_span_mappings": 2614,
+      "invalid_span_mappings": 39,
+      "span_mapping_accuracy": 98.52996607614021,
+      "overflow_features": 2963,
+      "features_containing_answer": 2703,
+      "maximum_input_token_id": 63818,
+      "model_vocab_size": 64001,
+      "features_with_out_of_range_token_id": 0,
+      "legacy_first_match_mapped": 2653,
+      "legacy_exact_annotated_offset": 2556,
+      "legacy_exact_annotated_offset_accuracy": 96.34376177911798,
+      "invalid_reason_counts": {
+        "TOKENIZER_BOUNDARY": 39
+      }
+    }
+  ],
+  "total_answerable_samples": 21891,
+  "valid_span_mappings": 21527,
+  "invalid_span_mappings": 364,
+  "span_mapping_accuracy": 98.33721620757389
+}

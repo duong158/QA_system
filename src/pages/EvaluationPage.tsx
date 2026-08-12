@@ -16,6 +16,7 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import {
   errorAnalysis,
+  evaluationDataStatus,
   evaluationMetrics,
   readerComparison,
   recallCurveData,
@@ -71,6 +72,11 @@ export function EvaluationPage() {
               Back to VIQA
             </Link>
           </div>
+          {evaluationDataStatus === 'mock' && (
+            <div className="mt-4 rounded-2xl border border-viqa-gold/30 bg-viqa-gold/10 px-4 py-3 text-sm text-viqa-gold">
+              <strong>Mock / Demo data.</strong> Các số bên dưới chỉ phục vụ thiết kế giao diện, không phải benchmark của model.
+            </div>
+          )}
         </section>
 
         <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -89,7 +95,7 @@ export function EvaluationPage() {
 
         <section className="grid gap-4 xl:grid-cols-2">
           <article className="viqa-panel rounded-[28px] p-5">
-            <h2 className="font-display text-lg tracking-[0.16em] text-white">RETRIEVER COMPARISON</h2>
+            <h2 className="font-display text-lg tracking-[0.16em] text-white">RETRIEVER COMPARISON · DEMO</h2>
             <div className="mt-5 h-80">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={retrieverChartData}>
@@ -128,7 +134,7 @@ export function EvaluationPage() {
           <article className="viqa-panel rounded-[28px] p-5">
             <div className="mb-4 flex items-center gap-2">
               <Table2 className="h-5 w-5 text-viqa-violet" />
-              <h2 className="font-display text-lg tracking-[0.16em] text-white">READER TABLE</h2>
+              <h2 className="font-display text-lg tracking-[0.16em] text-white">READER TABLE · DEMO</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[520px] text-left text-sm">

@@ -1,0 +1,526 @@
+{
+  "dataset": "UIT-ViQuAD2.0 validation diagnostic LOCATION subset",
+  "subset_size": 40,
+  "seed": 42,
+  "top_k": 10,
+  "question_type_filter": "LOCATION",
+  "metrics": {
+    "overall": {
+      "count": 40,
+      "em": 0.0,
+      "f1": 3.5469645122938687
+    },
+    "answerable": {
+      "count": 20,
+      "em": 0.0,
+      "f1": 7.093929024587737,
+      "predicted_empty": 0,
+      "predicted_empty_rate": 0.0
+    },
+    "unanswerable": {
+      "count": 20,
+      "accuracy": 0.0,
+      "em": 0.0
+    },
+    "predicted_no_answer": {
+      "count": 0,
+      "rate": 0.0
+    }
+  },
+  "ranking": {
+    "gold_answer_passage_available_top10": 13,
+    "gold_passage_selected": 8,
+    "wrong_passage_selected": 12,
+    "false_positive_answer_emitted": 20,
+    "false_negative_no_answer_emitted": 0,
+    "no_answer_correctly_emitted": 0
+  },
+  "location": {
+    "count": 40,
+    "correct": 0,
+    "wrong_location": 40,
+    "no_answer": 0,
+    "false_positive": 20,
+    "false_negative": 0,
+    "whole_sentence_accepted": 36,
+    "phrase_accepted": 0
+  },
+  "fallback": {
+    "fallback_candidates_total": 362,
+    "fallback_phrase_success": 0,
+    "fallback_whole_sentence": 362,
+    "fallback_rejected_type": 0,
+    "fallback_rejected_evidence": 0,
+    "fallback_rejected_ranking": 247,
+    "fallback_answered_correctly": 0,
+    "fallback_answered_incorrectly": 36,
+    "fallback_phrase_rate": 0.0,
+    "fallback_whole_sentence_rate": 100.0
+  },
+  "error_counts": {
+    "FALLBACK_PHRASE_NOT_EXTRACTED": 0,
+    "FALLBACK_TYPE_GATE_FALSE_NEGATIVE": 0,
+    "NEURAL_SPAN_WRONG_FALLBACK_CORRECT": 0,
+    "FALLBACK_WHOLE_SENTENCE_TOO_BROAD": 0,
+    "LOCATION_PROPER_NOUN_FALSE_POSITIVE": 8,
+    "LOCATION_RELATION_MISMATCH": 40,
+    "LOCATION_WHOLE_SENTENCE_TOO_BROAD": 40,
+    "LOCATION_PHRASE_NOT_EXTRACTED": 0,
+    "LOCATION_FALSE_NEGATIVE": 0
+  },
+  "error_analysis": [
+    {
+      "id": "0004-0007-0001",
+      "question": "Sau khi có Iran có được chiến thắng mới, họ đã bắt đầu việc kinh doanh vũ khí với quốc gia nào?",
+      "gold_answer": "Trung Quốc",
+      "predicted_answer": "Với thắng lợi mới đạt được của Iran trong cuộc chiến và việc họ từ chối một đề xuất hòa bình vào tháng 7, việc mua bán vũ khí từ các nước khác (nhiều nhất là Liên Xô, Pháp, Ai Cập, và bắt đầu từ năm đó là Trung Quốc) đã đạt tới đỉnh điểm năm 1982, nhưng một trở ngại vẫn còn chưa…",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0072-0001",
+      "question": "Những nước nào trên thế giới có sự hiện diện của ẩm thực Paris?",
+      "gold_answer": "",
+      "predicted_answer": "Mới nhất năm 2007, với vị trí kinh đô của ẩm thực, Paris lại xuất hiện trong bộ phim họat hình Mỹ Chú chuột đầu bếp (Ratatouille).",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0038-0001",
+      "question": "Trong Chiến tranh thế giới thứ hai, Canada là đồng minh của nước nào?",
+      "gold_answer": "Anh Quốc",
+      "predicted_answer": "Canada có quan hệ tích cực với Hà Lan, một phần là do Canada từng góp phần giải phóng Hà Lan trong Chiến tranh thế giới thứ hai.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0010-0001",
+      "question": "Nơi nào nằm trên kênh Seine nối liền bồn Villette và thượng lưu sông Saint-Martin?",
+      "gold_answer": "",
+      "predicted_answer": "Một con kênh khác là Saint-Denis, cũng nối với bồn Villette theo hướng Saint-Denis, dài 4,5 km và hòan thành vào năm 1821.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0064-0006",
+      "question": "Bức tranh Mona Lisa nằm ở đâu?",
+      "gold_answer": "viện bảo tàng Louvre",
+      "predicted_answer": "Trong khi Cung điện Louvre từ lâu đã là một bảo tàng, thì Bảo tàng Orsay được khánh thành từ năm 1986 tại một ga đường sắt cũ trong cuộc tái tổ chức quy mô lớn các bộ sưu tập nghệ thuật quốc gia, nhằm tập hợp các bức họa của Pháp từ nửa sau thế kỷ XIX (chủ yếu là các phong trào…",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0050-0003",
+      "question": "Tỉnh nào của Canada có thành phần dân cư là sắc mạnh hóa mạnh?",
+      "gold_answer": "",
+      "predicted_answer": "Québec",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0015-0003-0007",
+      "question": "Những nơi nào từ khỏang 5500-3500 TCN đã có các khu định cư nông nghiệp?",
+      "gold_answer": "Norovlin, Tamsagbulag, Bayanzag, và Rashaan Khad",
+      "predicted_answer": "Các khu định cư nông nghiệp thời đại đồ đá mới (khỏang 5500–3500 TCN) tại các địa phương như Norovlin, Tamsagbulag, Bayanzag, và Rashaan Khad.",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0091-0005",
+      "question": "Hình ảnh sân khấu đổ xuất hiện ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "Mới nhất năm 2007, với vị trí kinh đô của ẩm thực, Paris lại xuất hiện trong bộ phim họat hình Mỹ Chú chuột đầu bếp (Ratatouille).",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0012-0005",
+      "question": "Cuộc cách mạng Pháp lần đầu tiên diễn ra ở đâu?",
+      "gold_answer": "Paris",
+      "predicted_answer": "Nhiều làn sóng nhập cư khác kéo dài liên tục tới tận ngày nay: những người Ý và Do Thái vào thế kỷ 19, những người Nga sau cách mạng Nga năm 1917, những người dân thuộc địa trong Chiến tranh thế giới thứ nhất, những người Ba Lan đến vào khỏang thời gian giữa hai cuộc thế chiến…",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0055-0005",
+      "question": "Điểm cuối của Axe lúc dài nhất là nơi nào?",
+      "gold_answer": "",
+      "predicted_answer": "Vào thập niên 1960, Axe historique còn được tiếp tục kéo dài tới tận khu đô thị hiện đại La Défense với công trình Grande Arche.",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0026-0003",
+      "question": "Nơi nào của Canada có khí hậu tốt nhất vào vào mùa đông?",
+      "gold_answer": "British Columbia Duyên hải",
+      "predicted_answer": "Mùa đông có thể khắc nghiệt tại nhiều nơi của quốc gia, đặc biệt là trong vùng nội địa và các tỉnh thảo nguyên, là những nơi có khí hậu lục địa với nhiệt độ trung bình ngày là gần −15 °C (5 °F), song có thể xuống dưới −40 °C (−40 °F) với các cơn gió lạnh dữ dội.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0016-0003",
+      "question": "Capet đã chọn nơi nào để tập trung?",
+      "gold_answer": "",
+      "predicted_answer": "Khi đó, Paris và Orléans là hai thành phố lớn nhất trong lãnh thổ và vương triều Capet đã chọn Orléans.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0043-0004",
+      "question": "Các quốc gia nào có số dân di cư đến Canada nhiều nhất?",
+      "gold_answer": "Nam Á",
+      "predicted_answer": "Canada là một trong những quốc gia có tỷ lệ nhập cư bình quân trên người cao nhất thế giới, được thúc đẩy từ chính sách kinh tế và đòan tụ gia đình.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0059-0005",
+      "question": "Nhà thờ tọa lạc ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "Nhiều cơ quan chuyên môn của FBI tọa lạc tại khu tiện nghi ở Quantico, Virginia, trung tâm dữ liệu với 96 triệu mẫu vân tay trên khắp Hoa Kỳ và của tù nhân được nhà chức trách Hoa Kỳ lấy mẫu ở Ả Rập Xê Út, Yemen, Iraq và Afghanistan tại trụ sở ở Clarksburg, West Virginia.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0001-0005",
+      "question": "Cuộc chiến tranh Vùng Vịnh chủ yếu diễn ra ở những nơi nào?",
+      "gold_answer": "Iraq, Kuwait và những vùng giáp biên giới Ả Rập Xê Út",
+      "predicted_answer": "Báo chí khắp thế giới đều đưa tin về cuộc chiến và Tạp chí TIME đã xuất bản một số đặc biệt ngày 28 tháng 1 năm 1991, dòng tít \"CHIẾN TRANH VÙNG VỊNH\" nổi bật ngòai trang bìa với bức ảnh chụp Baghdad khi cuộc chiến bắt đầu.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0007-0006",
+      "question": "Rừng Paris nằm ở đâu của Vincennes?",
+      "gold_answer": "",
+      "predicted_answer": "Rừng Boulogne và rừng Vincennes, nằm ngòai Paris, được bố trí tôn trọng điểm cực tây và điểm cực đông của nội thành thành phố.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0026-0008",
+      "question": "Sau khi thất thế trước liên minh, phi đội Iraq đã phải tẩu thóat đến nơi nào?",
+      "gold_answer": "Iran",
+      "predicted_answer": "Mục tiêu ưu tiên hàng đầu của liên minh là phá hủy các cơ sở không quân và phòng không của Iraq.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0012-0008",
+      "question": "Cuộc chiến bất ngờ giữa Saddam Hussein và April Glaspie vào tháng 7 năm 1990 được tổ chức tại đâu?",
+      "gold_answer": "",
+      "predicted_answer": "Cuối tháng 7 năm 1990, khi những cuộc thương lượng giữa Iraq và Kuwait sa lầy, Quân đội Iraq tập trung tới vùng biên giới với Kuwait và triệu tập Đại sứ Hoa Kỳ April Glaspie tới một cuộc gặp bất ngờ với Tổng thống Iraq Saddam Hussein.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0009-0002-0002",
+      "question": "Mitterrand đã có khỏang thời gian học tập 11 năm tại đâu?",
+      "gold_answer": "collège Saint-Paul ở Angoulême",
+      "predicted_answer": "Trong khỏang thời gian gần đây, mỗi năm thư viện dành từ 15 đến 20 triệu euro để làm giàu bộ sưu tập sách.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0063-0005",
+      "question": "Các trường Đại học lớn nhất ở Paris thường tọa lạc ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "Trung tâm MetroTech thuộc khu Downtown Brooklyn",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0006-0001-0006",
+      "question": "Thịnh vượng chung Puerto Rico có vị trí địa lí ở đâu?",
+      "gold_answer": "phía đông bắc vùng biển Caribbean, phía đông nước Cộng hòa Dominicana và phía tây Quần đảo Virgin",
+      "predicted_answer": "Như vậy, Puerto Rico chính thức có bản hiến pháp của riêng mình và nước này phê chuẩn tên gọi Estado Libre Asociado, tạm dịch là \"Thịnh vượng chung\".",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0009-0035-0003",
+      "question": "Ngày 15 tháng 12 năm 2004, vụ việc được xét xử tại đâu?",
+      "gold_answer": "",
+      "predicted_answer": "Mất 20 năm để 'vụ việc' được đưa ra trước tòa bởi vị quan tòa chỉ đạo Jean-Paul Vallat đầu tiên bị cản trở bởi 'vụ việc' được coi là bí mật quốc phòng nhưng vào tháng 12 năm 1999 la Commission consultative du secret de la défense nationale đã giải mật một phần những hồ sơ liên…",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0008-0002-0002",
+      "question": "Hầu hết các lòai kiến còn tồn tại đến bây giờ sinh sống ở đâu?",
+      "gold_answer": "Dominica",
+      "predicted_answer": "Phối giống xong, con đực chết, cánh của những con đực rụng xuống cộng với phần cơ bắp của chúng chính là thức ăn duy trì sự sống cho con cái để sản sinh ra những con kiến thợ đầu tiên.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0014-0006-0005",
+      "question": "Địa vị cao cả của đế quốc thể hiện ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "Mọi chi tiết trong đời sống hàng ngày của Hòang đế ở triều đình đế quốc được đặt ra để thể hiện địa vị cao cả của ông.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0005-0007",
+      "question": "Phong trào Intifada đầu tiên ở quốc gia nào?",
+      "gold_answer": "Palestine",
+      "predicted_answer": "Phong trào Intifada lần thứ nhất của người Palestine",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0051-0002",
+      "question": "Thành phố nào có số lượng khách và hàng hóa trung chuyển lớn thứ năm châu Âu?",
+      "gold_answer": "",
+      "predicted_answer": "Sau Luân Đôn, Paris là thành phố châu Âu có lượng hành khách trung chuyển lớn nhất, 82,5 triệu và 2,24 triệu tấn hàng hóa trong 2006.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0024-0002",
+      "question": "Nơi nào là khu vực có người sinh sống gần cực bắc nhất trên thế giới?",
+      "gold_answer": "trạm Alert",
+      "predicted_answer": "Khu vực này là nơi sống của các lọai động vật hoang dã Âu-Á như cắt hỏa mai, đại bàng vàng, đại bàng đầu nâu, Clanga pomarina, gà gô Kavkaz, bạch yến trán đỏ, và Tichodroma muraria.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0004-0002",
+      "question": "Quốc gia nào có mật độ dân số đứng thứ tám trên thế giới?",
+      "gold_answer": "",
+      "predicted_answer": "Dân số nước này chưa đến một triệu người, Comoros là một trong những quốc gia ít dân nhất trên thế giới, nhưng cũng là một trong những nước có mật độ dân số cao nhất, với trung bình 275 người trên mỗi km vuông.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0070-0003",
+      "question": "Quán cafe xuất hiện thứ hai ở Paris nằm ở đâu?",
+      "gold_answer": "quán Café Procope",
+      "predicted_answer": "Quán cà phê đầu tiên của Paris là Régence, được khai trương năm 1688 tại khu Palais-Royal.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0031-0005",
+      "question": "Nguồn dân không lao động sống ở đâu nhiều nhất tại Paris?",
+      "gold_answer": "",
+      "predicted_answer": "Marx có một lo ngại đặc biệt với việc làm sao con người liên quan tới nguồn tài nguyên có tính nền tảng nhất, sức lao động của chính họ.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0019-0028-0005",
+      "question": "Những nơi nào thường bỏ phiếu cho Đảng Dân Chủ trong các cuộc bỏ phiếu?",
+      "gold_answer": "Austin, Dallas, Houston, và San Antonio",
+      "predicted_answer": "Khi đó sẽ là thời gian để bỏ phiếu, người chủ tri cuộc họp có thể đề nghị bất cứ điều gì ông ta muốn, và mỗi lá phiếu gồm lời đề nghị và cả sự bác bỏ nó.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0026-0004",
+      "question": "Tàu điện ngầm thứ hai của Pháp nối liền những nơi nào?",
+      "gold_answer": "",
+      "predicted_answer": "Liên kết liên đô thị cũng phát triển mạnh, có các dịch vụ tàu điện ngầm (Paris, Lyon, Lille, Marseille, Toulouse, Rennes) và dịch vụ tàu điện (Nantes, Strasbourg, Bordeaux, Grenoble, Montpellier) bổ sung cho dịch vụ xe búyt.",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0021-0004",
+      "question": "Để biện hộ cho sự can thiệp vào cuộc chiến, Mỹ đã viện cớ có mối quan hệ quan trọng với quốc gia nào?",
+      "gold_answer": "Ả Rập Xê Út",
+      "predicted_answer": "Tại Washington đã có cuộc tranh luận về việc Mỹ có nên trực tiếp can thiệp bằng quân sự để cứu viện cho Pháp, có tướng lĩnh còn đề nghị thả bom nguyên tử xuống Điện Biên Phủ.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0009-0005",
+      "question": "Ở Hầm mộ Paris, CaSO4.2H2O được khai thác nhiều ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "đá vôi, thạch cao và đá vôi silic",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0019-0028-0004",
+      "question": "Những nơi nào tại Texas thường bỏ phiếu cho người Cộng Hòa?",
+      "gold_answer": "các khu vực nông thôn và ngọai ô",
+      "predicted_answer": "Các quân dọc theo Rio Grande gần biên giới với México thường bỏ phiếu cho những người Dân chủ, trong khi hầu hết các khu vực nông thôn và ngọai ô ở Texas bỏ phiếu cho những người Cộng hòa.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0042-0008",
+      "question": "Các khu vực có đông người lao động sinh sống nhất là những nơi nào?",
+      "gold_answer": "",
+      "predicted_answer": "Sundarbans, một trong những khu rừng tràm đước lớn nhất thế giới là nơi sinh sống của nhiều hệ động thực vật, gồm cả hổ Bengal.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0014-0006-0009",
+      "question": "Trước khi chết Hòang Đế và gia đình của ông có những tháng này sống xa hoa ở đâu?",
+      "gold_answer": "cung điện cổ tên là Hofburg",
+      "predicted_answer": "Bảo mẫu của Louis, Madame de Ventadour, không cho phép các bác sĩ lấy máu, do đó mặc dù rất đau nhưng ông vẫn sống sót.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0003-0014-0005",
+      "question": "Hai quốc gia nào tham gia vào bàn đàm phán năm 1812?",
+      "gold_answer": "",
+      "predicted_answer": "Mặc dù có sự chống đối từ các tiểu bang Đông Bắc, đặc biệt là những người theo chủ nghĩa liên bang, những người không muốn làm đứt đọan giao thương với Anh Quốc nhưng Quốc hội Hoa Kỳ vẫn tuyên chiến với Anh Quốc vào tháng 6 năm 1812.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0015-0008-0003",
+      "question": "Kinh đô của nhà Nguyên nay thuộc tỉnh nào của Trung Quốc?",
+      "gold_answer": "Bắc Kinh",
+      "predicted_answer": "Việc triệu tập Hội nghị là một trong những biến cố khiến tình trạng kinh tế chính trị bất ổn biến thành cuộc cách mạng, khởi đầu từ tháng 6 năm 1789 khi tầng lớp bình dân (Third Estate) trong Hội nghị đơn phương tuyên bố họ là Quốc hội.",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0020-0004",
+      "question": "Cung điện Paris nằm ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "Điện ảnh thế giới cũng ghi dấu ấn với những bộ phim về Paris.",
+      "errors": [
+        "LOCATION_PROPER_NOUN_FALSE_POSITIVE",
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    }
+  ],
+  "latency_ms": {
+    "average": 4790.283252504014,
+    "p50": 4536.721199983731,
+    "p95": 4815.040800021961
+  }
+}

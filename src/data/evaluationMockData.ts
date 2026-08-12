@@ -1,5 +1,9 @@
 import type { EvaluationErrorItem, EvaluationMetric, ReaderComparisonRow, RetrieverType } from '@/types/qa';
 
+// DEMO-ONLY PLACEHOLDERS. These values must never be used for model selection,
+// QA conclusions, reports, or checkpoint/threshold calibration.
+export const evaluationDataStatus = 'mock' as const;
+
 export const evaluationMetrics: EvaluationMetric[] = [
   { label: 'Recall@1', value: 0.842, comparison: { tfidf: 0.702, bm25: 0.791, dense: 0.842, pyserini: 0.809 } },
   { label: 'Recall@3', value: 0.914, comparison: { tfidf: 0.831, bm25: 0.877, dense: 0.914, pyserini: 0.893 } },

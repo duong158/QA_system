@@ -5,6 +5,7 @@ import { AnswerPanel } from '@/components/answer/AnswerPanel';
 import { RetrieverComparison } from '@/components/compare/RetrieverComparison';
 import { QuestionInput } from '@/components/input/QuestionInput';
 import { Header } from '@/components/layout/Header';
+import { QuestionHistory } from '@/components/history/QuestionHistory';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { PipelineFlow } from '@/components/pipeline/PipelineFlow';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
@@ -17,15 +18,19 @@ import type { PassageResult, RetrieverComparisonRow } from '@/types/qa';
 export function HomePage() {
   const [comparisonRows, setComparisonRows] = useState<RetrieverComparisonRow[]>([]);
   const [selectedSource, setSelectedSource] = useState<PassageResult | null>(null);
+  const question = useAppStore((state) => state.question);
   const draft = useAppStore((state) => state.draft);
   const answer = useAppStore((state) => state.answer);
+  const history = useAppStore((state) => state.history);
   const pipelineState = useAppStore((state) => state.pipelineState);
   const avatarState = useAppStore((state) => state.avatarState);
   const errorMessage = useAppStore((state) => state.errorMessage);
   const settings = useAppStore((state) => state.settings);
   const comparisonEnabled = useAppStore((state) => state.isComparisonOpen);
+  const setQuestion = useAppStore((state) => state.setQuestion);
   const setDraft = useAppStore((state) => state.setDraft);
   const setAnswer = useAppStore((state) => state.setAnswer);
+  const clearHistory = useAppStore((state) => state.clearHistory);
   const setComparisonOpen = useAppStore((state) => state.setComparisonOpen);
   const toggleSettings = useAppStore((state) => state.toggleSettings);
   const updateVoiceSettings = useAppStore((state) => state.updateVoiceSettings);
@@ -56,6 +61,7 @@ export function HomePage() {
 
   const clear = () => {
     setDraft('');
+    setQuestion('');
     speech.resetTranscript();
     setAnswer(null);
     setComparisonRows([]);
@@ -76,6 +82,11 @@ export function HomePage() {
     setComparisonRows([]);
     setSelectedSource(null);
     resetTransientState();
+  };
+
+  const reuseHistoryQuestion = (historyQuestion: string) => {
+    setDraft(historyQuestion);
+    speech.resetTranscript();
   };
 
   const testVoice = () => {
@@ -133,8 +144,15 @@ export function HomePage() {
 
         <div className="flex min-w-0 flex-col gap-4 overflow-y-auto pb-4 pr-1">
           <div className="flex shrink-0 flex-col gap-4">
-            <AnswerPanel response={answer} state={pipelineState} compareMode={comparisonEnabled} onViewSource={viewSource} />
+            <AnswerPanel
+              response={answer}
+              submittedQuestion={question}
+              state={pipelineState}
+              compareMode={comparisonEnabled}
+              onViewSource={viewSource}
+            />
             <PipelineFlow state={speech.isListening ? 'listening' : pipelineState} />
+            <QuestionHistory items={history} onReuse={reuseHistoryQuestion} onClear={clearHistory} />
           </div>
         </div>
       </main>
@@ -178,11 +196,24 @@ export function HomePage() {
               <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">{selectedSource.document_id}</span>
               <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">{selectedSource.passage_id}</span>
               <span className="rounded-full border border-viqa-cyan/20 bg-viqa-cyan/10 px-3 py-1.5 text-viqa-cyan">
-                Retrieval {(selectedSource.retrieval_score * 100).toFixed(1)}%
+                Retrieval score {(selectedSource.retrieval_score_normalized ?? selectedSource.retrieval_score).toFixed(3)}
               </span>
               {typeof selectedSource.reader_score === 'number' ? (
                 <span className="rounded-full border border-viqa-violet/20 bg-viqa-violet/10 px-3 py-1.5 text-viqa-violet">
-                  Reader {(selectedSource.reader_score * 100).toFixed(1)}%
+                  Reader score {selectedSource.reader_score.toFixed(3)}
+                </span>
+              ) : null}
+              {typeof selectedSource.answer_type_score === 'number' ? (
+                <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">
+                  Answer-type score {selectedSource.answer_type_score.toFixed(3)}
+                </span>
+              ) : null}
+              {typeof selectedSource.ranking_score === 'number' ? (
+                <span
+                  className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5"
+                  title="Candidate ranking signal; not a correctness probability."
+                >
+                  Ranking score {selectedSource.ranking_score.toFixed(3)}
                 </span>
               ) : null}
             </div>

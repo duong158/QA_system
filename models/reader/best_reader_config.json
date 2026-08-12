@@ -1,0 +1,14 @@
+{
+  "checkpoint": "models/reader/vinai_phobert-base-v2",
+  "threshold": -1.8,
+  "score_type": "best_span_score_minus_null_score",
+  "selection_metric": "reader_priority_score",
+  "selection_score": 37.90322627364769,
+  "overall_f1": 38.03273338966549,
+  "answerable_f1": 29.082866622006847,
+  "unanswerable_accuracy": 58.484065460809646,
+  "confidence_temperature": 10.0,
+  "calibrated": true,
+  "validation_split": "validation",
+  "validation_examples": 3814
+}

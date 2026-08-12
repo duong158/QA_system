@@ -11,7 +11,9 @@ export interface SubmitQuestionResult {
 }
 
 export function useQaPipeline() {
+  const setQuestion = useAppStore((state) => state.setQuestion);
   const setAnswer = useAppStore((state) => state.setAnswer);
+  const addHistoryItem = useAppStore((state) => state.addHistoryItem);
   const setPipelineState = useAppStore((state) => state.setPipelineState);
   const setAvatarState = useAppStore((state) => state.setAvatarState);
   const setErrorMessage = useAppStore((state) => state.setErrorMessage);
@@ -49,6 +51,7 @@ export function useQaPipeline() {
     currentRunRef.current += 1;
     const runId = currentRunRef.current;
     setErrorMessage(null);
+    setQuestion(normalizedQuestion);
     setAnswer(null);
     setSpeaking(false);
     setPipelineState('retrieving');
@@ -96,6 +99,7 @@ export function useQaPipeline() {
       }
 
       setAnswer(response);
+      addHistoryItem(response);
       setStatusMessage('ANSWER READY');
 
       const responseHasAnswer = response.has_answer ?? Boolean(response.answer);

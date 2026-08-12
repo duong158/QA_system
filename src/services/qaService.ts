@@ -12,6 +12,8 @@ async function readApiError(response: Response): Promise<string> {
 function normalizeQaResponse(data: QaResponse): QaResponse {
   return {
     ...data,
+    confidence: data.confidence ?? null,
+    answer_confidence: data.answer_confidence ?? null,
     has_answer: data.has_answer ?? Boolean(data.answer),
     selected_passage_id: data.selected_passage_id ?? data.answer_source?.passage_id ?? data.source?.passage_id ?? null,
     source: data.answer_source ?? data.source ?? null,

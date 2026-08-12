@@ -32,10 +32,21 @@ export interface RetrieverComparisonState {
   question: string;
 }
 
+export interface QaHistoryItem {
+  id: string;
+  question: string;
+  answer: string | null;
+  hasAnswer: boolean;
+  answerConfidence: number | null;
+  rankingScore: number | null;
+  createdAt: number;
+}
+
 export interface AppState {
   question: string;
   draft: string;
   answer: QaResponse | null;
+  history: QaHistoryItem[];
   pipelineState: PipelineState;
   avatarState: AvatarState;
   isSettingsOpen: boolean;
@@ -50,6 +61,8 @@ export interface AppState {
   setQuestion: (question: string) => void;
   setDraft: (draft: string) => void;
   setAnswer: (answer: QaResponse | null) => void;
+  addHistoryItem: (response: QaResponse) => void;
+  clearHistory: () => void;
   setPipelineState: (state: PipelineState) => void;
   setAvatarState: (state: AvatarState) => void;
   setSettingsOpen: (open: boolean) => void;
@@ -70,7 +83,7 @@ export interface AppState {
 const defaultSettings: QaSettings = {
   retriever: 'bm25',
   reader: 'phobert',
-  topK: 5,
+  topK: 10,
   voice: {
     enabled: true,
     rate: 0.92,
@@ -91,6 +104,7 @@ export const useAppStore = create<AppState>()(
       question: '',
       draft: '',
       answer: null,
+      history: [],
       pipelineState: 'idle',
       avatarState: 'idle',
       isSettingsOpen: false,
@@ -108,6 +122,26 @@ export const useAppStore = create<AppState>()(
       setQuestion: (question) => set({ question }),
       setDraft: (draft) => set({ draft }),
       setAnswer: (answer) => set({ answer }),
+      addHistoryItem: (response) =>
+        set((state) => {
+          const hasAnswer = response.has_answer ?? Boolean(response.answer);
+
+          return {
+            history: [
+              {
+                id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                question: response.question,
+                answer: response.answer,
+                hasAnswer,
+                answerConfidence: response.answer_confidence ?? null,
+                rankingScore: response.scores?.ranking ?? null,
+                createdAt: Date.now(),
+              },
+              ...state.history,
+            ].slice(0, 20),
+          };
+        }),
+      clearHistory: () => set({ history: [] }),
       setPipelineState: (pipelineState) => set({ pipelineState }),
       setAvatarState: (avatarState) => set({ avatarState }),
       setSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),

@@ -1,0 +1,146 @@
+{
+  "dataset": "UIT-ViQuAD2.0 validation stratified subset",
+  "subset_size": 40,
+  "seed": 42,
+  "top_k": 10,
+  "metrics": {
+    "overall": {
+      "count": 40,
+      "em": 25.0,
+      "f1": 27.355475727412994
+    },
+    "answerable": {
+      "count": 20,
+      "em": 0.0,
+      "f1": 4.710951454825987,
+      "predicted_empty": 8,
+      "predicted_empty_rate": 40.0
+    },
+    "unanswerable": {
+      "count": 20,
+      "accuracy": 50.0,
+      "em": 50.0
+    },
+    "predicted_no_answer": {
+      "count": 18,
+      "rate": 45.0
+    }
+  },
+  "ranking": {
+    "gold_answer_passage_available_top10": 17,
+    "gold_passage_selected": 8,
+    "wrong_passage_selected": 4,
+    "false_positive_answer_emitted": 10,
+    "false_negative_no_answer_emitted": 8,
+    "no_answer_correctly_emitted": 10
+  },
+  "fallback": {
+    "fallback_candidates_total": 308,
+    "fallback_phrase_success": 0,
+    "fallback_whole_sentence": 308,
+    "fallback_rejected_type": 106,
+    "fallback_rejected_evidence": 0,
+    "fallback_rejected_ranking": 158,
+    "fallback_answered_correctly": 0,
+    "fallback_answered_incorrectly": 20,
+    "fallback_phrase_rate": 0.0,
+    "fallback_whole_sentence_rate": 100.0
+  },
+  "error_counts": {
+    "NEURAL_SPAN_WRONG_FALLBACK_CORRECT": 4,
+    "FALLBACK_PHRASE_NOT_EXTRACTED": 6,
+    "FALLBACK_TYPE_GATE_FALSE_NEGATIVE": 5,
+    "FALLBACK_WHOLE_SENTENCE_TOO_BROAD": 6
+  },
+  "error_analysis": [
+    {
+      "id": "0001-0090-0001",
+      "question": "Nội dung của \"An American in Paris\" là gì?",
+      "gold_answer": "một họa sĩ trẻ ở Paris, đã thành công rực rỡ, đạt giải Oscar cho phim hay nhất",
+      "predicted_answer": "",
+      "errors": [
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "NO_VALID_SPAN"
+    },
+    {
+      "id": "0016-0005-0006",
+      "question": "Về phương diện phim ảnh, Montréal có điều gì khác biệt so với các thành phố khác?",
+      "gold_answer": "Montréal có 3 liên hoan phim diễn ra hàng năm",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0001-0017-0005",
+      "question": "Vì sao vua Charles V cho xây dựng bức tường thành từcầu Pont Royal tới cửa ô Saint-Denis?",
+      "gold_answer": "nạn dịch hạch đen",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0009-0008-0002",
+      "question": "Từ năm nào trở đi Mitterrand trở thành thành viên của ORA?",
+      "gold_answer": "1943",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "ANSWER_TYPE_MISMATCH"
+    },
+    {
+      "id": "0005-0006-0001",
+      "question": "Điều gì sẽ xảy ra nếu uống quá nhiều nước biển?",
+      "gold_answer": "kích thích thận gia tăng họat động bài tiết natri",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0004-0019-0007",
+      "question": "Những hạm đội tàu chiến nào được Hải quân Mỹ triệu tập?",
+      "gold_answer": "USS Dwight D. Eisenhower và USS Independence",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0003-0044-0002",
+      "question": "Người di cư tới Canada chủ yêu tập trung sinh sông ở khu vực nào?",
+      "gold_answer": "Toronto, Montreal và Vancouver",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    }
+  ],
+  "latency_ms": {
+    "average": 4707.008104992565,
+    "p50": 4460.018099984154,
+    "p95": 4934.47749997722
+  }
+}

@@ -47,8 +47,10 @@ models/reader/*
 !models/reader/vinai_phobert-base-v2/
 models/reader/vinai_phobert-base-v2/*
 !models/reader/vinai_phobert-base-v2/config.json
-!models/reader/vinai_phobert-base-v2/tokenizer.json
 !models/reader/vinai_phobert-base-v2/tokenizer_config.json
+!models/reader/vinai_phobert-base-v2/vocab.txt
+!models/reader/vinai_phobert-base-v2/bpe.codes
+!models/reader/best_reader_config.json
 models_reader/
 *.safetensors
 *.zip

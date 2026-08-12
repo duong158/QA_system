@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ChevronDown, ChevronUp } from 'lucide-react';
 import type { PassageResult } from '@/types/qa';
-import { formatScore } from '@/utils/formatScore';
 import { highlightAnswer } from '@/utils/highlightAnswer';
 
 interface PassageCardProps {
@@ -30,15 +29,22 @@ export function PassageCard({ passage, answer, highlighted = false, onViewSource
         <div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
             <span className={`rounded-full px-2 py-1 ${highlighted ? 'bg-viqa-cyan/10 text-viqa-cyan' : 'bg-slate-700/50 text-slate-300'}`}>Rank {passage.rank}</span>
-            {highlighted ? <span className="rounded-full bg-viqa-cyan/10 px-2 py-1 font-medium text-viqa-cyan">Best match</span> : null}
+            {highlighted ? <span className="rounded-full bg-viqa-cyan/10 px-2 py-1 font-medium text-viqa-cyan">Selected answer source</span> : null}
             <span className="font-medium text-slate-300">{passage.title}</span>
           </div>
           <p className="mt-2 text-sm text-slate-300">{passage.passage_id} {passage.page ? `• Page ${passage.page}` : ''}</p>
         </div>
         <div className="text-right text-xs text-slate-400">
-          <p>Retriever {formatScore(passage.retrieval_score_normalized ?? passage.retrieval_score)}</p>
-          {typeof passage.reader_score === 'number' ? <p>Reader {formatScore(passage.reader_score)}</p> : null}
-          {typeof passage.final_score === 'number' ? <p>Final {formatScore(passage.final_score)}</p> : null}
+          <p title="Normalized within retrieved candidates; not a correctness probability.">
+            Retrieval score {(passage.retrieval_score_normalized ?? passage.retrieval_score).toFixed(3)}
+          </p>
+          {typeof passage.reader_score === 'number' ? (
+            <p title="Uncalibrated Reader/fallback ranking signal; not a probability.">Reader score {passage.reader_score.toFixed(3)}</p>
+          ) : null}
+          {typeof passage.answer_type_score === 'number' ? <p>Answer-type score {passage.answer_type_score.toFixed(3)}</p> : null}
+          {typeof passage.ranking_score === 'number' ? (
+            <p title="Used to order candidates; not a correctness probability.">Ranking score {passage.ranking_score.toFixed(3)}</p>
+          ) : null}
         </div>
       </div>
 
@@ -48,11 +54,26 @@ export function PassageCard({ passage, answer, highlighted = false, onViewSource
         <div className="mt-3 border-t border-slate-400/15 pt-3 text-xs leading-6 text-slate-400">
           <p>Retriever raw: {passage.retrieval_score_raw?.toFixed(4) ?? '--'}</p>
           <p>Retriever normalized: {passage.retrieval_score_normalized?.toFixed(4) ?? '--'}</p>
-          <p>Reader method: {passage.reader_method ?? 'neural'}</p>
+          <p>Original retrieval rank: {passage.retrieval_rank ?? '--'}</p>
+          <p>Question type: {passage.question_type ?? '--'}</p>
+          <p>Reader method: {passage.reader_method ?? 'neural_span'}</p>
           <p>Reader candidate: {passage.reader_answer || 'No span'}</p>
           <p>Neural score: {passage.neural_reader_score?.toFixed(4) ?? '--'}</p>
           <p>Fallback score: {passage.fallback_score?.toFixed(4) ?? '--'}</p>
           <p>Reader margin: {passage.reader_score_margin?.toFixed(4) ?? '--'}</p>
+          <p>Answer-type score: {passage.answer_type_score?.toFixed(4) ?? '--'} ({passage.answer_type_reason ?? '--'})</p>
+          {passage.question_type === 'LOCATION' ? (
+            <>
+              <p>Relation: {passage.relation_type ?? '--'} ({passage.relation_score?.toFixed(4) ?? '0.0000'})</p>
+              <p>Location phrase quality: {passage.phrase_quality?.toFixed(4) ?? '--'}</p>
+              <p>Lexical evidence: {passage.lexical_evidence ? 'yes' : 'no'}</p>
+              <p>Relation evidence: {passage.relation_evidence ? 'yes' : 'no'}</p>
+            </>
+          ) : null}
+          <p>Evidence supported: {passage.evidence_supported ? 'yes' : 'no'}</p>
+          <p>Ranking score: {passage.ranking_score?.toFixed(4) ?? '--'}</p>
+          <p>Status: {passage.selection_status ?? 'REJECTED'}</p>
+          {passage.rejection_reason ? <p>Rejected: {passage.rejection_reason} — {passage.rejection_detail}</p> : null}
         </div>
       ) : null}
 
