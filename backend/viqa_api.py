@@ -640,6 +640,9 @@ class ReaderManager:
                     try:
                         from reader.predict import ReaderPredictor
 
+                        self.predictors.clear()
+                        import gc
+                        gc.collect()
                         self.predictors[reader_name] = ReaderPredictor(str(model_dir))
                     except Exception as error:
                         raise PipelineError(f"Failed to load reader '{reader_name}': {error}") from error
