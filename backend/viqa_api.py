@@ -59,11 +59,12 @@ READER_FALLBACK_THRESHOLD = PIPELINE_CONFIG.reader_fallback_threshold
 SENTENCE_FALLBACK_THRESHOLD = PIPELINE_CONFIG.sentence_fallback_threshold
 QA_DEBUG = os.getenv("QA_DEBUG", "false").lower() in {"1", "true", "yes", "on"}
 PRELOAD_READER = os.getenv("QA_PRELOAD_READER", "true").lower() in {"1", "true", "yes", "on"}
-SUPPORTED_RETRIEVERS = {"tfidf", "bm25"}
+SUPPORTED_RETRIEVERS = {"tfidf", "bm25", "hybrid", "dense"}
 UNIMPLEMENTED_RETRIEVERS = {
-    "dense": "Dense retrieval is not wired into this API yet: no embedding model/vector index is configured for online serving.",
     "pyserini": "Pyserini BM25 is not wired into this API yet: no Lucene index/runtime is configured for online serving.",
 }
+DENSE_MODEL_NAME = os.getenv("QA_DENSE_MODEL", "keepitreal/vietnamese-sbert")
+RRF_K = int(os.getenv("QA_RRF_K", "60"))
 SUPPORTED_READERS = {"phobert"}
 UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
@@ -729,6 +730,171 @@ def format_display_answer(
     return answer
 
 
+class DenseScorer:
+    """Lazy-loaded sentence-transformer scorer for dense retrieval.
+
+    Encodes passage texts on first use, then computes cosine similarity
+    between the query and all passage embeddings. If sentence-transformers
+    is missing, falls back to empty results so the system degrades gracefully.
+    """
+
+    def __init__(self, model_name: str) -> None:
+        self.model_name = model_name
+        self._model = None
+        self._passage_embeddings = None  # numpy array (N, dim)
+        self._lock = threading.Lock()
+        self._available: bool | None = None  # None = not checked yet
+
+    def _ensure_model(self) -> bool:
+        """Lazy-load the sentence-transformers model. Returns True if ready."""
+        if self._available is False:
+            return False
+        if self._model is not None:
+            return True
+        with self._lock:
+            if self._model is not None:
+                return True
+            if self._available is False:
+                return False
+            try:
+                from sentence_transformers import SentenceTransformer
+
+                print(f"[DenseScorer] Loading model: {self.model_name}")
+                self._model = SentenceTransformer(self.model_name)
+                self._available = True
+                print(f"[DenseScorer] Model loaded successfully")
+                return True
+            except Exception as error:
+                print(f"[DenseScorer] Cannot load dense model: {error}")
+                self._available = False
+                return False
+
+    def _ensure_embeddings(self, passages: list) -> None:
+        """Encode all passages if not already done. Caches to disk."""
+        if self._passage_embeddings is not None:
+            return
+        with self._lock:
+            if self._passage_embeddings is not None:
+                return
+            import numpy as np
+
+            safe_name = self.model_name.replace("/", "_")
+            cache_file = ROOT / "data" / "processed" / f"dense_embeddings_{safe_name}.npy"
+
+            # Try to load from cache
+            if cache_file.exists():
+                try:
+                    print(f"[DenseScorer] Loading cached embeddings from {cache_file.name}...")
+                    cached = np.load(str(cache_file))
+                    if cached.shape[0] == len(passages):
+                        self._passage_embeddings = cached
+                        print(f"[DenseScorer] Loaded {cached.shape} successfully.")
+                        return
+                    else:
+                        print(f"[DenseScorer] Cache length mismatch ({cached.shape[0]} vs {len(passages)}). Re-encoding...")
+                except Exception as e:
+                    print(f"[DenseScorer] Failed to load cache: {e}. Re-encoding...")
+
+            texts = [p.metadata.text for p in passages]
+            print(f"[DenseScorer] Encoding {len(texts)} passages...")
+            self._passage_embeddings = self._model.encode(
+                texts,
+                batch_size=64,
+                show_progress_bar=True,
+                convert_to_numpy=True,
+                normalize_embeddings=True,
+            ).astype(np.float32)
+            print(f"[DenseScorer] Passage embeddings ready: shape={self._passage_embeddings.shape}")
+
+            # Save to cache
+            try:
+                np.save(str(cache_file), self._passage_embeddings)
+                print(f"[DenseScorer] Saved embeddings to {cache_file.name}")
+            except Exception as e:
+                print(f"[DenseScorer] Failed to save cache: {e}")
+
+    def retrieve(
+        self,
+        question: str,
+        passages: list,
+        top_k: int,
+    ) -> list:
+        """Score passages by cosine similarity and return top_k SearchHit list."""
+        if not self._ensure_model():
+            return []
+
+        import numpy as np
+
+        self._ensure_embeddings(passages)
+        query_vec = self._model.encode(
+            [question],
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+        ).astype(np.float32)
+
+        # Cosine similarity (embeddings are L2-normalized → dot product)
+        similarities = (self._passage_embeddings @ query_vec.T).flatten()
+        top_indices = np.argsort(similarities)[::-1][:top_k]
+        selected = [(passages[i], float(similarities[i])) for i in top_indices if similarities[i] > 0]
+        normalized = min_max_normalize([score for _, score in selected])
+        return [
+            SearchHit(passage, raw, norm, rank)
+            for rank, ((passage, raw), norm) in enumerate(zip(selected, normalized), start=1)
+        ]
+
+    @property
+    def is_available(self) -> bool:
+        return self._available is not False
+
+
+def rrf_fuse(
+    bm25_hits: list,
+    dense_hits: list,
+    top_k: int,
+    k: int = 60,
+) -> list:
+    """Reciprocal Rank Fusion: score(d) = 1/(k + rank_bm25(d)) + 1/(k + rank_dense(d)).
+
+    If a document appears in only one list, the missing rank is set to a large
+    penalty value so documents in both lists are favoured.
+    """
+    passage_key = id  # use object identity for IndexedPassage
+
+    # Collect ranks from both lists
+    bm25_ranks: dict[int, tuple[int, SearchHit]] = {}
+    for hit in bm25_hits:
+        bm25_ranks[passage_key(hit.passage)] = (hit.retrieval_rank, hit)
+
+    dense_ranks: dict[int, tuple[int, SearchHit]] = {}
+    for hit in dense_hits:
+        dense_ranks[passage_key(hit.passage)] = (hit.retrieval_rank, hit)
+
+    # Union of all passages
+    all_keys = set(bm25_ranks.keys()) | set(dense_ranks.keys())
+    missing_rank = max(len(bm25_hits), len(dense_hits)) + 1
+
+    scored: list[tuple[int, float, SearchHit]] = []
+    for key in all_keys:
+        bm25_rank = bm25_ranks[key][0] if key in bm25_ranks else missing_rank
+        dense_rank = dense_ranks[key][0] if key in dense_ranks else missing_rank
+        rrf_score = 1.0 / (k + bm25_rank) + 1.0 / (k + dense_rank)
+        # Prefer the hit object from whichever list ranked it higher
+        hit = bm25_ranks[key][1] if key in bm25_ranks else dense_ranks[key][1]
+        scored.append((key, rrf_score, hit))
+
+    scored.sort(key=lambda item: item[1], reverse=True)
+    selected = scored[:top_k]
+
+    # Re-normalize RRF scores
+    raw_scores = [score for _, score, _ in selected]
+    normalized = min_max_normalize(raw_scores)
+
+    return [
+        SearchHit(hit.passage, raw_score, norm, rank)
+        for rank, ((_, raw_score, hit), norm) in enumerate(zip(selected, normalized), start=1)
+    ]
+
+
 class PassageIndex:
     def __init__(self, db_path: Path) -> None:
         if not db_path.exists():
@@ -884,11 +1050,11 @@ class PassageIndex:
 
         return boost
 
-    def retrieve(self, question: str, method: str, top_k: int) -> list[SearchHit]:
+    def _lexical_retrieve(self, question: str, method: str, top_k: int) -> list[SearchHit]:
+        """Core lexical retrieval (BM25 or TF-IDF) without hybrid fusion."""
         query_tokens = tokenize(question)
         if not query_tokens:
             return []
-        validate_retriever(method)
 
         scored: list[tuple[IndexedPassage, float]] = []
         scorer = self._bm25 if method == "bm25" else self._tfidf
@@ -908,6 +1074,38 @@ class PassageIndex:
             SearchHit(passage, raw, norm, rank)
             for rank, ((passage, raw), norm) in enumerate(zip(selected, normalized), start=1)
         ]
+
+    def retrieve(self, question: str, method: str, top_k: int) -> list[SearchHit]:
+        validate_retriever(method)
+        if method == "hybrid":
+            return self._hybrid_retrieve(question, top_k)
+        if method == "dense":
+            return self._dense_retrieve(question, top_k)
+        return self._lexical_retrieve(question, method, top_k)
+
+    def _dense_retrieve(self, question: str, top_k: int) -> list[SearchHit]:
+        """Standalone Dense retrieval."""
+        dense_hits = DENSE_SCORER.retrieve(question, self.passages, top_k)
+        if not dense_hits:
+            # Fallback to BM25 if dense model is unavailable
+            return self._lexical_retrieve(question, "bm25", top_k)
+        return dense_hits
+
+    def _hybrid_retrieve(self, question: str, top_k: int) -> list[SearchHit]:
+        """BM25 + Dense retrieval fused with Reciprocal Rank Fusion."""
+        expanded_k = min(len(self.passages), top_k * 3)
+
+        # BM25 leg
+        bm25_hits = self._lexical_retrieve(question, "bm25", expanded_k)
+
+        # Dense leg — gracefully degrade to BM25-only if dense is unavailable
+        dense_hits = DENSE_SCORER.retrieve(question, self.passages, expanded_k)
+        if not dense_hits:
+            return self._lexical_retrieve(question, "bm25", top_k)
+
+        # RRF fusion
+        fused = rrf_fuse(bm25_hits, dense_hits, top_k, k=RRF_K)
+        return fused
 
 
 class ReaderManager:
@@ -943,6 +1141,7 @@ class ReaderManager:
 
 
 INDEX = PassageIndex(DOCS_DB)
+DENSE_SCORER = DenseScorer(DENSE_MODEL_NAME)
 READERS = ReaderManager()
 
 
@@ -1800,9 +1999,12 @@ def compare_retrievers(payload: dict[str, Any]) -> list[dict[str, Any]]:
     if not question:
         raise ValueError("question is required")
     rows: list[dict[str, Any]] = []
-    for method, label in (("tfidf", "TF-IDF"), ("bm25", "BM25")):
+    for method, label in (("tfidf", "TF-IDF"), ("bm25", "BM25"), ("dense", "Dense"), ("hybrid", "Hybrid (BM25 + Dense)")):
         started = time.perf_counter()
-        hits = INDEX.retrieve(question, method, 3)
+        try:
+            hits = INDEX.retrieve(question, method, 3)
+        except Exception:
+            hits = []
         elapsed = int((time.perf_counter() - started) * 1000)
         first = hits[0] if hits else None
         rows.append(

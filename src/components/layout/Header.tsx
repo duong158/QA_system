@@ -1,14 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { AudioLines, Settings2, BarChart3, Bot } from 'lucide-react';
+import { AudioLines, Settings2, BarChart3, Bot, History } from 'lucide-react';
 import { SystemStatus } from './SystemStatus';
 
 interface HeaderProps {
   onToggleAudio: () => void;
   onToggleSettings: () => void;
+  onToggleHistory: () => void;
   audioEnabled: boolean;
 }
 
-export function Header({ onToggleAudio, onToggleSettings, audioEnabled }: HeaderProps) {
+export function Header({ onToggleAudio, onToggleSettings, onToggleHistory, audioEnabled }: HeaderProps) {
   const location = useLocation();
 
   return (
@@ -39,6 +40,14 @@ export function Header({ onToggleAudio, onToggleSettings, audioEnabled }: Header
           }`}
         >
           <AudioLines className="h-5 w-5" />
+        </button>
+        <button
+          type="button"
+          onClick={onToggleHistory}
+          aria-label="Mở lịch sử"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-400/15 bg-slate-700/45 text-slate-200 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
+        >
+          <History className="h-5 w-5" />
         </button>
         <button
           type="button"

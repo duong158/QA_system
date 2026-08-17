@@ -1,4 +1,4 @@
-export type RetrieverType = 'tfidf' | 'bm25' | 'dense' | 'pyserini';
+export type RetrieverType = 'tfidf' | 'bm25' | 'dense' | 'pyserini' | 'hybrid';
 export type ReaderType = 'mock' | 'phobert' | 'vibert' | 'xlmr';
 
 export interface AskQuestionRequest {

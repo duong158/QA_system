@@ -23,6 +23,17 @@ export function AnswerPanel({ response, submittedQuestion, state, compareMode, o
   const isConfirmedNoAnswer = Boolean(response && !hasAnswer);
   const displayedQuestion = response?.question || submittedQuestion || 'Ask Mari a question about your documents.';
 
+  const handleScrollToPassage = (passageId: string) => {
+    if (isPassagesCollapsed) {
+      setIsPassagesCollapsed(false);
+      setTimeout(() => {
+        document.getElementById(`passage-${passageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 150);
+    } else {
+      document.getElementById(`passage-${passageId}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  };
+
   return (
     <motion.section
       initial={{ opacity: 0, x: 16 }}
@@ -62,7 +73,7 @@ export function AnswerPanel({ response, submittedQuestion, state, compareMode, o
         )}
       </div>
 
-      {response?.answer_source ? <SourceCard source={response.answer_source} /> : null}
+      {response?.answer_source ? <SourceCard source={response.answer_source} onScrollToPassage={handleScrollToPassage} /> : null}
 
       {noAnswerWithRetrievedPassage ? (
         <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-50">

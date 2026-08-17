@@ -50,4 +50,5 @@ export const retrieverLabels: Record<RetrieverType, string> = {
   bm25: 'BM25',
   dense: 'Dense Retrieval',
   pyserini: 'Pyserini BM25',
+  hybrid: 'Hybrid (BM25 + Dense)',
 };

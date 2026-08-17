@@ -189,6 +189,16 @@ function buildComparison(
       topPassagePreview: preview,
       retrievalScore: bm25Score - 0.03,
     },
+    hybrid: {
+      retriever: 'hybrid',
+      label: 'Hybrid (BM25 + Dense)',
+      correctPassageRank,
+      recallAt1: correctPassageRank === 1,
+      recallAt3: correctPassageRank <= 3,
+      responseTimeMs: bm25Time + denseTime + 8,
+      topPassagePreview: preview,
+      retrievalScore: Math.min(1, Math.max(bm25Score, denseScore) + 0.015),
+    },
   };
 }
 

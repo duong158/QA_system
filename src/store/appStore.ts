@@ -51,6 +51,7 @@ export interface AppState {
   avatarState: AvatarState;
   isSettingsOpen: boolean;
   isComparisonOpen: boolean;
+  isHistoryOpen: boolean;
   isSpeaking: boolean;
   isListening: boolean;
   recognitionTranscript: string;
@@ -67,6 +68,8 @@ export interface AppState {
   setAvatarState: (state: AvatarState) => void;
   setSettingsOpen: (open: boolean) => void;
   toggleSettings: () => void;
+  setHistoryOpen: (open: boolean) => void;
+  toggleHistory: () => void;
   setComparisonOpen: (open: boolean) => void;
   setSpeaking: (speaking: boolean) => void;
   setListening: (listening: boolean) => void;
@@ -109,6 +112,7 @@ export const useAppStore = create<AppState>()(
       avatarState: 'idle',
       isSettingsOpen: false,
       isComparisonOpen: false,
+      isHistoryOpen: false,
       isSpeaking: false,
       isListening: false,
       recognitionTranscript: '',
@@ -146,6 +150,8 @@ export const useAppStore = create<AppState>()(
       setAvatarState: (avatarState) => set({ avatarState }),
       setSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
       toggleSettings: () => set((state) => ({ isSettingsOpen: !state.isSettingsOpen })),
+      setHistoryOpen: (isHistoryOpen) => set({ isHistoryOpen }),
+      toggleHistory: () => set((state) => ({ isHistoryOpen: !state.isHistoryOpen })),
       setComparisonOpen: (isComparisonOpen) => set({ isComparisonOpen }),
       setSpeaking: (isSpeaking) => set({ isSpeaking }),
       setListening: (isListening) => set({ isListening }),
@@ -188,7 +194,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'viqa-nexus-settings',
-      version: 4,
+      version: 5,
       partialize: (state) => ({ settings: state.settings }),
       migrate: (persistedState) => {
         const state = persistedState as Partial<AppState> | undefined;
@@ -202,7 +208,7 @@ export const useAppStore = create<AppState>()(
           settings: {
             ...defaultSettings,
             ...settings,
-            retriever: settings.retriever === 'tfidf' || settings.retriever === 'bm25' ? settings.retriever : defaultSettings.retriever,
+            retriever: settings.retriever === 'tfidf' || settings.retriever === 'bm25' || settings.retriever === 'hybrid' || settings.retriever === 'dense' ? settings.retriever : defaultSettings.retriever,
             reader: settings.reader === 'phobert' ? settings.reader : defaultSettings.reader,
             voice: {
               ...defaultSettings.voice,

@@ -9,10 +9,11 @@ interface SettingsPanelProps {
   onTestVoice?: () => void;
 }
 
-const retrieverOptions: Array<{ value: RetrieverType; label: string; implemented: boolean }> = [
+const retrieverOptions: Array<{ value: RetrieverType; label: string; description?: string; implemented: boolean }> = [
   { value: 'tfidf', label: 'TF-IDF', implemented: true },
   { value: 'bm25', label: 'BM25', implemented: true },
-  { value: 'dense', label: 'Dense Retrieval', implemented: false },
+  { value: 'hybrid', label: 'Hybrid (BM25 + Dense)', description: 'BM25 + Dense kết hợp bằng Reciprocal Rank Fusion', implemented: true },
+  { value: 'dense', label: 'Dense Retrieval', implemented: true },
   { value: 'pyserini', label: 'Pyserini BM25', implemented: false },
 ];
 
@@ -78,7 +79,10 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
                       }`}
                     >
                       <span className="flex items-center justify-between gap-3">
-                        <span>{option.label}</span>
+                        <span>
+                          <span>{option.label}</span>
+                          {option.description ? <span className="mt-0.5 block text-[10px] leading-tight text-slate-400">{option.description}</span> : null}
+                        </span>
                         {!option.implemented ? <span className="rounded-full border border-slate-500/20 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em]">Coming soon</span> : null}
                       </span>
                     </button>
