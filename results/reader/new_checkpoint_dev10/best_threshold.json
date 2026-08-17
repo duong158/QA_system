@@ -1,0 +1,11 @@
+{
+  "checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "threshold": -6.034909,
+  "score_type": "best_span_score_minus_null_score",
+  "selection_metric": "reader_priority_score",
+  "selection_score": 49.6875,
+  "overall_f1": 42.5,
+  "answerable_f1": 28.125,
+  "unanswerable_accuracy": 100.0,
+  "calibrated": true
+}

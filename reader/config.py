@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import warnings
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -13,6 +14,7 @@ DEFAULT_DOC_STRIDE = 80
 DEFAULT_MAX_ANSWER_LENGTH = 40
 DEFAULT_SCORE_MARGIN_THRESHOLD = 0.0
 DEFAULT_CONFIDENCE_TEMPERATURE = 10.0
+DEFAULT_MARGIN_SCALE = 10.0
 
 
 @dataclass(frozen=True)
@@ -21,6 +23,7 @@ class ReaderDecisionConfig:
     threshold: float = DEFAULT_SCORE_MARGIN_THRESHOLD
     score_type: str = "best_span_score_minus_null_score"
     confidence_temperature: float = DEFAULT_CONFIDENCE_TEMPERATURE
+    margin_scale: float = DEFAULT_MARGIN_SCALE
     calibrated: bool = False
     source: str | None = None
 
@@ -30,9 +33,31 @@ def _candidate_config_paths(model_path: str | Path | None) -> list[Path]:
     if model_path:
         model_dir = Path(model_path)
         if model_dir.is_dir():
+            paths.append(model_dir / "reader_profile.json")
             paths.append(model_dir / "best_reader_config.json")
-    paths.append(ROOT / "models" / "reader" / "best_reader_config.json")
+    else:
+        # Legacy global configuration is only considered when no checkpoint was
+        # supplied. A checkpoint must never inherit another checkpoint's margin.
+        paths.append(ROOT / "models" / "reader" / "best_reader_config.json")
     return paths
+
+
+def _profile_matches_checkpoint(payload: dict[str, Any], model_path: str | Path | None) -> bool:
+    """Reject a profile that names a different local checkpoint."""
+
+    declared = payload.get("checkpoint")
+    if not declared or not model_path:
+        return True
+    model_dir = Path(model_path)
+    if not model_dir.is_dir():
+        return str(declared) == str(model_path)
+    declared_path = Path(str(declared))
+    if not declared_path.is_absolute():
+        declared_path = ROOT / declared_path
+    try:
+        return declared_path.resolve() == model_dir.resolve()
+    except OSError:
+        return False
 
 
 def load_reader_decision_config(model_path: str | Path | None = None) -> ReaderDecisionConfig:
@@ -50,7 +75,14 @@ def load_reader_decision_config(model_path: str | Path | None = None) -> ReaderD
     for path in candidates:
         if path.is_file():
             with path.open("r", encoding="utf-8") as handle:
-                payload = json.load(handle)
+                candidate = json.load(handle)
+            if not _profile_matches_checkpoint(candidate, model_path):
+                warnings.warn(
+                    f"Ignoring Reader profile {path}: checkpoint does not match {model_path}",
+                    RuntimeWarning,
+                )
+                continue
+            payload = candidate
             source = str(path)
             break
 
@@ -69,11 +101,22 @@ def load_reader_decision_config(model_path: str | Path | None = None) -> ReaderD
             )
         ),
     )
+    margin_scale = max(
+        0.01,
+        float(
+            os.getenv(
+                "QA_READER_MARGIN_SCALE",
+                payload.get("margin_scale", payload.get("confidence_temperature", DEFAULT_MARGIN_SCALE))
+                or DEFAULT_MARGIN_SCALE,
+            )
+        ),
+    )
     return ReaderDecisionConfig(
         checkpoint=payload.get("checkpoint"),
         threshold=threshold,
         score_type=str(payload.get("score_type", "best_span_score_minus_null_score")),
         confidence_temperature=temperature,
+        margin_scale=margin_scale,
         calibrated=bool(payload.get("calibrated", False)),
         source=source,
     )

@@ -1,0 +1,201 @@
+{
+  "checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "summary": {
+    "answerable": {
+      "count": 8,
+      "null_score": {
+        "count": 8,
+        "mean": 10.144628167152405,
+        "median": 10.143848419189453,
+        "std": 0.014728259254319464,
+        "p10": 10.12821455001831,
+        "p25": 10.136272192001343,
+        "p50": 10.143848419189453,
+        "p75": 10.153502225875854,
+        "p90": 10.159907054901122
+      },
+      "best_span_score": {
+        "count": 8,
+        "mean": 4.1289278119802475,
+        "median": 5.525251865386963,
+        "std": 3.7583713470408897,
+        "p10": -1.4937668681144713,
+        "p25": 2.399160236120224,
+        "p50": 5.525251865386963,
+        "p75": 7.013733744621277,
+        "p90": 7.580634641647339
+      },
+      "score_margin": {
+        "count": 8,
+        "mean": -6.015700355172157,
+        "median": -4.622171878814697,
+        "std": 3.7706165442304633,
+        "p10": -11.653673923015594,
+        "p25": -7.742900043725967,
+        "p50": -4.622171878814697,
+        "p75": -3.1286174058914185,
+        "p90": -2.5475799083709716
+      },
+      "reader_confidence_display": {
+        "count": 8,
+        "mean": 1.0,
+        "median": 1.0,
+        "std": 0.0,
+        "p10": 1.0,
+        "p25": 1.0,
+        "p50": 1.0,
+        "p75": 1.0,
+        "p90": 1.0
+      }
+    },
+    "unanswerable": {
+      "count": 2,
+      "null_score": {
+        "count": 2,
+        "mean": 10.155811309814453,
+        "median": 10.155811309814453,
+        "std": 0.002841949462890625,
+        "p10": 10.15353775024414,
+        "p25": 10.154390335083008,
+        "p50": 10.155811309814453,
+        "p75": 10.157232284545898,
+        "p90": 10.158084869384766
+      },
+      "best_span_score": {
+        "count": 2,
+        "mean": 1.1861315369606018,
+        "median": 1.1861315369606018,
+        "std": 2.746640622615814,
+        "p10": -1.0111809611320495,
+        "p25": -0.1871887743473053,
+        "p50": 1.1861315369606018,
+        "p75": 2.559451848268509,
+        "p90": 3.3834440350532535
+      },
+      "score_margin": {
+        "count": 2,
+        "mean": -8.969679772853851,
+        "median": -8.969679772853851,
+        "std": 2.7437986731529236,
+        "p10": -11.16471871137619,
+        "p25": -10.341579109430313,
+        "p50": -8.969679772853851,
+        "p75": -7.5977804362773895,
+        "p90": -6.774640834331512
+      },
+      "reader_confidence_display": {
+        "count": 2,
+        "mean": 1.0,
+        "median": 1.0,
+        "std": 0.0,
+        "p10": 1.0,
+        "p25": 1.0,
+        "p50": 1.0,
+        "p75": 1.0,
+        "p90": 1.0
+      }
+    }
+  },
+  "rows": [
+    {
+      "question_id": "0001-0001-0001",
+      "is_answerable": true,
+      "gold_answer": "trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và giải trí",
+      "predicted_span": ", thành phố trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và",
+      "null_score": 10.171802520751953,
+      "best_span_score": -2.9493608474731445,
+      "score_margin": -13.121163368225098,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0001-0002",
+      "is_answerable": false,
+      "gold_answer": "",
+      "predicted_span": "ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông, và là trung tâm của một vùng nông nghiệp",
+      "null_score": 10.152969360351562,
+      "best_span_score": -1.5605090856552124,
+      "score_margin": -11.713478446006775,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0001-0003",
+      "is_answerable": true,
+      "gold_answer": "giáo dục và nghệ thuật",
+      "predicted_span": "vùng nông nghiệp",
+      "null_score": 10.145915985107422,
+      "best_span_score": 6.88983154296875,
+      "score_margin": -3.256084442138672,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0001-0004",
+      "is_answerable": true,
+      "gold_answer": "Paris",
+      "predicted_span": ",",
+      "null_score": 10.137810707092285,
+      "best_span_score": 3.488860607147217,
+      "score_margin": -6.648950099945068,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0001-0005",
+      "is_answerable": true,
+      "gold_answer": "nghệ thuật và giải trí",
+      "predicted_span": "của nghệ thuật và",
+      "null_score": 10.120182991027832,
+      "best_span_score": 8.036087989807129,
+      "score_margin": -2.084095001220703,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0001-0006",
+      "is_answerable": true,
+      "gold_answer": "thế kỷ 10",
+      "predicted_span": "Vào thế kỷ",
+      "null_score": 10.141780853271484,
+      "best_span_score": 5.75922966003418,
+      "score_margin": -4.382551193237305,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0001-0007",
+      "is_answerable": true,
+      "gold_answer": "nằm ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông",
+      "predicted_span": "ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông, và là trung tâm của một vùng nông nghiệp",
+      "null_score": 10.15480899810791,
+      "best_span_score": -0.8699408769607544,
+      "score_margin": -11.024749875068665,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0002-0001",
+      "is_answerable": true,
+      "gold_answer": "Kinh đô ánh sáng",
+      "predicted_span": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "null_score": 10.131656646728516,
+      "best_span_score": 7.385440349578857,
+      "score_margin": -2.746216297149658,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0002-0002",
+      "is_answerable": true,
+      "gold_answer": "Sự nhộn nhịp, các công trình kiến trúc và không khí nghệ sĩ",
+      "predicted_span": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "null_score": 10.153066635131836,
+      "best_span_score": 5.291274070739746,
+      "score_margin": -4.86179256439209,
+      "reader_confidence_display": 1.0
+    },
+    {
+      "question_id": "0001-0002-0003",
+      "is_answerable": false,
+      "gold_answer": "",
+      "predicted_span": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "null_score": 10.158653259277344,
+      "best_span_score": 3.932772159576416,
+      "score_margin": -6.225881099700928,
+      "reader_confidence_display": 1.0
+    }
+  ]
+}

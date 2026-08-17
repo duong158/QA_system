@@ -1,0 +1,11 @@
+﻿question_id,is_answerable,gold_answer,predicted_span,null_score,best_span_score,score_margin,reader_confidence_display
+0001-0001-0001,True,"trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và giải trí",", thành phố trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và",10.171802520751953,-2.9493608474731445,-13.121163368225098,1.0
+0001-0001-0002,False,,"ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông, và là trung tâm của một vùng nông nghiệp",10.152969360351562,-1.5605090856552124,-11.713478446006775,1.0
+0001-0001-0003,True,giáo dục và nghệ thuật,vùng nông nghiệp,10.145915985107422,6.88983154296875,-3.256084442138672,1.0
+0001-0001-0004,True,Paris,",",10.137810707092285,3.488860607147217,-6.648950099945068,1.0
+0001-0001-0005,True,nghệ thuật và giải trí,của nghệ thuật và,10.120182991027832,8.036087989807129,-2.084095001220703,1.0
+0001-0001-0006,True,thế kỷ 10,Vào thế kỷ,10.141780853271484,5.75922966003418,-4.382551193237305,1.0
+0001-0001-0007,True,nằm ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông,"ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông, và là trung tâm của một vùng nông nghiệp",10.15480899810791,-0.8699408769607544,-11.024749875068665,1.0
+0001-0002-0001,True,Kinh đô ánh sáng,". Sự nhộn nhịp, các công trình kiến trúc và không khí",10.131656646728516,7.385440349578857,-2.746216297149658,1.0
+0001-0002-0002,True,"Sự nhộn nhịp, các công trình kiến trúc và không khí nghệ sĩ",". Sự nhộn nhịp, các công trình kiến trúc và không khí",10.153066635131836,5.291274070739746,-4.86179256439209,1.0
+0001-0002-0003,False,,". Sự nhộn nhịp, các công trình kiến trúc và không khí",10.158653259277344,3.932772159576416,-6.225881099700928,1.0

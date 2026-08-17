@@ -22,7 +22,10 @@ sys.path.insert(0, str(ROOT))
 
 from backend.chunking import Passage, chunk_document, split_sentences
 from backend.config import load_pipeline_config
+from reader.candidates import AnswerCandidate
 from reader.fallback_extractor import (
+    assess_contrast_relation,
+    detect_contrast_relation,
     detect_location_relation,
     extract_fallback_answer,
     extract_location_candidate,
@@ -41,11 +44,13 @@ RETRIEVER_MIN_CANDIDATES = PIPELINE_CONFIG.minimum_candidate_count
 RETRIEVER_WEIGHT = PIPELINE_CONFIG.retriever_weight
 READER_WEIGHT = PIPELINE_CONFIG.reader_weight
 ANSWER_TYPE_WEIGHT = PIPELINE_CONFIG.answer_type_weight
+RELATION_WEIGHT = PIPELINE_CONFIG.relation_weight
 MIN_READER_SCORE = PIPELINE_CONFIG.minimum_reader_score
 MIN_ANSWER_TYPE_SCORE = PIPELINE_CONFIG.minimum_answer_type_score
 MIN_FALLBACK_ANSWER_TYPE_SCORE = PIPELINE_CONFIG.minimum_fallback_answer_type_score
 MIN_RANKING_SCORE = PIPELINE_CONFIG.minimum_ranking_score
 FALLBACK_PENALTY = PIPELINE_CONFIG.fallback_penalty
+PHRASE_FALLBACK_PENALTY = PIPELINE_CONFIG.phrase_fallback_penalty
 READER_SCORE_MARGIN_THRESHOLD = PIPELINE_CONFIG.reader_score_margin_threshold
 READER_FALLBACK_THRESHOLD = PIPELINE_CONFIG.reader_fallback_threshold
 SENTENCE_FALLBACK_THRESHOLD = PIPELINE_CONFIG.sentence_fallback_threshold
@@ -173,10 +178,19 @@ def combine_ranking_scores(
     retriever_weight: float = RETRIEVER_WEIGHT,
     reader_weight: float = READER_WEIGHT,
     answer_type_weight: float = ANSWER_TYPE_WEIGHT,
+    relation_score: float = 0.0,
+    relation_weight: float | None = None,
 ) -> float:
     """Combine ranking signals; the result is not a correctness probability."""
 
-    weights = (retriever_weight, reader_weight, answer_type_weight)
+    if relation_weight is None:
+        # Preserve compatibility with callers that provide three custom
+        # weights while using the configured fourth signal for normal calls.
+        relation_weight = max(
+            0.0,
+            1.0 - retriever_weight - reader_weight - answer_type_weight,
+        )
+    weights = (retriever_weight, reader_weight, answer_type_weight, relation_weight)
     if any(weight < 0 for weight in weights):
         raise ValueError("Ranking weights must be non-negative")
     if not math.isclose(sum(weights), 1.0, abs_tol=1e-6):
@@ -185,6 +199,7 @@ def combine_ranking_scores(
         retriever_weight * retrieval_score
         + reader_weight * reader_score
         + answer_type_weight * answer_type_score
+        + relation_weight * relation_score
     )
 
 
@@ -206,6 +221,7 @@ REJECTION_MESSAGES = {
     "EVIDENCE_UNSUPPORTED": "The proposed answer was not supported by the source passage.",
     "INSUFFICIENT_FALLBACK_EVIDENCE": "Fallback did not provide strong typed evidence.",
     "LOCATION_RELATION_MISMATCH": "The candidate does not fill the location relation requested by the question.",
+    "RELATION_MISMATCH": "The candidate mentions the topic but does not express the relation requested by the question.",
     "RETRIEVAL_MISS": "Retriever returned no passage with a positive score.",
     "LOWER_RANKING_SCORE": "A stronger valid candidate was selected.",
     "NO_ANSWER": "No candidate satisfied the answer acceptance gates.",
@@ -411,6 +427,8 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
         cue_bonus = 0.0
         if any(pattern in normalized_sentence for pattern in ANSWER_CUE_PATTERNS):
             cue_bonus += 0.18
+        if phrase.method == "contrast_relation_pattern" and phrase.relation_evidence:
+            cue_bonus += 0.30
         if len(subject_phrase) >= 8 and subject_phrase in normalized_sentence:
             cue_bonus += 0.22
         if len(sentence_tokens) >= 6:
@@ -479,7 +497,18 @@ def choose_reader_output(
 ) -> dict[str, Any]:
     neural_confidence = float(neural_output["confidence"])
     fallback_confidence = float(fallback_output["confidence"])
-    neural_answer = str(neural_output.get("answer") or "").strip()
+    neural_answer = str(
+        neural_output.get("candidate_answer")
+        or neural_output.get("best_span_answer")
+        or neural_output.get("answer")
+        or ""
+    ).strip()
+    neural_start = int(
+        neural_output.get("candidate_start", neural_output.get("best_span_start", neural_output.get("start", -1)))
+    )
+    neural_end = int(
+        neural_output.get("candidate_end", neural_output.get("best_span_end", neural_output.get("end", -1)))
+    )
     neural_is_echo = answer_repeats_question(question, neural_answer)
     question_type = detect_question_type(question)
     subject = definition_subject(question)
@@ -488,8 +517,8 @@ def choose_reader_output(
     )
     neural_span_is_clean = span_has_clean_word_boundaries(
         context,
-        int(neural_output["start"]),
-        int(neural_output["end"]),
+        neural_start,
+        neural_end,
     )
     neural_relation_supported = True
     requires_location_relation = (
@@ -501,8 +530,8 @@ def choose_reader_output(
             question,
             context,
             neural_answer,
-            int(neural_output["start"]),
-            int(neural_output["end"]),
+            neural_start,
+            neural_end,
             {"method": "neural_span"},
         )
         neural_relation_supported = bool(neural_location_evidence["relation_evidence"])
@@ -512,7 +541,6 @@ def choose_reader_output(
         and definition_supported
         and neural_span_is_clean
         and neural_relation_supported
-        and neural_confidence >= READER_FALLBACK_THRESHOLD
     )
     fallback_ready = bool(fallback_output.get("answer")) and fallback_confidence >= SENTENCE_FALLBACK_THRESHOLD
     fallback_phrase_quality = float(fallback_output.get("phrase_score", 0.0))
@@ -525,10 +553,17 @@ def choose_reader_output(
         str(fallback_output.get("answer") or ""),
     )
     fallback_ready = fallback_ready and not fallback_phrase_is_echo
+    # A generic whole sentence must not erase a grounded neural span. Only a
+    # concise relation-aware phrase may compete with an otherwise valid span.
     prefer_fallback = fallback_ready and (
         not neural_ready
-        or fallback_confidence >= neural_confidence + 0.08
-        or (strong_grounded_phrase and fallback_confidence >= neural_confidence - 0.03)
+        or (
+            strong_grounded_phrase
+            and (
+                fallback_confidence >= neural_confidence + 0.08
+                or fallback_confidence >= neural_confidence - 0.03
+            )
+        )
     )
 
     if prefer_fallback:
@@ -549,10 +584,10 @@ def choose_reader_output(
     if neural_ready:
         return {
             "method": "neural_span",
-            "answer": neural_output["answer"],
+            "answer": neural_answer,
             "confidence": neural_confidence,
-            "start": int(neural_output["start"]),
-            "end": int(neural_output["end"]),
+            "start": neural_start,
+            "end": neural_end,
         }
     if fallback_ready:
         return {
@@ -584,10 +619,10 @@ def choose_reader_output(
         }
     return {
         "method": "neural_span",
-        "answer": neural_output.get("answer") or None,
+        "answer": neural_answer or None,
         "confidence": neural_confidence,
-        "start": int(neural_output["start"]),
-        "end": int(neural_output["end"]),
+        "start": neural_start,
+        "end": neural_end,
     }
 
 
@@ -667,11 +702,11 @@ def format_display_answer(
     if not answer:
         return ""
     if (
-        chosen_output.get("method") == "sentence_fallback"
+        chosen_output.get("method") in {"phrase_fallback", "sentence_fallback"}
         and chosen_output.get("fallback_method") != "whole_sentence"
     ):
         return answer
-    if chosen_output.get("method") == "sentence_fallback":
+    if chosen_output.get("method") in {"phrase_fallback", "sentence_fallback"}:
         return concise_source_answer(question, answer)
     if answer_repeats_question(question, answer):
         expanded = expand_answer_to_sentence(
@@ -935,6 +970,321 @@ def _empty_response(question: str, retriever: str, reader: str, elapsed: int) ->
     }
 
 
+def _semantic_relation_assessment(
+    question: str,
+    question_type: QuestionType,
+    context: str,
+    answer: str,
+    start: int,
+    end: int,
+    candidate_method: str,
+    candidate_details: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    details = candidate_details or {}
+    if detect_contrast_relation(question):
+        score, evidence = assess_contrast_relation(answer)
+        return {
+            "relation_type": "CONTRAST",
+            "relation_score": score,
+            "phrase_quality": score,
+            "relation_evidence": evidence,
+        }
+    entity_location_relation = detect_location_relation(question)
+    if question_type is QuestionType.ENTITY and entity_location_relation != "GENERIC_LOCATION":
+        fallback_method = str(details.get("fallback_method") or "")
+        if candidate_method != "neural_span" and fallback_method != "whole_sentence":
+            score = max(
+                float(details.get("relation_score", 0.0)),
+                float(details.get("phrase_score", 0.0)),
+            )
+            return {
+                "relation_type": "ENTITY_LOCATION_RELATION",
+                "relation_score": score,
+                "phrase_quality": float(details.get("phrase_quality", score)),
+                "relation_evidence": score >= 0.72,
+            }
+        matching_sentence = next(
+            (
+                sentence
+                for sentence in split_sentences(context)
+                if normalize_text(answer) in normalize_text(sentence)
+            ),
+            "",
+        )
+        extracted = extract_fallback_answer(question, question_type.value, matching_sentence)
+        same_relation_phrase = bool(extracted.answer) and (
+            normalize_text(answer) in normalize_text(extracted.answer)
+            or normalize_text(extracted.answer) in normalize_text(answer)
+        )
+        score = float(extracted.score) if same_relation_phrase and extracted.method != "whole_sentence" else 0.0
+        return {
+            "relation_type": "ENTITY_LOCATION_RELATION",
+            "relation_score": score,
+            "phrase_quality": score,
+            "relation_evidence": score >= 0.72,
+        }
+    if question_type is QuestionType.LOCATION:
+        return location_relation_assessment(
+            question,
+            context,
+            answer,
+            start,
+            end,
+            {
+                "method": "sentence_fallback" if candidate_method != "neural_span" else "neural_span",
+                "relation_type": details.get("relation_type"),
+                "relation_score": details.get("relation_score", 0.0),
+                "phrase_quality": details.get("phrase_quality", 0.0),
+                "relation_evidence": details.get("relation_evidence", False),
+            },
+        )
+    subject = definition_subject(question)
+    if question_type is QuestionType.DEFINITION and subject:
+        supported = any(
+            relation_follows_subject(sentence, subject)
+            and normalize_text(answer) in normalize_text(sentence)
+            for sentence in split_sentences(context)
+        )
+        return {
+            "relation_type": "DEFINITION",
+            "relation_score": 1.0 if supported else 0.0,
+            "phrase_quality": 1.0 if supported else 0.0,
+            "relation_evidence": supported,
+        }
+    return {
+        "relation_type": None,
+        "relation_score": 0.5,
+        "phrase_quality": 0.5,
+        "relation_evidence": True,
+    }
+
+
+def _candidate_rejection(candidate: AnswerCandidate) -> str | None:
+    if not candidate.valid_span:
+        return "NO_VALID_SPAN"
+    if not candidate.passes_evidence_gate:
+        return "EVIDENCE_UNSUPPORTED"
+    if not candidate.passes_relation_gate:
+        return (
+            "LOCATION_RELATION_MISMATCH"
+            if candidate.relation_type and "LOCATION" in candidate.relation_type
+            else "RELATION_MISMATCH"
+        )
+    if candidate.answer_type_score < MIN_ANSWER_TYPE_SCORE:
+        return "ANSWER_TYPE_MISMATCH"
+    if not candidate.passes_type_gate:
+        return (
+            "INSUFFICIENT_FALLBACK_EVIDENCE"
+            if candidate.method == "sentence_fallback"
+            else "ANSWER_TYPE_MISMATCH"
+        )
+    strong_grounded_relation = (
+        candidate.passes_evidence_gate
+        and candidate.passes_relation_gate
+        and candidate.relation_score >= 0.85
+        and candidate.answer_type_score >= MIN_FALLBACK_ANSWER_TYPE_SCORE
+    )
+    if candidate.ranking_score < MIN_RANKING_SCORE and not strong_grounded_relation:
+        return "LOW_RANKING_SCORE"
+    return None
+
+
+_REJECTION_DEBUG_PRIORITY = {
+    # When every proposal is rejected, prefer the candidate that reached the
+    # latest decision stage. This keeps diagnostics actionable instead of
+    # letting a high-retrieval empty span hide a semantic/type/ranking failure.
+    "LOW_RANKING_SCORE": 6,
+    "LOCATION_RELATION_MISMATCH": 5,
+    "RELATION_MISMATCH": 5,
+    "ANSWER_TYPE_MISMATCH": 4,
+    "INSUFFICIENT_FALLBACK_EVIDENCE": 3,
+    "EVIDENCE_UNSUPPORTED": 2,
+    "NO_VALID_SPAN": 1,
+}
+
+
+def _candidate_selection_key(candidate: dict[str, Any]) -> tuple[float, ...]:
+    rejection_reason = candidate.get("rejection_reason")
+    return (
+        1.0 if rejection_reason is None else 0.0,
+        float(_REJECTION_DEBUG_PRIORITY.get(str(rejection_reason), 0)),
+        float(candidate.get("ranking_score", 0.0)),
+        float(candidate.get("evidence_score", 0.0)),
+        float(candidate.get("reader_score", 0.0)),
+    )
+
+
+def _score_answer_candidate(
+    candidate: AnswerCandidate,
+    *,
+    question: str,
+    question_type: QuestionType,
+    context: str,
+    retrieval_score: float,
+    relation_details: dict[str, Any] | None = None,
+) -> AnswerCandidate:
+    lexical_evidence = answer_is_supported(
+        context,
+        candidate.text,
+        candidate.start_char,
+        candidate.end_char,
+    )
+    relation = _semantic_relation_assessment(
+        question,
+        question_type,
+        context,
+        candidate.text,
+        candidate.start_char,
+        candidate.end_char,
+        candidate.method,
+        relation_details,
+    )
+    assessment = assess_answer_type(
+        question_type,
+        candidate.text,
+        relation_score=float(relation["relation_score"]),
+        phrase_quality=float(relation["phrase_quality"]),
+        candidate_method=candidate.fallback_method,
+    )
+    fallback_phrase = candidate.method == "phrase_fallback"
+    strong_semantic_relation = (
+        relation["relation_type"] == "CONTRAST"
+        and float(relation["relation_score"]) >= 0.80
+    )
+    required_type_score = (
+        MIN_FALLBACK_ANSWER_TYPE_SCORE
+        if candidate.method == "sentence_fallback" and not strong_semantic_relation
+        else MIN_ANSWER_TYPE_SCORE
+    )
+    requires_relation = relation["relation_type"] in {
+        "CONTRAST",
+        "EVENT_LOCATION",
+        "OBJECT_LOCATION",
+        "BIRTH_LOCATION",
+        "DEATH_LOCATION",
+        "ORGANIZED_LOCATION",
+        "HEADQUARTERS_LOCATION",
+        "RESIDENCE_LOCATION",
+        "DEFINITION",
+        "ENTITY_LOCATION_RELATION",
+    }
+    candidate.answer_type_score = float(assessment.score)
+    candidate.answer_type_reason = assessment.reason
+    candidate.relation_type = relation["relation_type"]
+    candidate.relation_score = float(relation["relation_score"])
+    candidate.evidence_score = 1.0 if lexical_evidence else 0.0
+    candidate.valid_span = bool(
+        candidate.text
+        and span_has_clean_word_boundaries(context, candidate.start_char, candidate.end_char)
+    )
+    candidate.passes_evidence_gate = bool(lexical_evidence and not answer_repeats_question(question, candidate.text))
+    candidate.passes_relation_gate = bool(
+        relation["relation_evidence"] if requires_relation else True
+    )
+    candidate.passes_type_gate = assessment.score >= required_type_score
+    reader_signal = candidate.reader_score * candidate.fallback_penalty
+    candidate.ranking_score = combine_ranking_scores(
+        retrieval_score,
+        reader_signal,
+        candidate.answer_type_score,
+        relation_score=candidate.relation_score,
+        relation_weight=RELATION_WEIGHT,
+    )
+    candidate.rejection_reason = _candidate_rejection(candidate)
+    candidate.passes_final_gate = candidate.rejection_reason is None
+    return candidate
+
+
+def build_passage_candidates(
+    question: str,
+    question_type: QuestionType,
+    passage_id: str,
+    context: str,
+    retrieval_score: float,
+    neural_output: dict[str, Any],
+    fallback_output: dict[str, Any],
+) -> list[AnswerCandidate]:
+    """Keep neural and fallback proposals in one pool until final ranking."""
+
+    candidates: list[AnswerCandidate] = []
+    neural_text = str(
+        neural_output.get("candidate_answer")
+        or neural_output.get("best_span_answer")
+        or neural_output.get("answer")
+        or ""
+    ).strip()
+    neural_start = int(
+        neural_output.get("candidate_start", neural_output.get("best_span_start", neural_output.get("start", -1)))
+    )
+    neural_end = int(
+        neural_output.get("candidate_end", neural_output.get("best_span_end", neural_output.get("end", -1)))
+    )
+    if neural_text:
+        margin = float(neural_output.get("score_margin", float("-inf")))
+        passes_threshold = bool(
+            neural_output.get("passes_reader_threshold", margin >= READER_SCORE_MARGIN_THRESHOLD)
+        )
+        neural = AnswerCandidate(
+            text=neural_text,
+            method="neural_span",
+            passage_id=passage_id,
+            start_char=neural_start,
+            end_char=neural_end,
+            reader_score=float(
+                neural_output.get("reader_threshold_score", neural_output.get("confidence", 0.0))
+            ),
+            score_margin=margin,
+            fallback_penalty=1.0,
+            valid_span=bool(neural_output.get("valid_span", neural_text)),
+            passes_reader_threshold=passes_threshold,
+        )
+        candidates.append(
+            _score_answer_candidate(
+                neural,
+                question=question,
+                question_type=question_type,
+                context=context,
+                retrieval_score=retrieval_score,
+            )
+        )
+
+    fallback_text = str(fallback_output.get("answer") or "").strip()
+    if fallback_text:
+        fallback_method = str(fallback_output.get("fallback_method") or "whole_sentence")
+        method = "sentence_fallback" if fallback_method == "whole_sentence" else "phrase_fallback"
+        fallback = AnswerCandidate(
+            text=fallback_text,
+            method=method,
+            passage_id=passage_id,
+            start_char=int(fallback_output.get("start", -1)),
+            end_char=int(fallback_output.get("end", -1)),
+            reader_score=float(fallback_output.get("confidence", 0.0)),
+            score_margin=None,
+            fallback_penalty=(
+                PHRASE_FALLBACK_PENALTY
+                if method == "phrase_fallback"
+                else FALLBACK_PENALTY
+            ),
+            valid_span=True,
+            passes_reader_threshold=False,
+            fallback_method=fallback_method,
+            evidence_sentence=str(
+                fallback_output.get("sentence_answer") or fallback_output.get("answer") or ""
+            ),
+        )
+        candidates.append(
+            _score_answer_candidate(
+                fallback,
+                question=question,
+                question_type=question_type,
+                context=context,
+                retrieval_score=retrieval_score,
+                relation_details=fallback_output,
+            )
+        )
+    return candidates
+
+
 def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     started = time.perf_counter()
     question = str(payload.get("question", "")).strip()
@@ -996,143 +1346,155 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             f"Reader returned {len(outputs)} outputs for {len(hits)} retrieved passages"
         )
 
-    passages: list[dict[str, Any]] = []
+    passage_work: list[dict[str, Any]] = []
+    all_candidates: list[dict[str, Any]] = []
     for hit, output in zip(hits, outputs):
-        fallback_output = sentence_fallback_predict(question, hit.passage.metadata.text)
-        chosen_output = choose_reader_output(question, hit.passage.metadata.text, output, fallback_output)
-        reader_score = float(chosen_output["confidence"])
         metadata = hit.passage.metadata
-        chosen_span_answer = str(chosen_output["answer"] or "")
-        display_answer = format_display_answer(
+        fallback_output = sentence_fallback_predict(question, metadata.text)
+        candidates = build_passage_candidates(
             question,
-            metadata.text,
-            chosen_output,
-        )
-        lexical_evidence = answer_is_supported(
-            metadata.text,
-            chosen_span_answer,
-            int(chosen_output["start"]),
-            int(chosen_output["end"]),
-        )
-        if question_type is QuestionType.LOCATION:
-            location_evidence = location_relation_assessment(
-                question,
-                metadata.text,
-                chosen_span_answer,
-                int(chosen_output["start"]),
-                int(chosen_output["end"]),
-                chosen_output,
-            )
-        else:
-            location_evidence = {
-                "relation_type": None,
-                "relation_score": 0.0,
-                "phrase_quality": 0.0,
-                "relation_evidence": True,
-            }
-        relation_evidence = bool(location_evidence["relation_evidence"])
-        requires_location_relation = (
-            question_type is QuestionType.LOCATION
-            and location_evidence["relation_type"] != "GENERIC_LOCATION"
-        )
-        evidence_supported = bool(
-            lexical_evidence
-            and (relation_evidence if requires_location_relation else True)
-        )
-        type_assessment = assess_answer_type(
             question_type,
-            chosen_span_answer,
-            relation_score=(
-                float(location_evidence["relation_score"])
-                if requires_location_relation
-                else None
-            ),
-            phrase_quality=(
-                float(location_evidence["phrase_quality"])
-                if requires_location_relation
-                else None
-            ),
-            candidate_method=chosen_output.get("fallback_method"),
-        )
-        reader_signal = reader_score * (
-            FALLBACK_PENALTY if chosen_output["method"] == "sentence_fallback" else 1.0
-        )
-        ranking_score = combine_ranking_scores(
+            metadata.passage_id,
+            metadata.text,
             hit.retrieval_score_normalized,
-            reader_signal,
-            type_assessment.score,
+            output,
+            fallback_output,
         )
-        passages.append(
+        candidate_rows: list[dict[str, Any]] = []
+        for candidate in candidates:
+            candidate_output = {
+                "method": candidate.method,
+                "answer": candidate.text,
+                "start": candidate.start_char,
+                "end": candidate.end_char,
+                "fallback_method": candidate.fallback_method,
+            }
+            row = candidate.to_dict()
+            row["display_text"] = format_display_answer(question, metadata.text, candidate_output)
+            row["retrieval_score"] = float(hit.retrieval_score_normalized)
+            row["retrieval_rank"] = int(hit.retrieval_rank)
+            row["document_id"] = metadata.document_id
+            row["title"] = metadata.title
+            row["selection_status"] = "ELIGIBLE" if candidate.passes_final_gate else "REJECTED"
+            row["rejection_detail"] = (
+                REJECTION_MESSAGES.get(candidate.rejection_reason)
+                if candidate.rejection_reason
+                else None
+            )
+            candidate_rows.append(row)
+            all_candidates.append(row)
+        passage_work.append(
             {
-                "rank": 0,
-                "retrieval_rank": hit.retrieval_rank,
-                "document_id": metadata.document_id,
-                "passage_id": metadata.passage_id,
-                "title": metadata.title,
-                "paragraph_id": metadata.paragraph_id,
-                "sentence_start": metadata.sentence_start,
-                "sentence_end": metadata.sentence_end,
-                "page": metadata.page,
-                "text": metadata.text,
-                "retrieval_score": round(hit.retrieval_score_normalized, 6),
-                "retrieval_score_raw": round(hit.retrieval_score_raw, 6),
-                "retrieval_score_normalized": round(hit.retrieval_score_normalized, 6),
-                "question_type": question_type.value,
-                "reader_method": chosen_output["method"],
-                "reader_answer": display_answer or None,
-                "reader_span_answer": chosen_span_answer or None,
-                "reader_score": round(reader_score, 6),
-                "reader_signal": round(reader_signal, 6),
-                "answer_type": question_type.value,
-                "answer_type_score": round(type_assessment.score, 6),
-                "answer_type_reason": type_assessment.reason,
-                "lexical_evidence": lexical_evidence,
-                "relation_evidence": relation_evidence,
-                "relation_type": location_evidence["relation_type"],
-                "relation_score": round(float(location_evidence["relation_score"]), 6),
-                "phrase_quality": round(float(location_evidence["phrase_quality"]), 6),
-                "evidence_supported": evidence_supported,
-                "neural_reader_answer": output["answer"] or None,
-                "neural_reader_best_span": output.get("best_span_answer") or None,
-                "neural_reader_has_answer": bool(output.get("has_answer", output.get("answer"))),
-                "neural_reader_score": round(float(output["confidence"]), 6),
-                "neural_reader_confidence_is_calibrated": bool(
-                    output.get("confidence_is_calibrated", False)
-                ),
-                "neural_reader_start_score": finite_or_none(output.get("start_score")),
-                "neural_reader_end_score": finite_or_none(output.get("end_score")),
-                "reader_score_raw": finite_or_none(output["score"]),
-                "reader_null_score": finite_or_none(output["null_score"]),
-                "reader_no_answer_score": finite_or_none(
-                    output.get("no_answer_score", float(output["null_score"]) - float(output["score"]))
-                ),
-                "reader_score_margin": finite_or_none(output["score_margin"]),
-                "reader_decision_threshold": float(
-                    output.get("decision_threshold", READER_SCORE_MARGIN_THRESHOLD)
-                ),
-                "fallback_sentence": fallback_output.get("sentence_answer") or fallback_output["answer"] or None,
-                "fallback_answer": fallback_output["answer"] or None,
-                "fallback_method": fallback_output.get("fallback_method", "whole_sentence"),
-                "fallback_phrase_score": round(float(fallback_output.get("phrase_score", 0.4)), 6),
-                "fallback_relation_type": fallback_output.get("relation_type"),
-                "fallback_relation_score": round(float(fallback_output.get("relation_score", 0.0)), 6),
-                "fallback_relation_evidence": bool(fallback_output.get("relation_evidence", False)),
-                "fallback_start": int(fallback_output.get("start", -1)),
-                "fallback_end": int(fallback_output.get("end", -1)),
-                "fallback_score": round(float(fallback_output["confidence"]), 6),
-                "fallback_reason": fallback_output["reason"],
-                "answer_span": {
-                    "text": chosen_span_answer,
-                    "start": int(chosen_output["start"]),
-                    "end": int(chosen_output["end"]),
-                },
-                "ranking_score": round(ranking_score, 6),
-                "answer_confidence": None,
+                "hit": hit,
+                "output": output,
+                "fallback": fallback_output,
+                "candidates": candidate_rows,
             }
         )
 
-    for item in passages:
-        item["gate_rejection_reason"] = candidate_rejection_reason(item)
+    eligible_candidates = [row for row in all_candidates if row["rejection_reason"] is None]
+    selected_candidate = max(
+        eligible_candidates,
+        key=lambda row: (row["ranking_score"], row["evidence_score"], row["reader_score"]),
+        default=None,
+    )
+
+    passages: list[dict[str, Any]] = []
+    for work in passage_work:
+        hit = work["hit"]
+        output = work["output"]
+        fallback_output = work["fallback"]
+        metadata = hit.passage.metadata
+        candidate_rows = sorted(
+            work["candidates"],
+            key=_candidate_selection_key,
+            reverse=True,
+        )
+        representative = candidate_rows[0] if candidate_rows else {
+            "text": "",
+            "display_text": "",
+            "method": "no_answer",
+            "reader_score": 0.0,
+            "fallback_penalty": 1.0,
+            "answer_type_score": 0.0,
+            "answer_type_reason": "NO_CANDIDATE",
+            "relation_type": None,
+            "relation_score": 0.0,
+            "evidence_score": 0.0,
+            "passes_relation_gate": False,
+            "valid_span": False,
+            "start_char": -1,
+            "end_char": -1,
+            "ranking_score": 0.0,
+            "rejection_reason": "NO_VALID_SPAN",
+            "fallback_method": None,
+            "passes_reader_threshold": False,
+        }
+        reader_signal = float(representative["reader_score"]) * float(representative["fallback_penalty"])
+        item = {
+            "rank": 0,
+            "retrieval_rank": hit.retrieval_rank,
+            "document_id": metadata.document_id,
+            "passage_id": metadata.passage_id,
+            "title": metadata.title,
+            "paragraph_id": metadata.paragraph_id,
+            "sentence_start": metadata.sentence_start,
+            "sentence_end": metadata.sentence_end,
+            "page": metadata.page,
+            "text": metadata.text,
+            "retrieval_score": round(hit.retrieval_score_normalized, 6),
+            "retrieval_score_raw": round(hit.retrieval_score_raw, 6),
+            "retrieval_score_normalized": round(hit.retrieval_score_normalized, 6),
+            "question_type": question_type.value,
+            "reader_method": representative["method"],
+            "reader_answer": representative["display_text"] or None,
+            "reader_span_answer": representative["text"] or None,
+            "reader_score": round(float(representative["reader_score"]), 6),
+            "reader_signal": round(reader_signal, 6),
+            "answer_type": question_type.value,
+            "answer_type_score": round(float(representative["answer_type_score"]), 6),
+            "answer_type_reason": representative["answer_type_reason"],
+            "lexical_evidence": bool(representative["passes_evidence_gate"]),
+            "relation_evidence": bool(representative["passes_relation_gate"]),
+            "relation_type": representative["relation_type"],
+            "relation_score": round(float(representative["relation_score"]), 6),
+            "phrase_quality": round(float(representative["relation_score"]), 6),
+            "evidence_supported": bool(representative["passes_evidence_gate"]),
+            "passes_reader_threshold": bool(representative["passes_reader_threshold"]),
+            "neural_reader_answer": output.get("answer") or None,
+            "neural_reader_best_span": output.get("best_span_answer") or output.get("answer") or None,
+            "neural_reader_has_answer": bool(output.get("has_answer", output.get("answer"))),
+            "neural_reader_score": round(float(output.get("confidence", 0.0)), 6),
+            "neural_reader_confidence_is_calibrated": bool(output.get("confidence_is_calibrated", False)),
+            "neural_reader_start_score": finite_or_none(output.get("start_score")),
+            "neural_reader_end_score": finite_or_none(output.get("end_score")),
+            "reader_score_raw": finite_or_none(output.get("score")),
+            "reader_null_score": finite_or_none(output.get("null_score")),
+            "reader_no_answer_score": finite_or_none(output.get("no_answer_score")),
+            "reader_score_margin": finite_or_none(output.get("score_margin")),
+            "reader_decision_threshold": float(output.get("decision_threshold", READER_SCORE_MARGIN_THRESHOLD)),
+            "fallback_sentence": fallback_output.get("sentence_answer") or fallback_output.get("answer") or None,
+            "fallback_answer": fallback_output.get("answer") or None,
+            "fallback_method": fallback_output.get("fallback_method", "whole_sentence"),
+            "fallback_phrase_score": round(float(fallback_output.get("phrase_score", 0.4)), 6),
+            "fallback_relation_type": fallback_output.get("relation_type"),
+            "fallback_relation_score": round(float(fallback_output.get("relation_score", 0.0)), 6),
+            "fallback_relation_evidence": bool(fallback_output.get("relation_evidence", False)),
+            "fallback_start": int(fallback_output.get("start", -1)),
+            "fallback_end": int(fallback_output.get("end", -1)),
+            "fallback_score": round(float(fallback_output.get("confidence", 0.0)), 6),
+            "fallback_reason": fallback_output.get("reason"),
+            "answer_span": {
+                "text": representative["text"],
+                "start": int(representative["start_char"]),
+                "end": int(representative["end_char"]),
+            },
+            "ranking_score": round(float(representative["ranking_score"]), 6),
+            "answer_confidence": None,
+            "candidates": candidate_rows,
+            "gate_rejection_reason": representative["rejection_reason"],
+        }
+        passages.append(item)
 
     top_retrieved = min(passages, key=lambda item: item["retrieval_rank"])
     passages.sort(key=lambda item: item["ranking_score"], reverse=True)
@@ -1140,7 +1502,12 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         item["rank"] = rank
 
     selected = next(
-        (item for item in passages if item["gate_rejection_reason"] is None),
+        (
+            item
+            for item in passages
+            if selected_candidate is not None
+            and item["passage_id"] == selected_candidate["passage_id"]
+        ),
         None,
     )
     for item in passages:
@@ -1153,6 +1520,15 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             item["selection_status"] = "REJECTED"
             item["rejection_reason"] = rejection_reason
             item["rejection_detail"] = REJECTION_MESSAGES[rejection_reason]
+        for candidate in item.get("candidates", []):
+            if candidate is selected_candidate:
+                candidate["selection_status"] = "SELECTED"
+                candidate["rejection_reason"] = None
+                candidate["rejection_detail"] = None
+            elif candidate.get("rejection_reason") is None:
+                candidate["selection_status"] = "REJECTED"
+                candidate["rejection_reason"] = "LOWER_RANKING_SCORE"
+                candidate["rejection_detail"] = REJECTION_MESSAGES["LOWER_RANKING_SCORE"]
 
     visible_passages = passages[:top_k]
     if selected is not None and selected not in visible_passages:
@@ -1172,10 +1548,22 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "sentence_end": selected["sentence_end"],
             "page": selected["page"],
         }
-    best_reader_score = max((float(passage["reader_score"]) for passage in passages), default=0.0)
-    decision_candidate = selected or passages[0]
-    rejection_reason = None if selected is not None else (
-        decision_candidate.get("gate_rejection_reason") or "NO_ANSWER"
+    best_reader_score = max(
+        (
+            float(candidate["reader_score"])
+            for candidate in all_candidates
+            if candidate["method"] == "neural_span"
+        ),
+        default=0.0,
+    )
+    decision_candidate = selected_candidate or max(
+        all_candidates,
+        key=_candidate_selection_key,
+        default=None,
+    )
+    decision_passage = selected or passages[0]
+    rejection_reason = None if selected_candidate is not None else (
+        (decision_candidate or {}).get("rejection_reason") or "NO_ANSWER"
     )
     no_answer_reason = None if has_answer else (
         "Không tìm thấy câu trả lời đủ tin cậy trong các đoạn được truy xuất."
@@ -1185,17 +1573,17 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         "question": question,
         "question_type": question_type.value,
         "answer_type": question_type.value,
-        "answer": selected["reader_answer"] if selected is not None else None,
+        "answer": selected_candidate["display_text"] if selected_candidate is not None else None,
         "has_answer": has_answer,
         # Kept as a nullable compatibility field. No calibrated probability exists yet.
         "confidence": None,
         "answer_confidence": None,
-        "reader_method": selected["reader_method"] if selected is not None else "no_answer",
-        "fallback_method": decision_candidate.get("fallback_method"),
-        "relation_type": decision_candidate.get("relation_type"),
-        "relation_score": decision_candidate.get("relation_score", 0.0),
-        "lexical_evidence": bool(decision_candidate.get("lexical_evidence", False)),
-        "relation_evidence": bool(decision_candidate.get("relation_evidence", False)),
+        "reader_method": selected_candidate["method"] if selected_candidate is not None else "no_answer",
+        "fallback_method": (decision_candidate or {}).get("fallback_method"),
+        "relation_type": (decision_candidate or {}).get("relation_type"),
+        "relation_score": (decision_candidate or {}).get("relation_score", 0.0),
+        "lexical_evidence": bool((decision_candidate or {}).get("passes_evidence_gate", False)),
+        "relation_evidence": bool((decision_candidate or {}).get("passes_relation_gate", False)),
         "selected_passage_id": selected["passage_id"] if selected is not None else None,
         "processing_time_ms": elapsed,
         "retriever": retriever,
@@ -1207,12 +1595,38 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         "rejection_reason": rejection_reason,
         "rejection_detail": REJECTION_MESSAGES.get(rejection_reason) if rejection_reason else None,
         "best_reader_score": round(best_reader_score, 6),
-        "answer_span": selected["answer_span"] if selected is not None else None,
+        "answer_span": (
+            {
+                "text": selected_candidate["text"],
+                "start": selected_candidate["start_char"],
+                "end": selected_candidate["end_char"],
+            }
+            if selected_candidate is not None
+            else None
+        ),
+        "reader_candidate": next(
+            (
+                candidate
+                for candidate in decision_passage.get("candidates", [])
+                if candidate["method"] == "neural_span"
+            ),
+            None,
+        ),
+        "fallback_candidate": next(
+            (
+                candidate
+                for candidate in decision_passage.get("candidates", [])
+                if candidate["method"] in {"phrase_fallback", "sentence_fallback"}
+            ),
+            None,
+        ),
+        "selected_candidate": selected_candidate,
         "scores": {
-            "retrieval": decision_candidate["retrieval_score_normalized"],
-            "reader": decision_candidate["reader_score"],
-            "answer_type": decision_candidate["answer_type_score"],
-            "ranking": decision_candidate["ranking_score"],
+            "retrieval": (decision_candidate or {}).get("retrieval_score", 0.0),
+            "reader": (decision_candidate or {}).get("reader_score", 0.0),
+            "answer_type": (decision_candidate or {}).get("answer_type_score", 0.0),
+            "relation": (decision_candidate or {}).get("relation_score", 0.0),
+            "ranking": (decision_candidate or {}).get("ranking_score", 0.0),
             "answer_confidence": None,
         },
         "passages": visible_passages,
@@ -1220,18 +1634,20 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "retriever_weight": RETRIEVER_WEIGHT,
             "reader_weight": READER_WEIGHT,
             "answer_type_weight": ANSWER_TYPE_WEIGHT,
+            "relation_weight": RELATION_WEIGHT,
             "minimum_reader_score": MIN_READER_SCORE,
             "minimum_answer_type_score": MIN_ANSWER_TYPE_SCORE,
             "minimum_fallback_answer_type_score": MIN_FALLBACK_ANSWER_TYPE_SCORE,
             "minimum_ranking_score": MIN_RANKING_SCORE,
             "fallback_penalty": FALLBACK_PENALTY,
+            "phrase_fallback_penalty": PHRASE_FALLBACK_PENALTY,
             "reader_score_margin_threshold": READER_SCORE_MARGIN_THRESHOLD,
             "reader_fallback_threshold": READER_FALLBACK_THRESHOLD,
             "sentence_fallback_threshold": SENTENCE_FALLBACK_THRESHOLD,
             "retrieval_normalization": "min_max_within_top_k",
             "candidate_count": candidate_count,
-            "rerank": "retrieval_reader_answer_type",
-            "ranking_score_formula": "retriever_weight*retrieval_score + reader_weight*reader_signal + answer_type_weight*answer_type_score",
+            "rerank": "retrieval_reader_answer_type_relation",
+            "ranking_score_formula": "retriever_weight*retrieval_score + reader_weight*reader_signal + answer_type_weight*answer_type_score + relation_weight*relation_score",
             "score_semantics": "All displayed scores are ranking signals, not correctness probabilities.",
         },
     }

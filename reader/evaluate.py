@@ -5,6 +5,7 @@ import csv
 import json
 import math
 import os
+import shutil
 import sys
 from pathlib import Path
 from typing import Any, Iterable, Sequence
@@ -64,8 +65,12 @@ def load_validation_records(path: Path, subset_size: int = -1) -> QaRecordDatase
         return QaRecordDataset(frame.to_dict("records"))
 
 
-def _json_number(value: float) -> float | None:
-    return float(value) if math.isfinite(float(value)) else None
+def _json_number(value: Any) -> float | None:
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
 
 
 def _json_safe(value: Any) -> Any:
@@ -90,6 +95,8 @@ def _metric_row(threshold: float, metrics: dict[str, Any]) -> dict[str, float]:
         "unanswerable_accuracy": no_answer_accuracy,
         "predicted_no_answer_rate": float(metrics["predicted_no_answer"]["rate"]),
         "answerable_predicted_empty_rate": float(metrics["answerable"]["predicted_empty_rate"]),
+        "false_positive_rate": 100.0 - no_answer_accuracy,
+        "false_negative_rate": float(metrics["answerable"]["predicted_empty_rate"]),
         # Retained for analysis only.
         "balanced_score": 0.5 * answerable_f1 + 0.5 * no_answer_accuracy,
         # Answerable F1 is the primary Reader objective. The no-answer term
@@ -165,6 +172,8 @@ def flatten_metrics(metrics: dict[str, Any], best_threshold: float | None = None
         "unanswerable_accuracy": float(metrics["unanswerable"]["accuracy"]),
         "predicted_no_answer_rate": float(metrics["predicted_no_answer"]["rate"]),
         "answerable_predicted_empty_rate": float(metrics["answerable"]["predicted_empty_rate"]),
+        "false_positive_rate": 100.0 - float(metrics["unanswerable"]["accuracy"]),
+        "false_negative_rate": float(metrics["answerable"]["predicted_empty_rate"]),
     }
     if best_threshold is not None:
         flattened["best_threshold"] = float(best_threshold)
@@ -227,6 +236,110 @@ def _write_csv(path: Path, rows: Sequence[dict[str, Any]]) -> None:
         writer.writerows(rows)
 
 
+def _distribution_statistics(values: Sequence[float]) -> dict[str, float | int | None]:
+    finite = np.asarray([float(value) for value in values if math.isfinite(float(value))], dtype=float)
+    if not len(finite):
+        return {
+            "count": 0,
+            "mean": None,
+            "median": None,
+            "std": None,
+            "p10": None,
+            "p25": None,
+            "p50": None,
+            "p75": None,
+            "p90": None,
+        }
+    return {
+        "count": int(len(finite)),
+        "mean": float(np.mean(finite)),
+        "median": float(np.median(finite)),
+        "std": float(np.std(finite)),
+        "p10": float(np.percentile(finite, 10)),
+        "p25": float(np.percentile(finite, 25)),
+        "p50": float(np.percentile(finite, 50)),
+        "p75": float(np.percentile(finite, 75)),
+        "p90": float(np.percentile(finite, 90)),
+    }
+
+
+def build_score_distribution(
+    raw_predictions: Sequence[dict[str, Any]],
+    threshold: float = 0.0,
+    margin_scale: float = 10.0,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    margin_scale = max(0.01, float(margin_scale))
+
+    def calibrated_display_confidence(row: dict[str, Any]) -> float | None:
+        margin = _json_number(row.get("score_margin"))
+        if margin is None:
+            return None
+        shifted = max(-60.0, min(60.0, (margin - threshold) / margin_scale))
+        return 1.0 / (1.0 + math.exp(-shifted))
+
+    rows = [
+        {
+            "question_id": str(row.get("id", "")),
+            "is_answerable": bool(row.get("is_answerable")),
+            "gold_answer": str(row.get("gold_answer") or ""),
+            "predicted_span": str(row.get("best_span_answer") or ""),
+            "null_score": _json_number(row.get("null_score")),
+            "best_span_score": _json_number(row.get("best_span_score")),
+            "score_margin": _json_number(row.get("score_margin")),
+            # The raw pass deliberately decodes every best span with a -inf
+            # threshold. Its confidence is therefore saturated and cannot be
+            # reused. Map the raw margin only after validation selects a
+            # checkpoint-specific threshold.
+            "reader_confidence_display": calibrated_display_confidence(row),
+        }
+        for row in raw_predictions
+    ]
+    summary: dict[str, Any] = {}
+    for label, is_answerable in (("answerable", True), ("unanswerable", False)):
+        selected = [row for row in rows if row["is_answerable"] is is_answerable]
+        summary[label] = {
+            "count": len(selected),
+            "null_score": _distribution_statistics(
+                [row["null_score"] for row in selected if row["null_score"] is not None]
+            ),
+            "best_span_score": _distribution_statistics(
+                [row["best_span_score"] for row in selected if row["best_span_score"] is not None]
+            ),
+            "score_margin": _distribution_statistics(
+                [row["score_margin"] for row in selected if row["score_margin"] is not None]
+            ),
+            "reader_confidence_display": _distribution_statistics(
+                [
+                    row["reader_confidence_display"]
+                    for row in selected
+                    if row["reader_confidence_display"] is not None
+                ]
+            ),
+        }
+    return rows, summary
+
+
+def select_threshold_objectives(sweep_rows: Sequence[dict[str, float]]) -> dict[str, dict[str, float]]:
+    objectives = {
+        "maximize_overall_f1": "overall_f1",
+        "maximize_answerable_f1": "answerable_f1",
+        "reader_priority_0.7_answerable_f1_0.3_unanswerable_accuracy": "reader_priority_score",
+    }
+    selected: dict[str, dict[str, float]] = {}
+    for objective, metric in objectives.items():
+        best = max(
+            sweep_rows,
+            key=lambda row: (
+                row[metric],
+                row["answerable_f1"],
+                row["unanswerable_accuracy"],
+                row["overall_f1"],
+            ),
+        )
+        selected[objective] = dict(best)
+    return selected
+
+
 def save_evaluation_artifacts(
     output_dir: str | Path,
     checkpoint: str,
@@ -236,6 +349,8 @@ def save_evaluation_artifacts(
     predictions: Sequence[dict[str, Any]],
     metrics: dict[str, Any],
     selection_metric: str,
+    max_seq_len: int = DEFAULT_MAX_LENGTH,
+    doc_stride: int = DEFAULT_DOC_STRIDE,
 ) -> dict[str, Path]:
     output = Path(output_dir)
     output.mkdir(parents=True, exist_ok=True)
@@ -261,6 +376,53 @@ def save_evaluation_artifacts(
         "metrics": metrics,
         "predictions": _json_safe(list(predictions)),
     }
+    objectives = select_threshold_objectives(sweep_rows)
+    answerable_margins = [
+        margin
+        for row in raw_predictions
+        if bool(row.get("is_answerable"))
+        for margin in [_json_number(row.get("score_margin"))]
+        if margin is not None
+    ]
+    margin_stats = _distribution_statistics(answerable_margins)
+    p25 = margin_stats.get("p25")
+    p75 = margin_stats.get("p75")
+    margin_scale = max(0.01, float(p75) - float(p25)) if p25 is not None and p75 is not None else 10.0
+    distribution_rows, distribution_summary = build_score_distribution(
+        raw_predictions,
+        threshold=float(best_row["threshold"]),
+        margin_scale=margin_scale,
+    )
+    base_model = None
+    checkpoint_config = Path(checkpoint) / "config.json"
+    if checkpoint_config.is_file():
+        try:
+            base_model = json.loads(checkpoint_config.read_text(encoding="utf-8")).get(
+                "_name_or_path"
+            )
+        except (OSError, json.JSONDecodeError):
+            base_model = None
+    profile = {
+        "checkpoint": checkpoint,
+        "base_model": base_model,
+        "max_length": int(max_seq_len),
+        "stride": int(doc_stride),
+        "threshold": float(best_row["threshold"]),
+        "score_type": "best_span_score_minus_null_score",
+        "margin_scale": margin_scale,
+        "temperature": None,
+        "calibrated": len(raw_predictions) == 3814,
+        "validation": {
+            "examples": len(raw_predictions),
+            "overall_em": metrics["overall"]["em"],
+            "overall_f1": metrics["overall"]["f1"],
+            "answerable_em": metrics["answerable"]["em"],
+            "answerable_f1": metrics["answerable"]["f1"],
+            "unanswerable_accuracy": metrics["unanswerable"]["accuracy"],
+            "answerable_predicted_empty_rate": metrics["answerable"]["predicted_empty_rate"],
+        },
+        "threshold_objectives": objectives,
+    }
     paths = {
         "metrics": output / "validation_metrics.json",
         "predictions": output / "predictions_validation.json",
@@ -268,15 +430,37 @@ def save_evaluation_artifacts(
         "threshold": output / "best_threshold.json",
         "errors": output / "error_analysis.csv",
         "empty_analysis": output / "answerable_predicted_empty_sample.csv",
+        "distribution_csv": output / "score_distribution.csv",
+        "distribution_json": output / "score_distribution.json",
+        "objectives": output / "threshold_objectives.json",
+        "profile": output / "reader_profile.json",
     }
     paths["metrics"].write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
     paths["predictions"].write_text(
         json.dumps(result, ensure_ascii=False, indent=2, allow_nan=False), encoding="utf-8"
     )
     paths["threshold"].write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    paths["distribution_json"].write_text(
+        json.dumps(
+            {"checkpoint": checkpoint, "summary": distribution_summary, "rows": distribution_rows},
+            ensure_ascii=False,
+            indent=2,
+            allow_nan=False,
+        ),
+        encoding="utf-8",
+    )
+    paths["objectives"].write_text(
+        json.dumps(objectives, ensure_ascii=False, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
+    paths["profile"].write_text(
+        json.dumps(profile, ensure_ascii=False, indent=2, allow_nan=False),
+        encoding="utf-8",
+    )
     _write_csv(paths["sweep"], list(sweep_rows))
     _write_csv(paths["errors"], error_rows)
     _write_csv(paths["empty_analysis"], answerable_empty)
+    _write_csv(paths["distribution_csv"], distribution_rows)
     return paths
 
 
@@ -411,6 +595,7 @@ def evaluate(
     batch_size: int = 32,
     max_seq_len: int = DEFAULT_MAX_LENGTH,
     doc_stride: int = DEFAULT_DOC_STRIDE,
+    write_profile_to_checkpoint: bool = False,
 ):
     from reader.predict import ReaderPredictor
 
@@ -450,7 +635,16 @@ def evaluate(
         final_predictions,
         metrics,
         selection_metric,
+        max_seq_len=max_seq_len,
+        doc_stride=doc_stride,
     )
+    if write_profile_to_checkpoint:
+        if len(dataset) != 3814:
+            raise ValueError("A checkpoint profile may only be installed after full 3,814-example validation")
+        model_dir = Path(model_path)
+        if not model_dir.is_dir():
+            raise ValueError("--write_profile_to_checkpoint requires a local checkpoint directory")
+        shutil.copyfile(paths["profile"], model_dir / "reader_profile.json")
     if output_file:
         Path(output_file).parent.mkdir(parents=True, exist_ok=True)
         Path(output_file).write_text(
@@ -474,6 +668,11 @@ def main() -> None:
     parser.add_argument("--max_seq_len", type=int, default=DEFAULT_MAX_LENGTH)
     parser.add_argument("--doc_stride", type=int, default=DEFAULT_DOC_STRIDE)
     parser.add_argument(
+        "--write_profile_to_checkpoint",
+        action="store_true",
+        help="Install reader_profile.json only after full validation",
+    )
+    parser.add_argument(
         "--selection_metric",
         choices=["reader_priority_score", "balanced_score", "overall_f1", "answerable_f1"],
         default="reader_priority_score",
@@ -494,6 +693,8 @@ __all__ = [
     "compute_f1",
     "evaluate",
     "flatten_metrics",
+    "build_score_distribution",
+    "select_threshold_objectives",
     "normalize_answer",
     "postprocess_validation_logits",
     "save_evaluation_artifacts",

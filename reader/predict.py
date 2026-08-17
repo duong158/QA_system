@@ -62,8 +62,10 @@ class ReaderPredictor:
         score_margin = best_span_score - null_score
         return answer iff score_margin >= validation_calibrated_threshold
 
-    ``confidence`` is a temperature-scaled display/ranking signal and is not a
-    calibrated probability. Thresholding always uses the raw logit margin.
+    ``confidence`` is a checkpoint-relative display/ranking signal and is not a
+    calibrated probability. The best valid span is preserved even when its
+    margin is below the calibrated threshold; callers receive
+    ``passes_reader_threshold`` as a signal for final candidate selection.
     """
 
     def __init__(self, model_path_or_name: str, use_cpu: bool = False):
@@ -257,6 +259,9 @@ class ReaderPredictor:
                         "confidence": 0.0,
                         "confidence_is_calibrated": False,
                         "decision_threshold": threshold,
+                        "reader_threshold_score": 0.0,
+                        "valid_span": False,
+                        "passes_reader_threshold": False,
                         "has_answer": False,
                     }
                 )
@@ -269,14 +274,18 @@ class ReaderPredictor:
                 raw_end -= 1
             best_span_answer = item.raw_context[raw_start:raw_end]
             margin = float(best.score - null_score)
-            has_answer = bool(best_span_answer) and should_return_answer(margin, threshold)
+            valid_span = bool(best_span_answer)
+            passes_threshold = valid_span and should_return_answer(margin, threshold)
             confidence = score_margin_to_confidence(
-                margin,
-                temperature=self.decision_config.confidence_temperature,
+                margin - threshold,
+                temperature=self.decision_config.margin_scale,
             )
             results.append(
                 {
-                    "answer": best_span_answer if has_answer else "",
+                    # Backwards-compatible final Reader answer. The candidate is
+                    # independently exposed below and is never deleted here.
+                    "answer": best_span_answer if passes_threshold else "",
+                    "candidate_answer": best_span_answer,
                     "best_span_answer": best_span_answer,
                     "score": float(best.score),
                     "best_span_score": float(best.score),
@@ -285,14 +294,19 @@ class ReaderPredictor:
                     "null_score": float(null_score),
                     "no_answer_score": float(null_score - best.score),
                     "score_margin": margin,
-                    "start": raw_start if has_answer else -1,
-                    "end": raw_end if has_answer else -1,
+                    "start": raw_start if passes_threshold else -1,
+                    "end": raw_end if passes_threshold else -1,
+                    "candidate_start": raw_start,
+                    "candidate_end": raw_end,
                     "best_span_start": raw_start,
                     "best_span_end": raw_end,
                     "confidence": round(confidence, 6),
                     "confidence_is_calibrated": False,
                     "decision_threshold": threshold,
-                    "has_answer": has_answer,
+                    "reader_threshold_score": round(confidence, 6),
+                    "valid_span": valid_span,
+                    "passes_reader_threshold": passes_threshold,
+                    "has_answer": passes_threshold,
                 }
             )
         return results

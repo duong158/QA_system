@@ -1,0 +1,64 @@
+{
+  "checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "base_model": "vinai/phobert-base-v2",
+  "max_length": 256,
+  "stride": 80,
+  "threshold": -3.5,
+  "score_type": "best_span_score_minus_null_score",
+  "margin_scale": 4.746880888938904,
+  "temperature": null,
+  "calibrated": true,
+  "validation": {
+    "examples": 3814,
+    "overall_em": 13.869952805453591,
+    "overall_f1": 36.24918995943013,
+    "answerable_em": 0.7915567282321899,
+    "answerable_f1": 32.964346213820775,
+    "unanswerable_accuracy": 42.377260981912144,
+    "answerable_predicted_empty_rate": 34.82849604221636
+  },
+  "threshold_objectives": {
+    "maximize_overall_f1": {
+      "threshold": -3.801599,
+      "overall_em": 12.92606187729418,
+      "overall_f1": 36.251260158026184,
+      "answerable_em": 0.7915567282321899,
+      "answerable_f1": 34.32427675940892,
+      "unanswerable_accuracy": 39.10422049956934,
+      "predicted_no_answer_rate": 34.058730991085476,
+      "answerable_predicted_empty_rate": 31.85073501696193,
+      "false_positive_rate": 60.89577950043066,
+      "false_negative_rate": 31.85073501696193,
+      "balanced_score": 36.71424862948913,
+      "reader_priority_score": 35.75825988145704
+    },
+    "maximize_answerable_f1": {
+      "threshold": -10.0,
+      "overall_em": 1.9402202412165706,
+      "overall_f1": 33.197171733358104,
+      "answerable_em": 1.0177157934413872,
+      "answerable_f1": 45.95326535658795,
+      "unanswerable_accuracy": 1.636520241171404,
+      "predicted_no_answer_rate": 1.1798636601992658,
+      "answerable_predicted_empty_rate": 0.980022615906521,
+      "false_positive_rate": 98.36347975882859,
+      "false_negative_rate": 0.980022615906521,
+      "balanced_score": 23.794892798879676,
+      "reader_priority_score": 32.65824182196299
+    },
+    "reader_priority_0.7_answerable_f1_0.3_unanswerable_accuracy": {
+      "threshold": -3.5,
+      "overall_em": 13.869952805453591,
+      "overall_f1": 36.24918995943013,
+      "answerable_em": 0.7915567282321899,
+      "answerable_f1": 32.964346213820775,
+      "unanswerable_accuracy": 42.377260981912144,
+      "predicted_no_answer_rate": 37.12637650760357,
+      "answerable_predicted_empty_rate": 34.82849604221636,
+      "false_positive_rate": 57.622739018087856,
+      "false_negative_rate": 34.82849604221636,
+      "balanced_score": 37.67080359786646,
+      "reader_priority_score": 35.788220644248184
+    }
+  }
+}

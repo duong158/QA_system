@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import shutil
 import sys
 from pathlib import Path
 
@@ -82,7 +81,11 @@ def main() -> None:
     parser.add_argument("--output_dir", default="models/reader", help="Root for final model artifacts")
     parser.add_argument("--results_root", default="results/reader")
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--promote", action="store_true", help="Install this run's calibrated threshold for production")
+    parser.add_argument(
+        "--promote",
+        action="store_true",
+        help="Point qa_pipeline.json at this fully evaluated checkpoint",
+    )
     args = parser.parse_args()
 
     if args.data_variant == "segmented":
@@ -228,14 +231,21 @@ def main() -> None:
         batch_size=args.eval_batch_size,
         max_seq_len=args.max_seq_len,
         doc_stride=args.doc_stride,
+        write_profile_to_checkpoint=args.subset_size <= 0,
     )
-    calibrated_config = result_dir / "best_threshold.json"
-    shutil.copyfile(calibrated_config, model_output_dir / "best_reader_config.json")
     if args.promote:
-        production_config = ROOT / "models" / "reader" / "best_reader_config.json"
-        production_config.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(calibrated_config, production_config)
-        print(f"Promoted validation-calibrated Reader config to {production_config}")
+        if args.subset_size > 0:
+            raise ValueError("Smoke/subset checkpoints cannot be promoted")
+        pipeline_path = ROOT / "config" / "qa_pipeline.json"
+        pipeline = json.loads(pipeline_path.read_text(encoding="utf-8"))
+        pipeline["reader_checkpoint"] = str(model_output_dir.relative_to(ROOT)).replace("\\", "/")
+        pipeline["reader_score_margin_threshold"] = None
+        pipeline["require_calibrated_reader_profile"] = True
+        pipeline_path.write_text(
+            json.dumps(pipeline, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        print(f"Promoted checkpoint pointer in {pipeline_path}")
     print(f"Training complete. Model: {model_output_dir}; results: {result_dir}")
 
 

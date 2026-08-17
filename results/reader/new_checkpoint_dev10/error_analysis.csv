@@ -1,0 +1,11 @@
+﻿question_id,question,gold_answer,predicted_answer,has_gold_answer,predicted_no_answer,em,f1,reader_confidence,no_answer_score,best_span_score,score_margin,error_type
+0001-0001-0001,Paris đạt được thành quả gì sau khỏang 4 thế kỷ tính từ ngày Cách mạng Pháp diễn ra?,"trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và giải trí",,True,True,0,0.0,1.0,13.121163368225098,-2.9493608474731445,-13.121163368225098,ANSWERABLE_PREDICTED_EMPTY
+0001-0001-0002,Vị trí địa lý của Pháp có gì đặc biệt?,,,False,True,1,1.0,1.0,11.713478446006775,-1.5605090856552124,-11.713478446006775,CORRECT_NO_ANSWER
+0001-0001-0003,Kinh tế xung quanh kinh đô ánh sáng mạnh về gì?,giáo dục và nghệ thuật,vùng nông nghiệp,True,False,0,0.0,1.0,3.256084442138672,6.88983154296875,-3.256084442138672,WRONG_SPAN
+0001-0001-0004,Cuộc cách mạng Pháp diễn ra ở đâu?,Paris,,True,True,0,0.0,1.0,6.648950099945068,3.488860607147217,-6.648950099945068,ANSWERABLE_PREDICTED_EMPTY
+0001-0001-0005,Kinh đô ánh sáng nổi tiếng về lĩnh vực gì?,nghệ thuật và giải trí,của nghệ thuật và,True,False,0,0.6666666666666665,1.0,2.084095001220703,8.036087989807129,-2.084095001220703,SPAN_TOO_SHORT
+0001-0001-0006,Paris là một thành phố quan trọng của nước Pháp bắt đầu từ thời gian nào?,thế kỷ 10,Vào thế kỷ,True,False,0,0.6666666666666666,1.0,4.382551193237305,5.75922966003418,-4.382551193237305,PARTIAL_SPAN
+0001-0001-0007,Vị trí địa lý của Paris có gì đặc biệt?,nằm ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông,,True,True,0,0.0,1.0,11.024749875068665,-0.8699408769607544,-11.024749875068665,ANSWERABLE_PREDICTED_EMPTY
+0001-0002-0001,Điều gì đã nói lên Paris là thành phố lý tưởng để khách du lịch?,Kinh đô ánh sáng,". Sự nhộn nhịp, các công trình kiến trúc và không khí",True,False,0,0.0,1.0,2.746216297149658,7.385440349578857,-2.746216297149658,WRONG_SPAN
+0001-0002-0002,Người ta đến với Paris vì điều gì?,"Sự nhộn nhịp, các công trình kiến trúc và không khí nghệ sĩ",". Sự nhộn nhịp, các công trình kiến trúc và không khí",True,False,0,0.9166666666666666,1.0,4.86179256439209,5.291274070739746,-4.86179256439209,SPAN_TOO_SHORT
+0001-0002-0003,Điều gì đã nói lên New York là thành phố lý tưởng để khách du lịch?,,,False,True,1,1.0,1.0,6.225881099700928,3.932772159576416,-6.225881099700928,CORRECT_NO_ANSWER

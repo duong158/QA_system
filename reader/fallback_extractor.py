@@ -184,6 +184,71 @@ def _tokens(text: str) -> list[str]:
     return _normalize(text).split()
 
 
+def detect_contrast_relation(question: str) -> bool:
+    normalized = _normalize(question)
+    return bool(
+        re.search(r"\b(?:khac biet|khac nhau|phan biet|so voi|so sanh)\b", normalized)
+    )
+
+
+def assess_contrast_relation(answer: str) -> tuple[float, bool]:
+    """Score whether an answer states two sides of a requested contrast."""
+
+    normalized = _normalize(answer)
+    if not normalized:
+        return 0.0, False
+    if re.search(r"\b(?:su )?khac biet (?:nay|do)\b", normalized):
+        # An anaphoric sentence names the relation but omits both sides.
+        return 0.05, False
+    if re.search(r"\bgiua\b.+\bva\b.+", normalized):
+        return 1.0, True
+    if re.search(r"\btrong khi\b", normalized):
+        return 0.95, True
+    if re.search(r"\b(?:khac voi|so voi)\b", normalized):
+        return 0.85, True
+    return 0.0, False
+
+
+def extract_contrast_candidate(question: str, sentence: str) -> FallbackCandidate | None:
+    if not detect_contrast_relation(question):
+        return None
+    patterns = (
+        re.compile(
+            r"(?:sự[\s_]+)?khác[\s_]+biệt[\s_]+giữa[\s_]+.+?[\s_]+và[\s_]+.+?(?=[.;!?]|$)",
+            re.IGNORECASE,
+        ),
+        re.compile(r"[^.;!?]+?[\s_]+trong[\s_]+khi[\s_]+[^.;!?]+", re.IGNORECASE),
+    )
+    candidates: list[FallbackCandidate] = []
+    for pattern in patterns:
+        for match in pattern.finditer(sentence):
+            start, end = match.span()
+            while start < end and sentence[start].isspace():
+                start += 1
+            while end > start and sentence[end - 1].isspace():
+                end -= 1
+            answer = sentence[start:end]
+            relation_score, relation_evidence = assess_contrast_relation(answer)
+            if not relation_evidence:
+                continue
+            candidates.append(
+                FallbackCandidate(
+                    answer=answer,
+                    method="contrast_relation_pattern",
+                    score=0.90,
+                    evidence_sentence=sentence,
+                    start_char=start,
+                    end_char=end,
+                    relation_type="CONTRAST",
+                    relation_score=relation_score,
+                    phrase_quality=0.90,
+                    lexical_evidence=True,
+                    relation_evidence=True,
+                )
+            )
+    return max(candidates, key=lambda item: (item.relation_score, item.score)) if candidates else None
+
+
 def _contains_designator(text: str) -> bool:
     normalized = _normalize(text)
     return any(re.search(rf"\b{re.escape(term)}\b", normalized) for term in _ENTITY_DESIGNATORS)
@@ -514,6 +579,9 @@ def extract_fallback_answer(
         return FallbackCandidate("", "whole_sentence", 0.0, "", -1, -1)
 
     normalized_type = str(getattr(question_type, "value", question_type)).upper()
+    contrast = extract_contrast_candidate(question, sentence)
+    if contrast is not None:
+        return contrast
     if normalized_type == "LOCATION":
         return extract_location_candidate(question, sentence)
     if normalized_type != "ENTITY":
@@ -577,6 +645,9 @@ def extract_fallback_answer(
 __all__ = [
     "FallbackCandidate",
     "detect_location_relation",
+    "detect_contrast_relation",
+    "assess_contrast_relation",
+    "extract_contrast_candidate",
     "extract_fallback_answer",
     "extract_location_candidate",
 ]

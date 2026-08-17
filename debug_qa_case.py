@@ -78,8 +78,14 @@ def main() -> None:
         "relation_evidence": response.get("relation_evidence"),
         "rejection_reason": response["rejection_reason"],
         "processing_time_ms": response["processing_time_ms"],
+        "reader_candidate": response.get("reader_candidate"),
+        "fallback_candidate": response.get("fallback_candidate"),
+        "selected_candidate": response.get("selected_candidate"),
         "candidates": [
-            {field: passage.get(field) for field in fields}
+            {
+                **{field: passage.get(field) for field in fields},
+                "candidate_pool": passage.get("candidates", []),
+            }
             for passage in response["passages"]
         ],
     }

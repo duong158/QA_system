@@ -17,42 +17,13 @@ from reader.question_type import detect_question_type
 
 ROOT = Path(__file__).resolve().parent
 WEIGHT_CONFIGS = {
-    "A_retriever70_reader30": {
-        "retriever": 0.70,
-        "reader": 0.30,
-        "answer_type": 0.0,
-        "type_gate": False,
-        "fallback_penalty": 1.0,
-    },
-    "B_retriever60_reader40": {
-        "retriever": 0.60,
-        "reader": 0.40,
-        "answer_type": 0.0,
-        "type_gate": False,
-        "fallback_penalty": 1.0,
-    },
-    "C_retriever50_reader50": {
-        "retriever": 0.50,
-        "reader": 0.50,
-        "answer_type": 0.0,
-        "type_gate": False,
-        "fallback_penalty": 1.0,
-    },
-    "D_retriever50_reader30_type20": {
-        "retriever": 0.50,
-        "reader": 0.30,
-        "answer_type": 0.20,
-        "type_gate": True,
-        "fallback_penalty": 0.60,
-    },
-    "E_retriever40_reader40_type20": {
-        "retriever": 0.40,
-        "reader": 0.40,
-        "answer_type": 0.20,
-        "type_gate": True,
-        "fallback_penalty": 0.60,
-    },
+    "A_R50_Reader30_Type20": {"retriever": 0.50, "reader": 0.30, "answer_type": 0.20, "relation": 0.0},
+    "B_R40_Reader40_Type20": {"retriever": 0.40, "reader": 0.40, "answer_type": 0.20, "relation": 0.0},
+    "C_R40_Reader30_Type20_Relation10": {"retriever": 0.40, "reader": 0.30, "answer_type": 0.20, "relation": 0.10},
+    "D_R35_Reader35_Type15_Relation15": {"retriever": 0.35, "reader": 0.35, "answer_type": 0.15, "relation": 0.15},
 }
+DEFAULT_FINAL_THRESHOLDS = [round(index / 40, 3) for index in range(12, 37)]
+PHRASE_FALLBACK_PENALTIES = (0.6, 0.8, 0.9, 1.0)
 
 
 def load_stratified_subset(size: int, seed: int) -> list[dict[str, Any]]:
@@ -78,52 +49,51 @@ def load_stratified_subset(size: int, seed: int) -> list[dict[str, Any]]:
     return selected
 
 
-def candidate_score(candidate: dict[str, Any], config: dict[str, Any]) -> float:
-    reader_score = float(candidate.get("reader_score") or 0.0)
-    if candidate.get("reader_method") == "sentence_fallback":
-        reader_score *= float(config["fallback_penalty"])
+def candidate_score(
+    candidate: dict[str, Any],
+    config: dict[str, float],
+    phrase_fallback_penalty: float | None = None,
+) -> float:
+    fallback_penalty = float(candidate.get("fallback_penalty", 1.0))
+    if candidate.get("method") == "phrase_fallback" and phrase_fallback_penalty is not None:
+        fallback_penalty = phrase_fallback_penalty
+    reader_signal = float(candidate.get("reader_score") or 0.0) * fallback_penalty
     return (
-        float(config["retriever"]) * float(candidate.get("retrieval_score_normalized") or 0.0)
-        + float(config["reader"]) * reader_score
-        + float(config["answer_type"]) * float(candidate.get("answer_type_score") or 0.0)
+        config["retriever"] * float(candidate.get("retrieval_score") or 0.0)
+        + config["reader"] * reader_signal
+        + config["answer_type"] * float(candidate.get("answer_type_score") or 0.0)
+        + config["relation"] * float(candidate.get("relation_score") or 0.0)
     )
 
 
-def candidate_passes(candidate: dict[str, Any], ranking_score: float, config: dict[str, Any]) -> bool:
-    from backend.viqa_api import (
-        MIN_ANSWER_TYPE_SCORE,
-        MIN_FALLBACK_ANSWER_TYPE_SCORE,
-        MIN_RANKING_SCORE,
-        MIN_READER_SCORE,
-    )
+def candidate_passes_hard_gates(candidate: dict[str, Any]) -> bool:
+    """Hard-reject only structural, evidence, type, and relation failures."""
 
-    if not candidate.get("reader_answer"):
-        return False
-    if float(candidate.get("reader_score") or 0.0) < MIN_READER_SCORE:
-        return False
-    if not config["type_gate"]:
-        return True
-    if not candidate.get("evidence_supported"):
-        return False
-    minimum_type = (
-        MIN_FALLBACK_ANSWER_TYPE_SCORE
-        if candidate.get("reader_method") == "sentence_fallback"
-        else MIN_ANSWER_TYPE_SCORE
-    )
-    return (
-        float(candidate.get("answer_type_score") or 0.0) >= minimum_type
-        and ranking_score >= MIN_RANKING_SCORE
+    return bool(
+        candidate.get("text")
+        and candidate.get("valid_span")
+        and candidate.get("passes_evidence_gate")
+        and candidate.get("passes_type_gate")
+        and candidate.get("passes_relation_gate")
     )
 
 
-def select_candidate(candidates: list[dict[str, Any]], config: dict[str, Any]):
+def select_candidate(
+    candidates: list[dict[str, Any]],
+    config: dict[str, float],
+    final_threshold: float,
+    phrase_fallback_penalty: float | None = None,
+) -> tuple[dict[str, Any] | None, float]:
     scored = sorted(
-        ((candidate_score(candidate, config), candidate) for candidate in candidates),
-        key=lambda item: item[0],
+        (
+            (candidate_score(candidate, config, phrase_fallback_penalty), candidate)
+            for candidate in candidates
+        ),
+        key=lambda item: (item[0], float(item[1].get("evidence_score") or 0.0)),
         reverse=True,
     )
     for ranking_score, candidate in scored:
-        if candidate_passes(candidate, ranking_score, config):
+        if candidate_passes_hard_gates(candidate) and ranking_score >= final_threshold:
             return candidate, ranking_score
     return None, (scored[0][0] if scored else 0.0)
 
@@ -135,96 +105,227 @@ def percentile(values: list[float], ratio: float) -> float:
     return ordered[round((len(ordered) - 1) * ratio)]
 
 
+def _evaluate_configuration(
+    rows: list[dict[str, Any]],
+    config: dict[str, float],
+    threshold: float,
+    phrase_fallback_penalty: float | None = None,
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    predictions: list[dict[str, Any]] = []
+    counts: Counter[str] = Counter()
+    for row in rows:
+        selected, ranking_score = select_candidate(
+            row["candidates"], config, threshold, phrase_fallback_penalty
+        )
+        prediction = str((selected or {}).get("display_text") or (selected or {}).get("text") or "")
+        predictions.append(
+            {
+                "id": row["id"],
+                "gold_answer": row["gold_answer"],
+                "predicted_answer": prediction,
+                "is_answerable": row["is_answerable"],
+            }
+        )
+        counts["gold_answer_passage_available_top10"] += int(
+            row["is_answerable"] and row["gold_available"]
+        )
+        selected_has_gold = bool(
+            selected
+            and row["gold_normalized"]
+            and row["gold_normalized"] in normalize_answer(selected.get("passage_text", ""))
+        )
+        counts["gold_passage_selected"] += int(row["is_answerable"] and selected_has_gold)
+        counts["wrong_passage_selected"] += int(
+            row["is_answerable"] and selected is not None and not selected_has_gold
+        )
+        counts["no_answer_correctly_emitted"] += int(not row["is_answerable"] and not prediction)
+        counts["false_positive_answer_emitted"] += int(not row["is_answerable"] and bool(prediction))
+        counts["high_score_wrong_answer"] += int(
+            bool(prediction)
+            and exact_match(row["gold_answer"], prediction) == 0
+            and ranking_score >= 0.8
+        )
+
+    metrics = evaluate_predictions(predictions)
+    answerable_f1 = float(metrics["answerable"]["f1"])
+    unanswerable_accuracy = float(metrics["unanswerable"]["accuracy"])
+    metrics["reader_priority_score"] = 0.7 * answerable_f1 + 0.3 * unanswerable_accuracy
+    metrics["ranking"] = dict(counts)
+    metrics["ranking"]["high_score_wrong_answer_rate"] = (
+        100.0 * counts["high_score_wrong_answer"] / len(rows)
+    )
+    return metrics, predictions
+
+
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Benchmark QA reranking weights on a validation subset")
+    parser = argparse.ArgumentParser(
+        description="Benchmark candidate-pool reranking weights and final no-answer gate"
+    )
     parser.add_argument("--subset-size", type=int, default=100)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--top-k", type=int, default=10)
+    parser.add_argument("--thresholds", type=float, nargs="*", default=DEFAULT_FINAL_THRESHOLDS)
+    parser.add_argument("--output", type=Path, default=ROOT / "results" / "reranking_validation_subset.json")
     parser.add_argument(
-        "--output",
+        "--cache",
         type=Path,
-        default=ROOT / "results" / "reranking_validation_subset.json",
+        default=ROOT / "results" / "reranking_candidate_cache.json",
+        help="Reuse only when subset/seed/top-k metadata match",
     )
     args = parser.parse_args()
 
-    from backend.viqa_api import ask_question
-
     records = load_stratified_subset(args.subset_size, args.seed)
-    predictions: dict[str, list[dict[str, Any]]] = {name: [] for name in WEIGHT_CONFIGS}
-    ranking_counts = {
-        name: Counter(
-            {
-                "gold_answer_passage_available_top10": 0,
-                "gold_passage_selected": 0,
-                "wrong_passage_selected": 0,
-                "no_answer_correctly_emitted": 0,
-                "false_positive_answer_emitted": 0,
-                "high_score_wrong_answer": 0,
-            }
-        )
-        for name in WEIGHT_CONFIGS
-    }
-    question_types: Counter[str] = Counter()
+    cache_rows: list[dict[str, Any]] | None = None
+    if args.cache.is_file():
+        cached = json.loads(args.cache.read_text(encoding="utf-8"))
+        if (
+            cached.get("subset_size") == len(records)
+            and cached.get("seed") == args.seed
+            and cached.get("top_k") == args.top_k
+        ):
+            cache_rows = list(cached.get("rows") or [])
+
     latencies: list[float] = []
+    question_types: Counter[str] = Counter()
+    if cache_rows is None:
+        from backend.viqa_api import ask_question
 
-    for index, record in enumerate(records, start=1):
-        question = str(record["question"])
-        gold = str(record.get("answer_text") or "")
-        raw_answer_start = record.get("answer_start", -1)
-        answer_start = int(raw_answer_start if raw_answer_start is not None else -1)
-        answerable = answer_start >= 0 and bool(gold)
-        if not answerable:
-            gold = ""
-        question_types[detect_question_type(question).value] += 1
+        cache_rows = []
+        for index, record in enumerate(records, start=1):
+            question = str(record["question"])
+            gold = str(record.get("answer_text") or "")
+            answer_start = int(record.get("answer_start") if record.get("answer_start") is not None else -1)
+            answerable = answer_start >= 0 and bool(gold)
+            if not answerable:
+                gold = ""
+            question_types[detect_question_type(question).value] += 1
 
-        started = time.perf_counter()
-        response = ask_question(
-            {"question": question, "retriever": "bm25", "reader": "phobert", "top_k": args.top_k}
-        )
-        latencies.append((time.perf_counter() - started) * 1000)
-        candidates = list(response.get("passages") or [])
-        gold_normalized = normalize_answer(gold)
-        available = bool(gold_normalized) and any(
-            gold_normalized in normalize_answer(candidate.get("text", "")) for candidate in candidates
-        )
-
-        for name, config in WEIGHT_CONFIGS.items():
-            selected, ranking_score = select_candidate(candidates, config)
-            prediction = str(selected.get("reader_answer") or "") if selected else ""
-            row = {
-                "id": str(record.get("id", index)),
-                "gold_answer": gold,
-                "predicted_answer": prediction,
-                "is_answerable": answerable,
-            }
-            predictions[name].append(row)
-            counts = ranking_counts[name]
-            counts["gold_answer_passage_available_top10"] += int(answerable and available)
-            selected_has_gold = bool(
-                selected
-                and gold_normalized
-                and gold_normalized in normalize_answer(selected.get("text", ""))
+            started = time.perf_counter()
+            response = ask_question(
+                {"question": question, "retriever": "bm25", "reader": "phobert", "top_k": args.top_k}
             )
-            counts["gold_passage_selected"] += int(answerable and selected_has_gold)
-            counts["wrong_passage_selected"] += int(answerable and selected is not None and not selected_has_gold)
-            counts["no_answer_correctly_emitted"] += int(not answerable and not prediction)
-            counts["false_positive_answer_emitted"] += int(not answerable and bool(prediction))
-            counts["high_score_wrong_answer"] += int(
-                bool(prediction) and exact_match(gold, prediction) == 0 and ranking_score >= 0.8
+            latencies.append((time.perf_counter() - started) * 1000)
+            candidates: list[dict[str, Any]] = []
+            gold_normalized = normalize_answer(gold)
+            gold_available = False
+            for passage in response.get("passages", []):
+                passage_text = str(passage.get("text") or "")
+                gold_available = gold_available or bool(
+                    gold_normalized and gold_normalized in normalize_answer(passage_text)
+                )
+                for candidate in passage.get("candidates", []):
+                    copied = dict(candidate)
+                    copied["passage_text"] = passage_text
+                    candidates.append(copied)
+            cache_rows.append(
+                {
+                    "id": str(record.get("id", index)),
+                    "question": question,
+                    "gold_answer": gold,
+                    "gold_normalized": gold_normalized,
+                    "is_answerable": answerable,
+                    "gold_available": gold_available,
+                    "candidates": candidates,
+                }
             )
+            if index % 10 == 0 or index == len(records):
+                print(f"Generated candidates {index}/{len(records)}", flush=True)
+        args.cache.parent.mkdir(parents=True, exist_ok=True)
+        args.cache.write_text(
+            json.dumps(
+                {"subset_size": len(records), "seed": args.seed, "top_k": args.top_k, "rows": cache_rows},
+                ensure_ascii=False,
+                indent=2,
+            ),
+            encoding="utf-8",
+        )
+    else:
+        for row in cache_rows:
+            question_types[detect_question_type(row["question"]).value] += 1
 
-        if index % 10 == 0 or index == len(records):
-            print(f"Evaluated {index}/{len(records)}", flush=True)
-
-    result_configs = {}
+    config_results: dict[str, Any] = {}
     for name, config in WEIGHT_CONFIGS.items():
-        metrics = evaluate_predictions(predictions[name])
-        metrics["ranking"] = dict(ranking_counts[name])
-        metrics["ranking"]["high_score_wrong_answer_rate"] = (
-            100.0 * ranking_counts[name]["high_score_wrong_answer"] / len(records)
+        sweep = []
+        for phrase_penalty in PHRASE_FALLBACK_PENALTIES:
+            for threshold in sorted(set(args.thresholds)):
+                metrics, predictions = _evaluate_configuration(
+                    cache_rows,
+                    config,
+                    threshold,
+                    phrase_fallback_penalty=phrase_penalty,
+                )
+                sweep.append(
+                    {
+                        "threshold": threshold,
+                        "phrase_fallback_penalty": phrase_penalty,
+                        "metrics": metrics,
+                        "predictions": predictions,
+                    }
+                )
+        unconstrained_best = max(
+            sweep,
+            key=lambda item: (
+                item["metrics"]["reader_priority_score"],
+                item["metrics"]["overall"]["f1"],
+                item["metrics"]["unanswerable"]["accuracy"],
+            ),
         )
-        result_configs[name] = {"weights": config, "metrics": metrics}
+        best_answerable_f1 = max(
+            item["metrics"]["answerable"]["f1"] for item in sweep
+        )
+        # Prevent a superficially strong objective from selecting a degenerate
+        # gate that answers almost nothing. A production candidate may trade at
+        # most one absolute Answerable-F1 point from this configuration's best.
+        safe_sweep = [
+            item
+            for item in sweep
+            if item["metrics"]["answerable"]["f1"] >= best_answerable_f1 - 1.0
+        ]
+        best = max(
+            safe_sweep,
+            key=lambda item: (
+                item["metrics"]["reader_priority_score"],
+                item["metrics"]["overall"]["f1"],
+                item["metrics"]["unanswerable"]["accuracy"],
+            ),
+        )
+        config_results[name] = {
+            "weights": config,
+            "best_final_threshold": best["threshold"],
+            "best_phrase_fallback_penalty": best["phrase_fallback_penalty"],
+            "metrics": best["metrics"],
+            "selection_constraint": {
+                "max_answerable_f1_drop_points": 1.0,
+                "best_answerable_f1": best_answerable_f1,
+            },
+            "unconstrained_best": {
+                "final_threshold": unconstrained_best["threshold"],
+                "phrase_fallback_penalty": unconstrained_best["phrase_fallback_penalty"],
+                "metrics": unconstrained_best["metrics"],
+            },
+            "threshold_sweep": [
+                {
+                    "threshold": item["threshold"],
+                    "phrase_fallback_penalty": item["phrase_fallback_penalty"],
+                    "overall_f1": item["metrics"]["overall"]["f1"],
+                    "answerable_f1": item["metrics"]["answerable"]["f1"],
+                    "unanswerable_accuracy": item["metrics"]["unanswerable"]["accuracy"],
+                    "answerable_empty_rate": item["metrics"]["answerable"]["predicted_empty_rate"],
+                    "reader_priority_score": item["metrics"]["reader_priority_score"],
+                }
+                for item in sweep
+            ],
+            "predictions": best["predictions"],
+        }
 
+    winner_name, winner = max(
+        config_results.items(),
+        key=lambda item: (
+            item[1]["metrics"]["reader_priority_score"],
+            item[1]["metrics"]["overall"]["f1"],
+            item[1]["weights"]["relation"],
+        ),
+    )
     payload = {
         "dataset": "UIT-ViQuAD2.0 validation stratified subset",
         "subset_size": len(records),
@@ -232,20 +333,29 @@ def main() -> None:
         "top_k": args.top_k,
         "question_type_counts": dict(sorted(question_types.items())),
         "latency_ms": {
-            "average": statistics.fmean(latencies) if latencies else 0.0,
-            "p50": percentile(latencies, 0.50),
-            "p95": percentile(latencies, 0.95),
+            "average": statistics.fmean(latencies) if latencies else None,
+            "p50": percentile(latencies, 0.50) if latencies else None,
+            "p95": percentile(latencies, 0.95) if latencies else None,
         },
         "methodology": (
-            "Reader inference is run once per question. A-E are post-hoc rescored on the same returned "
-            "Top-10 candidates. A-C reproduce legacy score/gate semantics; D-E add answer-type gates "
-            "and a sentence-fallback penalty. This subset benchmark is not the full validation benchmark."
+            "All configurations rescore the same checkpoint-specific candidate pool. "
+            "Only invalid offsets, unsupported evidence, and impossible type/relation candidates "
+            "are hard rejected; the final threshold is tuned after global ranking. Production "
+            "selection constrains Answerable F1 to remain within one absolute point of the "
+            "configuration's best, while the unconstrained optimum is reported separately."
         ),
-        "configs": result_configs,
+        "winner": {
+            "name": winner_name,
+            "weights": winner["weights"],
+            "best_final_threshold": winner["best_final_threshold"],
+            "phrase_fallback_penalty": winner["best_phrase_fallback_penalty"],
+            "reader_priority_score": winner["metrics"]["reader_priority_score"],
+        },
+        "configs": config_results,
     }
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    print(json.dumps(payload["winner"], ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":

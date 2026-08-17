@@ -1,0 +1,37 @@
+{
+  "dataset": "UIT-ViQuAD2.0 validation",
+  "examples": 3814,
+  "shared_evaluation": {
+    "max_length": 256,
+    "stride": 80,
+    "selection_metric": "0.7 * answerable_f1 + 0.3 * unanswerable_accuracy"
+  },
+  "old_checkpoint": {
+    "path": "models/reader/vinai_phobert-base-v2",
+    "threshold": -1.8,
+    "overall_em": 27.871001573151545,
+    "overall_f1": 38.03273338966549,
+    "answerable_em": 14.474180173388616,
+    "answerable_f1": 29.082866622006847,
+    "unanswerable_accuracy": 58.484065460809646,
+    "answerable_predicted_empty_rate": 43.61100640784018
+  },
+  "new_checkpoint": {
+    "path": "models/reader/heidiie_phobert_finetuned_viquad",
+    "threshold": -3.5,
+    "overall_em": 13.869952805453591,
+    "overall_f1": 36.24918995943013,
+    "answerable_em": 0.7915567282321899,
+    "answerable_f1": 32.964346213820775,
+    "unanswerable_accuracy": 42.377260981912144,
+    "answerable_predicted_empty_rate": 34.82849604221636
+  },
+  "new_minus_old": {
+    "overall_em": -14.001048767697954,
+    "overall_f1": -1.78354343023536,
+    "answerable_em": -13.682623445156426,
+    "answerable_f1": 3.881479591813928,
+    "unanswerable_accuracy": -16.106804478897502,
+    "answerable_predicted_empty_rate": -8.782510365623821
+  }
+}

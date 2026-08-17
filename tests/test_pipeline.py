@@ -102,7 +102,96 @@ class MontmartreWrongSpanPredictor:
         return results
 
 
+class BelowThresholdContrastPredictor:
+    def predict_many(self, question, contexts, no_answer_threshold, **kwargs):
+        answer = (
+            "sự khác biệt giữa các chức năng học thực sự (như ở đây) và "
+            "phần mềm thiên về mặt giáo dục (được trình bay ở sau)"
+        )
+        results = []
+        for context in contexts:
+            start = context.index(answer)
+            results.append(
+                {
+                    # This mirrors the new checkpoint failure: the best span is
+                    # useful even though its null-score margin misses threshold.
+                    "answer": "",
+                    "candidate_answer": answer,
+                    "candidate_start": start,
+                    "candidate_end": start + len(answer),
+                    "confidence": 0.468,
+                    "reader_threshold_score": 0.468,
+                    "score_margin": -1.276,
+                    "passes_reader_threshold": False,
+                    "valid_span": True,
+                    "start": -1,
+                    "end": -1,
+                }
+            )
+        return results
+
+
 class PipelineTests(unittest.TestCase):
+    def test_generic_sentence_fallback_cannot_overwrite_valid_neural_span(self):
+        question = "Địa danh nào được nhắc đến?"
+        context = "Hà Nội là thủ đô của Việt Nam."
+        neural = {
+            "answer": "Hà Nội",
+            "confidence": 0.45,
+            "start": 0,
+            "end": len("Hà Nội"),
+        }
+        fallback = {
+            "answer": context,
+            "confidence": 0.80,
+            "start": 0,
+            "end": len(context),
+            "fallback_method": "whole_sentence",
+            "phrase_score": 0.4,
+        }
+
+        chosen = choose_reader_output(question, context, neural, fallback)
+
+        self.assertEqual(chosen["method"], "neural_span")
+        self.assertEqual(chosen["answer"], "Hà Nội")
+
+    def test_below_threshold_contrast_span_survives_until_final_ranking(self):
+        question = (
+            "Các bậc phụ huynh cần biết rõ sự khác biệt nào để làm căn cứ "
+            "lựa chọn phần mềm giáo dục cho trẻ?"
+        )
+        context = (
+            "Việc thiết kế các phần mềm giáo dục tại nhà đã bị ảnh hưởng mạnh mẽ bởi "
+            "khái niệm trò chơi trên máy tính. Tuy nhiên, ở mức độ nhất định thì cần "
+            "thấy rõ sự khác biệt giữa các chức năng học thực sự (như ở đây) và phần "
+            "mềm thiên về mặt giáo dục (được trình bay ở sau). Các bậc phụ huynh cần "
+            "phải biết rõ sự khác biệt này để làm căn cứ lựa chọn."
+        )
+        hits = [make_hit("doc_00031_P0001", context, 12.0, 1.0)]
+        with patch("backend.viqa_api.INDEX.retrieve", return_value=hits), patch(
+            "backend.viqa_api.READERS.get", return_value=BelowThresholdContrastPredictor()
+        ):
+            result = ask_question(
+                {
+                    "question": question,
+                    "retriever": "bm25",
+                    "reader": "phobert",
+                    "top_k": 1,
+                }
+            )
+
+        self.assertTrue(result["has_answer"])
+        self.assertIn("chức năng học thực sự", result["answer"])
+        self.assertIn("phần mềm thiên về mặt giáo dục", result["answer"])
+        neural_candidates = [
+            candidate
+            for candidate in result["passages"][0]["candidates"]
+            if candidate["method"] == "neural_span"
+        ]
+        self.assertEqual(len(neural_candidates), 1)
+        self.assertFalse(neural_candidates[0]["passes_reader_threshold"])
+        self.assertTrue(neural_candidates[0]["valid_span"])
+
     def test_stronger_definition_fallback_beats_a_barely_accepted_neural_span(self):
         question = "Ph\u1ea1m V\u0103n \u0110\u1ed3ng l\u00e0 ai?"
         neural = {
@@ -255,8 +344,9 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["answer"], "reader favorite")
         self.assertEqual(result["answer_source"]["passage_id"], "DOC_P0002")
         self.assertEqual(result["scoring"]["retriever_weight"], 0.4)
-        self.assertEqual(result["scoring"]["reader_weight"], 0.4)
+        self.assertEqual(result["scoring"]["reader_weight"], 0.3)
         self.assertEqual(result["scoring"]["answer_type_weight"], 0.2)
+        self.assertEqual(result["scoring"]["relation_weight"], 0.1)
         self.assertEqual(result["passages"][0]["passage_id"], "DOC_P0002")
         self.assertGreater(result["passages"][0]["ranking_score"], result["passages"][1]["ranking_score"])
         self.assertIsNone(result["answer_confidence"])
@@ -294,7 +384,7 @@ class PipelineTests(unittest.TestCase):
         self.assertIsNone(result["selected_passage_id"])
         self.assertEqual(result["top_retrieved_passage"]["passage_id"], "DOC_P0001")
         self.assertEqual(result["best_reader_score"], 0.04)
-        self.assertEqual(result["rejection_reason"], "LOW_READER_SCORE")
+        self.assertEqual(result["rejection_reason"], "LOW_RANKING_SCORE")
 
     def test_sentence_fallback_recovers_answer_when_phobert_is_low_confidence(self):
         text = (
@@ -308,7 +398,7 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(result["has_answer"])
         self.assertEqual(result["answer"], "thực vật hai lá mầm và thực vật một lá mầm")
         self.assertEqual(result["answer_source"]["passage_id"], "DOC_P0001")
-        self.assertEqual(result["passages"][0]["reader_method"], "sentence_fallback")
+        self.assertEqual(result["passages"][0]["reader_method"], "phrase_fallback")
         self.assertEqual(result["passages"][0]["fallback_method"], "entity_relation_pattern")
         self.assertGreaterEqual(result["passages"][0]["fallback_score"], 0.42)
 
@@ -373,7 +463,7 @@ class PipelineTests(unittest.TestCase):
         self.assertTrue(result["has_answer"])
         self.assertEqual(result["answer"], "nhà thờ Saint-Pierre")
         self.assertEqual(result["fallback_method"], "entity_relation_pattern")
-        self.assertEqual(candidate["reader_method"], "sentence_fallback")
+        self.assertEqual(candidate["reader_method"], "phrase_fallback")
         self.assertEqual(candidate["fallback_answer"], "nhà thờ Saint-Pierre")
         self.assertNotEqual(candidate["fallback_answer"], candidate["fallback_sentence"])
         self.assertGreaterEqual(candidate["answer_type_score"], MIN_FALLBACK_ANSWER_TYPE_SCORE)

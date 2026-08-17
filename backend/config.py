@@ -29,13 +29,18 @@ class PipelineConfig:
     retriever_weight: float
     reader_weight: float
     answer_type_weight: float
+    relation_weight: float
     reader_checkpoint: Path
     reader_score_margin_threshold: float
+    reader_margin_scale: float
+    reader_profile_calibrated: bool
+    require_calibrated_reader_profile: bool
     minimum_reader_score: float
     minimum_answer_type_score: float
     minimum_fallback_answer_type_score: float
     minimum_ranking_score: float
     fallback_penalty: float
+    phrase_fallback_penalty: float
     reader_fallback_threshold: float
     sentence_fallback_threshold: float
     reader_max_length: int
@@ -70,12 +75,15 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
     retriever_weight = _env("QA_RETRIEVER_WEIGHT", payload["retriever_weight"], float)
     reader_weight = _env("QA_READER_WEIGHT", payload["reader_weight"], float)
     answer_type_weight = _env("QA_ANSWER_TYPE_WEIGHT", payload["answer_type_weight"], float)
-    weights = (retriever_weight, reader_weight, answer_type_weight)
+    relation_weight = _env("QA_RELATION_WEIGHT", payload.get("relation_weight", 0.0), float)
+    weights = (retriever_weight, reader_weight, answer_type_weight, relation_weight)
     if any(weight < 0 for weight in weights):
         raise ValueError("Ranking weights must be non-negative")
     total = sum(weights)
     if not 0.999999 <= total <= 1.000001:
-        raise ValueError("retriever_weight + reader_weight + answer_type_weight must equal 1")
+        raise ValueError(
+            "retriever_weight + reader_weight + answer_type_weight + relation_weight must equal 1"
+        )
 
     config = PipelineConfig(
         default_retriever=str(payload.get("default_retriever", "bm25")),
@@ -93,8 +101,14 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
         retriever_weight=retriever_weight,
         reader_weight=reader_weight,
         answer_type_weight=answer_type_weight,
+        relation_weight=relation_weight,
         reader_checkpoint=reader_checkpoint,
         reader_score_margin_threshold=margin_threshold,
+        reader_margin_scale=decision.margin_scale,
+        reader_profile_calibrated=decision.calibrated,
+        require_calibrated_reader_profile=bool(
+            payload.get("require_calibrated_reader_profile", False)
+        ),
         minimum_reader_score=_env(
             "QA_MIN_READER_SCORE", payload["minimum_reader_score"], float
         ),
@@ -111,6 +125,11 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
         ),
         fallback_penalty=_env(
             "QA_FALLBACK_PENALTY", payload["fallback_penalty"], float
+        ),
+        phrase_fallback_penalty=_env(
+            "QA_PHRASE_FALLBACK_PENALTY",
+            payload.get("phrase_fallback_penalty", 1.0),
+            float,
         ),
         reader_fallback_threshold=_env(
             "QA_READER_FALLBACK_THRESHOLD", payload["reader_fallback_threshold"], float
@@ -129,12 +148,18 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
         raise ValueError("default_top_k must be within 1..max_top_k")
     if config.minimum_candidate_count < config.default_top_k:
         raise ValueError("minimum_candidate_count must be at least default_top_k")
+    if config.require_calibrated_reader_profile and not config.reader_profile_calibrated:
+        raise ValueError(
+            f"Reader checkpoint {config.reader_checkpoint} has no matching full-validation "
+            "reader_profile.json. Refusing calibrated production mode."
+        )
     for name in (
         "minimum_reader_score",
         "minimum_answer_type_score",
         "minimum_fallback_answer_type_score",
         "minimum_ranking_score",
         "fallback_penalty",
+        "phrase_fallback_penalty",
     ):
         value = float(getattr(config, name))
         if not 0.0 <= value <= 1.0:

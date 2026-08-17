@@ -1,0 +1,101 @@
+﻿question_id,question,gold_answer,predicted_answer,has_gold_answer,predicted_no_answer,em,f1,reader_confidence,no_answer_score,best_span_score,score_margin,error_type
+0001-0001-0001,Paris đạt được thành quả gì sau khỏang 4 thế kỷ tính từ ngày Cách mạng Pháp diễn ra?,"trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và giải trí",,True,True,0,0.0,0.212133,13.121163368225098,-2.9493608474731445,-13.121163368225098,ANSWERABLE_PREDICTED_EMPTY
+0001-0001-0002,Vị trí địa lý của Pháp có gì đặc biệt?,,,False,True,1,1.0,0.236611,11.713478446006775,-1.5605090856552124,-11.713478446006775,CORRECT_NO_ANSWER
+0001-0001-0003,Kinh tế xung quanh kinh đô ánh sáng mạnh về gì?,giáo dục và nghệ thuật,,True,True,0,0.0,0.41931,3.256084442138672,6.88983154296875,-3.256084442138672,ANSWERABLE_PREDICTED_EMPTY
+0001-0001-0004,Cuộc cách mạng Pháp diễn ra ở đâu?,Paris,,True,True,0,0.0,0.339641,6.648950099945068,3.488860607147217,-6.648950099945068,ANSWERABLE_PREDICTED_EMPTY
+0001-0001-0005,Kinh đô ánh sáng nổi tiếng về lĩnh vực gì?,nghệ thuật và giải trí,,True,True,0,0.0,0.448085,2.084095001220703,8.036087989807129,-2.084095001220703,ANSWERABLE_PREDICTED_EMPTY
+0001-0001-0006,Paris là một thành phố quan trọng của nước Pháp bắt đầu từ thời gian nào?,thế kỷ 10,,True,True,0,0.0,0.392157,4.382551193237305,5.75922966003418,-4.382551193237305,ANSWERABLE_PREDICTED_EMPTY
+0001-0001-0007,Vị trí địa lý của Paris có gì đặc biệt?,nằm ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông,,True,True,0,0.0,0.249276,11.024749875068665,-0.8699408769607544,-11.024749875068665,ANSWERABLE_PREDICTED_EMPTY
+0001-0002-0001,Điều gì đã nói lên Paris là thành phố lý tưởng để khách du lịch?,Kinh đô ánh sáng,,True,True,0,0.0,0.431773,2.746216297149658,7.385440349578857,-2.746216297149658,ANSWERABLE_PREDICTED_EMPTY
+0001-0002-0002,Người ta đến với Paris vì điều gì?,"Sự nhộn nhịp, các công trình kiến trúc và không khí nghệ sĩ",,True,True,0,0.0,0.380794,4.86179256439209,5.291274070739746,-4.86179256439209,ANSWERABLE_PREDICTED_EMPTY
+0001-0002-0003,Điều gì đã nói lên New York là thành phố lý tưởng để khách du lịch?,,,False,True,1,1.0,0.349193,6.225881099700928,3.932772159576416,-6.225881099700928,CORRECT_NO_ANSWER
+0001-0002-0004,Điều gì đã khiến tòan cầu trở thành nơi trung chuyển trên Paris?,,,False,True,1,1.0,0.459222,1.634744644165039,8.512962341308594,-1.634744644165039,CORRECT_NO_ANSWER
+0001-0002-0005,Kinh đô ánh sáng nổi tiếng như thế nào trong lĩnh vực thời trang mua sắm?,Thành phố còn được xem như kinh đô của thời trang cao cấp với nhiều khu phố xa xỉ cùng các trung tâm thương mại lớn,,True,True,0,0.0,0.368471,5.387814521789551,4.770169258117676,-5.387814521789551,ANSWERABLE_PREDICTED_EMPTY
+0001-0002-0006,Điều gì đã khiến Paris trở thành nơi trung chuyển trên tòan cầu?,"Là nơi đặt trụ sở chính của các tổ chức quốc tế như OECD, UNESCO... cộng với những họat động đa dạng về tài chính, kinh doanh, chính trị và du lịch",,True,True,0,0.0,0.455589,1.781142234802246,8.3654146194458,-1.781142234802246,ANSWERABLE_PREDICTED_EMPTY
+0001-0002-0007,"Trụ sở chính của UNESCO được đặt tại thành phố nào trong số bốn ""thành phố tòan cầu""?",Paris,,True,True,0,0.0,0.512845,-0.5139245986938477,10.560078620910645,0.5139245986938477,ANSWERABLE_PREDICTED_EMPTY
+0001-0002-0008,"Ngòai Paris, còn có thành phố nào được đánh giá là thành phố tòan cầu?","New York, Luân Đôn và Tokyo",,True,True,0,0.0,0.463113,1.4781837463378906,8.670650482177734,-1.4781837463378906,ANSWERABLE_PREDICTED_EMPTY
+0001-0003-0001,"Trước thế kỷ 17, tại Paris các nơi công cộng thiếu ánh đèn buổi tuối thường có hiện tượng gì?",nhiều tệ nạn,,True,True,0,0.0,0.290441,8.932447671890259,1.2255017757415771,-8.932447671890259,ANSWERABLE_PREDICTED_EMPTY
+0001-0003-0002,Kinh đô ánh sáng dịch từ tiếng Pháp sang tiếng Anh chính xác là gì?,The City of Lights,,True,True,0,0.0,0.42563,2.9970407485961914,7.130603790283203,-2.9970407485961914,ANSWERABLE_PREDICTED_EMPTY
+0001-0003-0003,Tên gọi The City of Lights bắt nguồn từ sự việc gì?,"cuối thế kỷ 17, trung tướng cảnh sát đầu tiên của Paris Gabriel Nicolas de La Reynie ra lệnh thắp sáng những khu vực công cộng nhiều tệ nạn của thành phố",,True,True,0,0.0,0.466658,1.3356809616088867,8.77514934539795,-1.3356809616088867,ANSWERABLE_PREDICTED_EMPTY
+0001-0003-0004,Tên gọi Pháp bắt nguồn từ sự việc gì?,,,False,True,1,1.0,0.469516,1.220890998840332,8.895853996276855,-1.220890998840332,CORRECT_NO_ANSWER
+0001-0003-0005,Người dân trên thế giới thường gọi Paris với tên khác là gì?,Kinh đô ánh sáng,,True,True,0,0.0,0.420773,3.196004867553711,6.878833770751953,-3.196004867553711,ANSWERABLE_PREDICTED_EMPTY
+0001-0004-0001,Làm sao để chuyển tên thành phố thủ đô nước Pháp thành danh từ dùng để chỉ người dân của thành phố này?,thêm hai chữ a và d,,True,True,0,0.0,0.391246,4.420793533325195,5.620744705200195,-4.420793533325195,ANSWERABLE_PREDICTED_EMPTY
+0001-0004-0002,Hai thành phố nào được gọi là thành phố của tình yêu?,"Venezia, Paris",,True,True,0,0.0,0.488062,0.47762489318847656,9.650762557983398,-0.47762489318847656,ANSWERABLE_PREDICTED_EMPTY
+0001-0004-0003,Thành phố nào được gọi là thành phố của Hai tình yêu?,,,False,True,1,1.0,0.496045,0.15819931030273438,9.898475646972656,-0.15819931030273438,CORRECT_NO_ANSWER
+0001-0005-0001,Nguồn gốc tên gọi Paname bắt nguồn từ đâu?,những chiếc mũ panama,,True,True,0,0.0,0.317267,7.663588047027588,2.488675594329834,-7.663588047027588,ANSWERABLE_PREDICTED_EMPTY
+0001-0005-0002,Nguồn gốc tên gọi Mỹ bắt nguồn từ đâu?,,,False,True,1,1.0,0.285889,9.154358386993408,1.003140926361084,-9.154358386993408,CORRECT_NO_ANSWER
+0001-0005-0003,"Ngọai trừ cái tên Paname, Paris còn có tên gọi khác là gì?",Pantruche,,True,True,0,0.0,0.332721,6.959040880203247,3.1891238689422607,-6.959040880203247,ANSWERABLE_PREDICTED_EMPTY
+0001-0006-0001,Con sông nào nằm phía nam Paris?,,,False,True,1,1.0,0.492888,0.28450775146484375,9.854236602783203,-0.28450775146484375,CORRECT_NO_ANSWER
+0001-0006-0002,Công trình nào nằm trên đỉnh Montmartre?,nhà thờ Saint-Pierre,,True,True,0,0.0,0.46662,1.3372011184692383,8.77963638305664,-1.3372011184692383,ANSWERABLE_PREDICTED_EMPTY
+0001-0006-0003,Hai nằm giữa Paris trên dòng sông Sen có tên là gì?,Île de la Cité ở phía tây và Île Saint-Louis ở phía đông,,True,True,0,0.0,0.415503,3.412604331970215,6.744891166687012,-3.412604331970215,ANSWERABLE_PREDICTED_EMPTY
+0001-0006-0004,Con sông nào nằm trong lòng Paris?,Seine,,True,True,0,0.0,0.503875,-0.15502166748046875,10.287811279296875,0.15502166748046875,ANSWERABLE_PREDICTED_EMPTY
+0001-0006-0005,Hai đảo nằm giữa Seine trên dòng sông Paris có tên là gì?,,,False,True,1,1.0,0.484318,0.6274738311767578,9.420455932617188,-0.6274738311767578,CORRECT_NO_ANSWER
+0001-0006-0006,Montparnasse nằm ở phía nào của Paris?,phía nam,,True,True,0,0.0,0.479487,0.8209762573242188,9.282369613647461,-0.8209762573242188,ANSWERABLE_PREDICTED_EMPTY
+0001-0006-0007,Công trình nào nằm dưới đỉnh Montmartre?,,,False,True,1,1.0,0.465641,1.376509666442871,8.741107940673828,-1.376509666442871,CORRECT_NO_ANSWER
+0001-0007-0001,Cách giới hạn nội ô Paris được thay đổi thế nào sau khỏang 150 năm tính từ ngày bức tường thành Thiers được sử dụng cho việc này?,phân định với ngọai ô bằng các đại lộ vành đai dài 35 km,,True,True,0,0.0,0.196486,14.08404016494751,-3.921687602996826,-14.08404016494751,ANSWERABLE_PREDICTED_EMPTY
+0001-0007-0002,"Năm 1844, ngọai ô và nội ô Paris được sát nhập bằng gì?",,,False,True,1,1.0,0.411823,3.564323902130127,6.584399700164795,-3.564323902130127,CORRECT_NO_ANSWER
+0001-0007-0003,"Ngày nay, muốn từ nội ô sang ngọai ô Paris, ta thường phải băng qua đâu?",các đại lộ vành đai,,True,True,0,0.0,0.360955,5.712206840515137,4.448834419250488,-5.712206840515137,ANSWERABLE_PREDICTED_EMPTY
+0001-0007-0004,Rừng Vincennes nằm ở đâu của Paris?,Quận 12 ở phía Đông,,True,True,0,0.0,0.452151,1.9198331832885742,8.244464874267578,-1.9198331832885742,ANSWERABLE_PREDICTED_EMPTY
+0001-0007-0005,"Năm 1844, ngọai ô và nội ô Paris được ngăn cách bằng gì?",bức tường thành Thiers,,True,True,0,0.0,0.445376,2.1937270164489746,7.9351277351379395,-2.1937270164489746,ANSWERABLE_PREDICTED_EMPTY
+0001-0007-0006,Rừng Paris nằm ở đâu của Vincennes?,,,False,True,1,1.0,0.407424,3.746249198913574,6.416699409484863,-3.746249198913574,CORRECT_NO_ANSWER
+0001-0008-0001,Bồn Paris là nơi khởi nguồn của nhiều thuyết địa chất nổi tiếng nào?,cổ sinh vật học và giải phẫu so sánh của Georges Cuvier,,True,True,0,0.0,0.513828,-0.5532703399658203,10.60592269897461,0.5532703399658203,ANSWERABLE_PREDICTED_EMPTY
+0001-0008-0002,Đâu được xem là nguyên nhân khởi nguồn cho sự hình thành lưu vực sông Seine?,sự tạo thành của dãy Alps,,True,True,0,0.0,0.359353,5.781752109527588,4.387353420257568,-5.781752109527588,ANSWERABLE_PREDICTED_EMPTY
+0001-0008-0003,Vì sao các cửa bồn Paris mở khóa lại?,,,False,True,1,1.0,0.370631,5.295106887817383,4.881169319152832,-5.295106887817383,CORRECT_NO_ANSWER
+0001-0008-0004,Sự kiện nào đánh dấu sự hình thành của lưu vực sông Paris và sông Seine?,,,False,True,1,1.0,0.454413,1.8285436630249023,8.326078414916992,-1.8285436630249023,CORRECT_NO_ANSWER
+0001-0008-0005,Bản đồ địa chất được bắt đầu vẽ ở đâu?,Bồn Paris,,True,True,0,0.0,0.42599,2.98231840133667,7.091188907623291,-2.98231840133667,ANSWERABLE_PREDICTED_EMPTY
+0001-0008-0006,Bồn Paris nằm trên bồn những núi nào từ thời Paleozoic?,"khối núi Vosges, khối núi Massif central, khối núi Armorica",,True,True,0,0.0,0.327041,7.216003894805908,2.9092040061950684,-7.216003894805908,ANSWERABLE_PREDICTED_EMPTY
+0001-0008-0007,Bồn Paleozoic nằm trên bồn những núi nào từ thời Paris?,,,False,True,1,1.0,0.316045,7.720057010650635,2.406554698944092,-7.720057010650635,CORRECT_NO_ANSWER
+0001-0008-0008,Bản đồ Đại Tây Dương được bắt đầu vẽ ở đâu?,,,False,True,1,1.0,0.37897,4.939230442047119,5.203444957733154,-4.939230442047119,CORRECT_NO_ANSWER
+0001-0008-0009,Sự kiện nào đánh dấu sự hình thành của lưu vực sông Loire và sông Seine?,"bồn Paris bị đóng lại, chỉ còn mở ra phía biển Manche và Đại Tây Dương",,True,True,0,0.0,0.461851,1.528921127319336,8.617024421691895,-1.528921127319336,ANSWERABLE_PREDICTED_EMPTY
+0001-0008-0010,Vì sao các cửa bồn Paris bị khóa lại?,báo trước cho sự hình thành lưu vực sông Loire và sông Seine,,True,True,0,0.0,0.358918,5.800651550292969,4.376270294189453,-5.800651550292969,ANSWERABLE_PREDICTED_EMPTY
+0001-0009-0001,"Ở Paris, CaSO4.2H2O được khai thác nhiều ở đâu?",Montmartre và Bagneux,,True,True,0,0.0,0.289844,8.961438179016113,1.2082624435424805,-8.961438179016113,ANSWERABLE_PREDICTED_EMPTY
+0001-0009-0002,Việc khai thác cát bên sông Sen đã dừng từ lúc nào?,,,False,True,1,1.0,0.249343,11.021216750144958,-0.8504794836044312,-11.021216750144958,CORRECT_NO_ANSWER
+0001-0009-0003,Việc khai thác CaCO3 đã từ lâu được di dời từ sông Sen đến đâu?,Oise,,True,True,0,0.0,0.0,inf,-inf,-inf,ANSWERABLE_PREDICTED_EMPTY
+0001-0009-0004,Sau thế kỷ 15 đá vôi được khai thác nhiều ở đâu trong Paris?,Oise,,True,True,0,0.0,0.390258,4.46226167678833,5.682252407073975,-4.46226167678833,ANSWERABLE_PREDICTED_EMPTY
+0001-0009-0005,"Ở Hầm mộ Paris, CaSO4.2H2O được khai thác nhiều ở đâu?",,,False,True,1,1.0,0.284376,9.228599071502686,0.9447331428527832,-9.228599071502686,CORRECT_NO_ANSWER
+0001-0009-0006,Việc khai thác đá vôi bên sông Sen đã dừng từ lúc nào?,thế kỷ 14,,True,True,0,0.0,0.312976,7.862419128417969,2.3098373413085938,-7.862419128417969,ANSWERABLE_PREDICTED_EMPTY
+0001-0009-0007,Việc lọai bỏ cặn CaCO3 đã từ lâu được di dời từ sông Sen đến đâu?,,,False,True,1,1.0,0.0,inf,-inf,-inf,CORRECT_NO_ANSWER
+0001-0009-0008,Tầng Lutetia được cô đọng bởi gì?,thạch cao và đá vôi,giàu thạch cao và,True,False,0,0.6666666666666665,0.539215,-1.5718355178833008,11.641134262084961,1.5718355178833008,SPAN_TOO_SHORT
+0001-0009-0009,Thành phần bên trong lòng đất Paris chủ yếu là gì?,"đá vôi, thạch cao và đá vôi silic","của đá vôi, thạch cao và đá vôi",True,False,0,0.875,0.552905,-2.124140739440918,11.823075294494629,2.124140739440918,PARTIAL_SPAN
+0001-0010-0001,Nơi nào nằm trên kênh Seine nối liền bồn Villette và thượng lưu sông Saint-Martin?,,,False,True,1,1.0,0.409331,3.6673097610473633,6.497100830078125,-3.6673097610473633,CORRECT_NO_ANSWER
+0001-0010-0002,Điểm cuối của kênh Saint-Denis ở đâu?,sông Seine ở phần hạ lưu,,True,True,0,0.0,0.363537,5.600439071655273,4.549285888671875,-5.600439071655273,ANSWERABLE_PREDICTED_EMPTY
+0001-0010-0003,Nơi nào nằm trên kênh Saint-Martin nối liền bồn Villette và thượng lưu sông Seine?,phố Faubourg-du-Temple ở quảng trường Bastille,,True,True,0,0.0,0.433026,2.695145606994629,7.463499069213867,-2.695145606994629,ANSWERABLE_PREDICTED_EMPTY
+0001-0010-0004,"Trừ dòng sông Seine, dòng chảy nào qua Paris có phần lộ thiên?",Saint-Martin,,True,True,0,0.0,0.391862,4.394924163818359,5.761775970458984,-4.394924163818359,ANSWERABLE_PREDICTED_EMPTY
+0001-0010-0005,"Dựa theo bản đồ sông Sen, Paris có hình dạng gì?",,,False,True,1,1.0,0.492052,0.3179636001586914,9.835465431213379,-0.3179636001586914,CORRECT_NO_ANSWER
+0001-0010-0006,"Dựa theo bản đồ Paris, sông Sen có hình dạng gì?",cánh cung,,True,True,0,0.0,0.487734,0.4907417297363281,9.663965225219727,-0.4907417297363281,ANSWERABLE_PREDICTED_EMPTY
+0001-0011-0001,Khí hậu châu Âu có đặc điểm gì?,,,False,True,1,1.0,0.472671,1.0942573547363281,9.045086860656738,-1.0942573547363281,CORRECT_NO_ANSWER
+0001-0011-0002,Thời điểm nào nhiệt độ Paris đạt mức cao nhất?,ngày 28 tháng 6 năm 1948,vào ngày 28 tháng 6 năm,True,False,0,0.8333333333333334,0.520697,-0.8283672332763672,10.900524139404297,0.8283672332763672,PARTIAL_SPAN
+0001-0011-0003,Nguyên nhân chủ yếu nào tạo nên khí hậu của châu Âu?,,,False,True,1,1.0,0.357118,5.878939151763916,4.280839443206787,-5.878939151763916,CORRECT_NO_ANSWER
+0001-0011-0004,Khí hậu Paris có đặc điểm gì?,"mùa hè mát, trung bình 18°C; mùa đông không quá lạnh, trung bình 6 °C; các mùa đều mưa nhiều và thời tiết thất thường",,True,True,0,0.0,0.48286,0.685882568359375,9.423433303833008,-0.685882568359375,ANSWERABLE_PREDICTED_EMPTY
+0001-0011-0005,Thời điểm nào nhiệt độ châu Âu đạt mức cao nhất?,,,False,True,1,1.0,0.500496,-0.01985454559326172,10.085049629211426,0.01985454559326172,CORRECT_NO_ANSWER
+0001-0011-0006,Nguyên nhân chủ yếu nào tạo nên khí hậu của Paris?,đại dương,,True,True,0,0.0,0.388521,4.535344123840332,5.6159563064575195,-4.535344123840332,ANSWERABLE_PREDICTED_EMPTY
+0001-0012-0001,Ai là người đã chọn Paris làm thủ đô cho nước Pháp?,Clovis I,", vua Clovis",True,False,0,0.5,0.537034,-1.4840688705444336,11.325879096984863,1.4840688705444336,PARTIAL_SPAN
+0001-0012-0002,Paris trở thành nơi thịnh vượng nhất châu Âu vào thời kì nào?,thế kỷ 17,,True,True,0,0.0,0.339636,6.649168014526367,3.524728775024414,-6.649168014526367,ANSWERABLE_PREDICTED_EMPTY
+0001-0012-0003,Châu Âu trở thành nơi thịnh vượng nhất Paris vào thời kì nào?,,,False,True,1,1.0,0.3818,4.819141387939453,5.35605525970459,-4.819141387939453,CORRECT_NO_ANSWER
+0001-0012-0004,Paris bị Đế quốc Roma chiếm đóng vào thời điểm nào?,thế kỷ 1,,True,True,0,0.0,0.33414,6.895174980163574,3.2795286178588867,-6.895174980163574,ANSWERABLE_PREDICTED_EMPTY
+0001-0012-0005,Cuộc cách mạng Pháp lần đầu tiên diễn ra ở đâu?,Paris,,True,True,0,0.0,0.272794,9.804952085018158,0.36306339502334595,-9.804952085018158,ANSWERABLE_PREDICTED_EMPTY
+0001-0012-0006,Ai là những người dân đầu tiên sống ở Paris?,người Parisii,,True,True,0,0.0,0.293127,8.802455306053162,1.3717800378799438,-8.802455306053162,ANSWERABLE_PREDICTED_EMPTY
+0001-0013-0001,Con người lần đầu xuất hiện ở Paris vào lúc nào?,40.000 năm,,True,True,0,0.0,0.317225,7.665550708770752,2.483381748199463,-7.665550708770752,ANSWERABLE_PREDICTED_EMPTY
+0001-0013-0002,Dựa vào đâu cho thấy con người đã sống ở Sông Sen 4000 năm trước?,,,False,True,1,1.0,0.353171,6.05131721496582,4.089729309082031,-6.05131721496582,CORRECT_NO_ANSWER
+0001-0013-0003,Con người bắt đầu tập trung cư trú nhiều bên Sen vào lúc nào?,khỏang năm 4.000 đến 3.800 trước Công Nguyên,,True,True,0,0.0,0.310163,7.993562459945679,2.160693407058716,-7.993562459945679,ANSWERABLE_PREDICTED_EMPTY
+0001-0013-0004,Con người Paris lần đầu xuất hiện vào lúc nào?,,,False,True,1,1.0,0.324945,7.311394691467285,2.8391571044921875,-7.311394691467285,CORRECT_NO_ANSWER
+0001-0013-0005,Dựa vào đâu cho thấy con người đã sống ở Sông Sen 40000 năm trước?,những công cụ đá được tìm thấy ở bờ sông Seine,,True,True,0,0.0,0.31995,7.540011167526245,2.6058437824249268,-7.540011167526245,ANSWERABLE_PREDICTED_EMPTY
+0001-0014-0001,Lutetia có hình dáng như thế nào vào những thế kỷ đầu sau Công nguyên?,Hippodamos,,True,True,0,0.0,0.371508,5.257510185241699,4.912741661071777,-5.257510185241699,ANSWERABLE_PREDICTED_EMPTY
+0001-0014-0002,Roma có tên gì sau khi bị xâm chiếm bởi đế chế Paris?,,,False,True,1,1.0,0.429516,2.8382701873779297,7.1819305419921875,-2.8382701873779297,CORRECT_NO_ANSWER
+0001-0014-0003,Ai đã kêu gọi người dân Mông Cổ không bỏ xứ trong cuộc tấn công của người Paris?,,,False,True,1,1.0,0.457129,1.7190513610839844,7.832892417907715,-1.7190513610839844,CORRECT_NO_ANSWER
+0001-0014-0004,Ai đã kêu gọi người dân Paris không bỏ xứ trong cuộc tấn công của người Mông Cổ?,Thánh Geneviève,,True,True,0,0.0,0.450789,1.9748306274414062,7.5402679443359375,-1.9748306274414062,ANSWERABLE_PREDICTED_EMPTY
+0001-0014-0005,Ai đã mang Kito giáo vào Paris?,Thánh Denis,thì Thánh,True,False,0,0.5,0.522495,-0.9003915786743164,10.692872047424316,0.9003915786743164,PARTIAL_SPAN
+0001-0014-0006,Paris có tên gì sau khi bị xâm chiếm bởi đế chế Roma?,Lutetia,,True,True,0,0.0,0.398125,4.132844924926758,5.972280502319336,-4.132844924926758,ANSWERABLE_PREDICTED_EMPTY
+0001-0015-0001,Cuộc chiến tranh Paris và người Viking đã chấm dứt như thế nào?,hòa ước Saint-Clair-sur-Epte năm 911,,True,True,0,0.0,0.291298,8.890874147415161,1.294060468673706,-8.890874147415161,ANSWERABLE_PREDICTED_EMPTY
+0001-0015-0002,Những chiến binh Paris đã tấn công Viking lần đầu vào lúc nào?,,,False,True,1,1.0,0.515973,-0.6391382217407227,10.603219985961914,0.6391382217407227,CORRECT_NO_ANSWER
+0001-0015-0003,Cuộc chiến tranh Attila và người Viking đã chấm dứt như thế nào?,,,False,True,1,1.0,0.282107,9.340350329875946,0.8440540432929993,-9.340350329875946,CORRECT_NO_ANSWER
+0001-0015-0004,Ai đã cai trị Attila sau khi giải phóng khỏi Paris?,,rồi Childéric,False,False,0,0.0,0.535635,-1.4278068542480469,11.176788330078125,1.4278068542480469,UNANSWERABLE_FALSE_POSITIVE
+0001-0015-0005,Những chiến binh Viking đã tấn công Paris lần đầu vào lúc nào?,Năm 845,. Năm,True,False,0,0.6666666666666666,0.534247,-1.3720321655273438,11.24601936340332,1.3720321655273438,SPAN_TOO_SHORT
+0001-0015-0006,Ai là người cai trị Paris sau thời Childéric I?,Clovis I,", Clovis",True,False,0,0.6666666666666666,0.521625,-0.8655261993408203,10.704792022705078,0.8655261993408203,SPAN_TOO_SHORT
+0001-0015-0007,Ai đã cai trị Paris sau khi giải phóng khỏi Attila?,Childéric I,rồi Childéric,True,False,0,0.5,0.52944,-1.1789569854736328,10.991827011108398,1.1789569854736328,PARTIAL_SPAN
+0001-0016-0001,Paris đã trở lại làm thủ đô từ vua nào lên ngôi?,Louis VI,,True,True,0,0.0,0.403611,3.9044313430786133,5.817898750305176,-3.9044313430786133,ANSWERABLE_PREDICTED_EMPTY
+0001-0016-0002,Paris đã phát triển lớn mạnh hơn Orléans vào lúc nào?,thế kỷ 11,,True,True,0,0.0,0.276782,9.604808568954468,0.5691587924957275,-9.604808568954468,ANSWERABLE_PREDICTED_EMPTY
+0001-0016-0003,Capet đã chọn nơi nào để tập trung?,,,False,True,1,1.0,0.352308,6.089085578918457,4.082085609436035,-6.089085578918457,CORRECT_NO_ANSWER
+0001-0016-0004,Capet đã chọn nơi nào để đóng đô?,Orléans,,True,True,0,0.0,0.365918,5.497689247131348,4.661887168884277,-5.497689247131348,ANSWERABLE_PREDICTED_EMPTY
+0001-0017-0001,Thành phố nào tập trung đông người nhất lục địa già vào thế kỷ XIV?,Paris,,True,True,0,0.0,0.487215,0.5115070343017578,9.617395401000977,-0.5115070343017578,ANSWERABLE_PREDICTED_EMPTY
+0001-0017-0002,Bên bờ phải sông Sen đã phát triển mạnh về họat động gì vào thế kỉ XII?,thương mại và tài chính,,True,True,0,0.0,0.340685,6.602453231811523,3.5735950469970703,-6.602453231811523,ANSWERABLE_PREDICTED_EMPTY
