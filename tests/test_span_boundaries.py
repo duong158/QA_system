@@ -1,6 +1,6 @@
 import unittest
 
-from backend.viqa_api import build_passage_candidates
+from backend.viqa_api import build_passage_candidates, sentence_fallback_predict
 from reader.fallback_extractor import extract_fallback_answer
 from reader.question_type import QuestionType, detect_question_type
 from reader.span_boundaries import assess_span_boundary
@@ -178,6 +178,41 @@ class SpanBoundaryTests(unittest.TestCase):
 
         self.assertEqual(assessment.score, 0.15)
         self.assertIn("TRUNCATED_FIXED_PHRASE_RIGHT", assessment.reasons)
+
+    def test_property_question_selects_complete_adjective_phrase(self):
+        context = (
+            "Năm 1954, ông được giao nhiệm vụ Trưởng phái đoàn Chính phủ dự "
+            "Hội nghị Genève về Đông Dương. Những đóng góp của đoàn Việt Nam "
+            "do ông đứng đầu là vô cùng quan trọng, tạo ra những đột phá đưa "
+            "Hội nghị tới thành công. Trải qua 8 phiên họp toàn thể và 23 "
+            "phiên họp rất căng thẳng và phức tạp, với tinh thần chủ động của "
+            "phái đoàn Việt Nam."
+        )
+
+        output = sentence_fallback_predict(
+            "Hội nghị Genève về Đông Dương có tính chất như thế nào?",
+            context,
+        )
+
+        self.assertEqual(output["answer"], "rất căng thẳng và phức tạp")
+        self.assertEqual(output["fallback_method"], "property_description_pattern")
+        self.assertEqual(output["relation_type"], "PROPERTY_DESCRIPTION")
+
+    def test_role_question_removes_scaffold_and_keeps_complete_title(self):
+        sentence = (
+            "Năm 1954, ông được giao nhiệm vụ Trưởng phái đoàn Chính phủ "
+            "dự Hội nghị Genève về Đông Dương."
+        )
+
+        candidate = extract_fallback_answer(
+            "Chức vụ mà Phạm Văn Đồng đảm nhiệm tại Hội nghị Genève về Đông Dương?",
+            "GENERAL",
+            sentence,
+        )
+
+        self.assertEqual(candidate.answer, "Trưởng phái đoàn Chính phủ")
+        self.assertEqual(candidate.method, "role_relation_pattern")
+        self.assertEqual(candidate.relation_type, "ROLE_RELATION")
 
     def test_descriptive_quantity_question_is_not_forced_to_number(self):
         self.assertEqual(

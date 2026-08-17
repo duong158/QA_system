@@ -433,6 +433,12 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
             cue_bonus += 0.18
         if phrase.method == "contrast_relation_pattern" and phrase.relation_evidence:
             cue_bonus += 0.30
+        if phrase.method == "role_relation_pattern" and phrase.relation_evidence:
+            cue_bonus += 0.40
+        if phrase.method == "property_description_pattern" and phrase.relation_evidence:
+            cue_bonus += 0.60 if phrase.phrase_quality >= 0.95 else 0.10
+        elif phrase.method == "description_sentence_pattern" and phrase.relation_evidence:
+            cue_bonus += 0.24
         if len(subject_phrase) >= 8 and subject_phrase in normalized_sentence:
             cue_bonus += 0.22
         if len(sentence_tokens) >= 6:
@@ -991,6 +997,9 @@ def _semantic_relation_assessment(
         "NUMBER_EXPRESSION",
         "PERSON_RELATION",
         "PERSON_DEFINITION",
+        "PROPERTY_DESCRIPTION",
+        "SITUATION_DESCRIPTION",
+        "ROLE_RELATION",
     }:
         return {
             "relation_type": typed_fallback_relation,
@@ -1203,6 +1212,9 @@ def _score_answer_candidate(
         "NUMBER_EXPRESSION",
         "PERSON_RELATION",
         "PERSON_DEFINITION",
+        "PROPERTY_DESCRIPTION",
+        "SITUATION_DESCRIPTION",
+        "ROLE_RELATION",
         "EVENT_LOCATION",
         "OBJECT_LOCATION",
         "BIRTH_LOCATION",

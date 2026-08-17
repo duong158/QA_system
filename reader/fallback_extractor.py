@@ -214,6 +214,24 @@ def detect_alias_relation(question: str) -> bool:
     return bool(re.search(r"\b(?:ten goi|bi danh|ten khac|ten) nao\b", normalized))
 
 
+def detect_description_relation(question: str) -> str | None:
+    """Detect questions asking for a property or a broader situation description."""
+
+    normalized = _normalize(question).strip(" ?!.")
+    if not re.search(r"\b(?:nhu the nao|ra sao)\b", normalized):
+        return None
+    if re.search(r"\b(?:tinh chat|dac diem|trang thai)\b", normalized):
+        return "PROPERTY_DESCRIPTION"
+    if re.search(r"\b(?:tinh hinh|dien bien|anh huong|tac dong|vai tro|vi the)\b", normalized):
+        return "SITUATION_DESCRIPTION"
+    return None
+
+
+def detect_role_relation(question: str) -> bool:
+    normalized = _normalize(question)
+    return bool(re.search(r"\b(?:chuc vu|vai tro|tu cach)\b", normalized))
+
+
 _UPPERCASE_VI = r"A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ"
 _PROPER_NAME = (
     rf"[{_UPPERCASE_VI}][\wÀ-ỹĐđ'’-]*"
@@ -437,6 +455,101 @@ def extract_person_candidate(question: str, sentence: str) -> FallbackCandidate 
                 )
             )
     return max(candidates, key=lambda item: (item.score, -len(_tokens(item.answer)))) if candidates else None
+
+
+def extract_description_candidate(question: str, sentence: str) -> FallbackCandidate | None:
+    relation_type = detect_description_relation(question)
+    if relation_type is None:
+        return None
+
+    if relation_type == "SITUATION_DESCRIPTION":
+        answer = sentence.strip().rstrip(".!?;")
+        start = sentence.find(answer)
+        if not answer:
+            return None
+        return FallbackCandidate(
+            answer=answer,
+            method="description_sentence_pattern",
+            score=0.84,
+            evidence_sentence=sentence,
+            start_char=start,
+            end_char=start + len(answer),
+            relation_type=relation_type,
+            relation_score=0.84,
+            phrase_quality=0.82,
+            lexical_evidence=True,
+            relation_evidence=True,
+        )
+
+    intensity = r"(?:rất|vô[\s_]+cùng|cực[\s_]+kỳ|khá|tương[\s_]+đối|đặc[\s_]+biệt)"
+    expression = re.compile(
+        rf"\b(?P<answer>{intensity}[\s_]+[^,.;!?]{{1,100}}?)(?=[,.;!?]|$)",
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    candidates: list[FallbackCandidate] = []
+    for match in expression.finditer(sentence):
+        start, end = match.span("answer")
+        answer = sentence[start:end].strip()
+        normalized_answer = _normalize(answer)
+        coordinated = bool(re.search(r"\bva\b", normalized_answer))
+        # A coordinated adjective phrase is stronger evidence for a question
+        # explicitly asking for the subject's properties. A single adjective
+        # may instead describe a nearby contribution, person, or action.
+        relation_score = 0.98 if coordinated else 0.82
+        candidates.append(
+            FallbackCandidate(
+                answer=answer,
+                method="property_description_pattern",
+                score=relation_score,
+                evidence_sentence=sentence,
+                start_char=start,
+                end_char=end,
+                relation_type=relation_type,
+                relation_score=relation_score,
+                phrase_quality=1.0 if coordinated else 0.82,
+                lexical_evidence=True,
+                relation_evidence=True,
+            )
+        )
+    return max(
+        candidates,
+        key=lambda item: (item.relation_score, -len(_tokens(item.answer)), -item.start_char),
+    ) if candidates else None
+
+
+def extract_role_candidate(question: str, sentence: str) -> FallbackCandidate | None:
+    if not detect_role_relation(question):
+        return None
+    expression = re.compile(
+        r"\b(?:được[\s_]+giao[\s_]+nhiệm[\s_]+vụ|giữ[\s_]+chức[\s_]+vụ|"
+        r"đảm[\s_]+nhiệm(?:[\s_]+(?:chức[\s_]+vụ|vai[\s_]+trò))?|"
+        r"với[\s_]+tư[\s_]+cách(?:[\s_]+là)?)[\s_:,-]+"
+        r"(?P<answer>[^,.;!?]{2,100}?)"
+        r"(?=[\s_]+(?:dự|tại|trong|khi|từ|đến)[\s_]+|[,.;!?]|$)",
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    candidates: list[FallbackCandidate] = []
+    for match in expression.finditer(sentence):
+        start, end = match.span("answer")
+        answer = sentence[start:end].strip()
+        if not answer:
+            continue
+        candidates.append(
+            FallbackCandidate(
+                answer=answer,
+                method="role_relation_pattern",
+                score=0.96,
+                evidence_sentence=sentence,
+                start_char=start,
+                end_char=start + len(answer),
+                relation_type="ROLE_RELATION",
+                relation_score=0.96,
+                phrase_quality=0.98,
+                lexical_evidence=True,
+                relation_evidence=True,
+            )
+        )
+    return max(candidates, key=lambda item: (item.score, len(_tokens(item.answer)))) if candidates else None
 
 
 def extract_contrast_candidate(question: str, sentence: str) -> FallbackCandidate | None:
@@ -815,6 +928,12 @@ def extract_fallback_answer(
     alias = extract_alias_candidate(question, sentence)
     if alias is not None:
         return alias
+    role = extract_role_candidate(question, sentence)
+    if role is not None:
+        return role
+    description = extract_description_candidate(question, sentence)
+    if description is not None:
+        return description
     if normalized_type == "TIME":
         temporal = extract_temporal_candidate(question, sentence)
         if temporal is not None:
@@ -895,6 +1014,8 @@ __all__ = [
     "detect_location_relation",
     "detect_contrast_relation",
     "detect_alias_relation",
+    "detect_description_relation",
+    "detect_role_relation",
     "assess_contrast_relation",
     "extract_contrast_candidate",
     "extract_alias_candidate",
@@ -902,6 +1023,8 @@ __all__ = [
     "extract_number_candidate",
     "extract_person_definition_candidate",
     "extract_person_candidate",
+    "extract_description_candidate",
+    "extract_role_candidate",
     "extract_fallback_answer",
     "extract_location_candidate",
 ]
