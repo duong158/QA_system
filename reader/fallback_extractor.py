@@ -209,6 +209,236 @@ def assess_contrast_relation(answer: str) -> tuple[float, bool]:
     return 0.0, False
 
 
+def detect_alias_relation(question: str) -> bool:
+    normalized = _normalize(question)
+    return bool(re.search(r"\b(?:ten goi|bi danh|ten khac|ten) nao\b", normalized))
+
+
+_UPPERCASE_VI = r"A-ZÀÁẢÃẠĂẮẰẲẴẶÂẤẦẨẪẬĐÈÉẺẼẸÊẾỀỂỄỆÌÍỈĨỊÒÓỎÕỌÔỐỒỔỖỘƠỚỜỞỠỢÙÚỦŨỤƯỨỪỬỮỰỲÝỶỸỴ"
+_PROPER_NAME = (
+    rf"[{_UPPERCASE_VI}][\wÀ-ỹĐđ'’-]*"
+    rf"(?:[\s_]+[{_UPPERCASE_VI}][\wÀ-ỹĐđ'’-]*){{0,5}}"
+)
+
+
+def extract_alias_candidate(question: str, sentence: str) -> FallbackCandidate | None:
+    """Extract a complete proper name from an explicit naming relation."""
+
+    if not detect_alias_relation(question):
+        return None
+    expression = re.compile(
+        rf"\b(?:có[\s_]+)?(?:tên[\s_]+gọi|bí[\s_]+danh|tên[\s_]+khác)"
+        rf"(?:[\s_]+(?:của|là))?[\s_:,-]+(?:là[\s_]+)?(?P<answer>{_PROPER_NAME})",
+        re.UNICODE,
+    )
+    candidates: list[FallbackCandidate] = []
+    for match in expression.finditer(sentence):
+        start, end = match.span("answer")
+        answer = sentence[start:end].strip()
+        if len(_tokens(answer)) < 2:
+            continue
+        candidates.append(
+            FallbackCandidate(
+                answer=answer,
+                method="alias_relation_pattern",
+                score=0.95,
+                evidence_sentence=sentence,
+                start_char=start,
+                end_char=end,
+                relation_type="ALIAS",
+                relation_score=1.0,
+                phrase_quality=1.0,
+                lexical_evidence=True,
+                relation_evidence=True,
+            )
+        )
+    return max(candidates, key=lambda item: (item.score, len(_tokens(item.answer)))) if candidates else None
+
+
+_TEMPORAL_EXPRESSIONS = (
+    re.compile(r"\b(?:Năm|năm)[\s_]+\d{3,4}\b", re.UNICODE),
+    re.compile(
+        r"\b(?:Tháng|tháng)[\s_]+\d{1,2}(?:[\s_]+(?:năm)[\s_]+\d{3,4})?\b",
+        re.UNICODE,
+    ),
+    re.compile(
+        r"\b(?:Ngày|ngày)[\s_]+\d{1,2}(?:[\s_]+tháng[\s_]+\d{1,2})?"
+        r"(?:[\s_]+năm[\s_]+\d{3,4})?\b",
+        re.UNICODE,
+    ),
+    re.compile(r"\b(?:thế[\s_]+kỷ)[\s_]+(?:\d{1,2}|[IVX]{1,5})\b", re.IGNORECASE),
+)
+
+
+def extract_temporal_candidate(question: str, sentence: str) -> FallbackCandidate | None:
+    candidates: list[FallbackCandidate] = []
+    for expression in _TEMPORAL_EXPRESSIONS:
+        for match in expression.finditer(sentence):
+            local_context = sentence[max(0, match.start() - 100) : min(len(sentence), match.end() + 100)]
+            score = 0.90 + _relation_to_question_score(question, local_context)
+            candidates.append(
+                FallbackCandidate(
+                    answer=match.group(0),
+                    method="temporal_expression_pattern",
+                    score=round(min(1.0, score), 6),
+                    evidence_sentence=sentence,
+                    start_char=match.start(),
+                    end_char=match.end(),
+                    relation_type="TEMPORAL_EXPRESSION",
+                    relation_score=0.9,
+                    phrase_quality=1.0,
+                    lexical_evidence=True,
+                    relation_evidence=True,
+                )
+            )
+    return max(candidates, key=lambda item: (item.score, -item.start_char)) if candidates else None
+
+
+_NUMBER_WORD_EXPRESSION = re.compile(
+    r"\b(?:không|một|hai|ba|bốn|tư|năm|sáu|bảy|tám|chín|mười)"
+    r"(?:[\s_]+(?:người|đứa|người[\s_]+con))?[\s_]+(?:con|người|lần|phần|nhóm|chiếc|năm)\b",
+    re.IGNORECASE | re.UNICODE,
+)
+_DIGIT_NUMBER_EXPRESSION = re.compile(
+    r"\b(?:hơn|gần|khoảng|trên|dưới)?[\s_]*\d+(?:[.,]\d+)?(?:[\s_]*%)?"
+    r"(?:[\s_]+(?:người|con|lần|phần|nhóm|chiếc|km|mét|triệu|tỷ|nghìn))?\b",
+    re.IGNORECASE | re.UNICODE,
+)
+
+
+def extract_number_candidate(question: str, sentence: str) -> FallbackCandidate | None:
+    candidates = []
+    for expression in (_DIGIT_NUMBER_EXPRESSION, _NUMBER_WORD_EXPRESSION):
+        for match in expression.finditer(sentence):
+            candidates.append(
+                FallbackCandidate(
+                    answer=match.group(0).strip(),
+                    method="number_expression_pattern",
+                    score=0.90,
+                    evidence_sentence=sentence,
+                    start_char=match.start(),
+                    end_char=match.end(),
+                    relation_type="NUMBER_EXPRESSION",
+                    relation_score=0.85,
+                    phrase_quality=0.95,
+                    lexical_evidence=True,
+                    relation_evidence=True,
+                )
+            )
+    return max(candidates, key=lambda item: (-len(_tokens(item.answer)), -item.start_char)) if candidates else None
+
+
+_PERSON_TITLE = (
+    r"(?:Thiếu[\s_]+tướng|Đại[\s_]+tướng|Trung[\s_]+tướng|Tổng[\s_]+thống|"
+    r"Thủ[\s_]+tướng|Chủ[\s_]+tịch|Giáo[\s_]+sư|Tiến[\s_]+sĩ)"
+)
+
+
+def _person_definition_subject(question: str) -> str | None:
+    """Return the named subject in questions such as ``Phạm Văn Đồng là ai?``."""
+
+    match = re.fullmatch(
+        r"\s*(?P<subject>.+?)\s+là\s+ai\s*[?!.]*\s*",
+        str(question or ""),
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    if not match:
+        return None
+    subject = match.group("subject").strip()
+    normalized = _normalize(subject)
+    if len(_tokens(subject)) < 2 or normalized in {
+        "nguoi nay",
+        "nguoi do",
+        "ong ay",
+        "ba ay",
+    }:
+        return None
+    return subject
+
+
+def extract_person_definition_candidate(
+    question: str,
+    sentence: str,
+) -> FallbackCandidate | None:
+    """Extract the complete predicate for a named-person definition question."""
+
+    subject = _person_definition_subject(question)
+    if not subject:
+        return None
+    subject_match = re.search(re.escape(subject), sentence, flags=re.IGNORECASE | re.UNICODE)
+    if not subject_match:
+        return None
+    relation = re.match(
+        r"\s*(?:\([^)]*\))?\s+là\s+",
+        sentence[subject_match.end() :],
+        flags=re.IGNORECASE | re.UNICODE,
+    )
+    if not relation:
+        return None
+    start = subject_match.end() + relation.end()
+    end = len(sentence)
+    while end > start and (sentence[end - 1].isspace() or sentence[end - 1] in ".!?;"):
+        end -= 1
+    if end <= start:
+        return None
+    return FallbackCandidate(
+        answer=sentence[start:end],
+        method="person_definition_pattern",
+        score=0.97,
+        evidence_sentence=sentence,
+        start_char=start,
+        end_char=end,
+        relation_type="PERSON_DEFINITION",
+        relation_score=0.98,
+        phrase_quality=0.98,
+        lexical_evidence=True,
+        relation_evidence=True,
+    )
+
+
+def extract_person_candidate(question: str, sentence: str) -> FallbackCandidate | None:
+    patterns = (
+        re.compile(
+            rf"\b(?:là|do)[\s_]+(?P<answer>(?:{_PERSON_TITLE}[\s_]+)?{_PROPER_NAME})"
+            rf"(?=[\s_]+(?:lãnh[\s_]+đạo|đứng[\s_]+đầu)|[,.;!?]|$)",
+            re.UNICODE,
+        ),
+        re.compile(rf"\b(?P<answer>{_PERSON_TITLE}[\s_]+{_PROPER_NAME})", re.UNICODE),
+    )
+    candidates: list[FallbackCandidate] = []
+    for pattern in patterns:
+        for match in pattern.finditer(sentence):
+            start, end = match.span("answer")
+            answer = sentence[start:end]
+            # The broad Unicode proper-name matcher can regard a lowercase
+            # Vietnamese relation phrase as another name token. Keep the
+            # grammatical relation as evidence, but do not return it as part
+            # of the person's name.
+            answer = re.sub(
+                r"[\s_]+(?:lãnh[\s_]+đạo|đứng[\s_]+đầu)$",
+                "",
+                answer,
+                flags=re.IGNORECASE,
+            ).rstrip()
+            end = start + len(answer)
+            candidates.append(
+                FallbackCandidate(
+                    answer=answer,
+                    method="person_relation_pattern",
+                    score=0.93,
+                    evidence_sentence=sentence,
+                    start_char=start,
+                    end_char=end,
+                    relation_type="PERSON_RELATION",
+                    relation_score=0.9,
+                    phrase_quality=0.95,
+                    lexical_evidence=True,
+                    relation_evidence=True,
+                )
+            )
+    return max(candidates, key=lambda item: (item.score, -len(_tokens(item.answer)))) if candidates else None
+
+
 def extract_contrast_candidate(question: str, sentence: str) -> FallbackCandidate | None:
     if not detect_contrast_relation(question):
         return None
@@ -582,6 +812,24 @@ def extract_fallback_answer(
     contrast = extract_contrast_candidate(question, sentence)
     if contrast is not None:
         return contrast
+    alias = extract_alias_candidate(question, sentence)
+    if alias is not None:
+        return alias
+    if normalized_type == "TIME":
+        temporal = extract_temporal_candidate(question, sentence)
+        if temporal is not None:
+            return temporal
+    if normalized_type == "NUMBER":
+        number = extract_number_candidate(question, sentence)
+        if number is not None:
+            return number
+    if normalized_type == "PERSON":
+        definition = extract_person_definition_candidate(question, sentence)
+        if definition is not None:
+            return definition
+        person = extract_person_candidate(question, sentence)
+        if person is not None:
+            return person
     if normalized_type == "LOCATION":
         return extract_location_candidate(question, sentence)
     if normalized_type != "ENTITY":
@@ -646,8 +894,14 @@ __all__ = [
     "FallbackCandidate",
     "detect_location_relation",
     "detect_contrast_relation",
+    "detect_alias_relation",
     "assess_contrast_relation",
     "extract_contrast_candidate",
+    "extract_alias_candidate",
+    "extract_temporal_candidate",
+    "extract_number_candidate",
+    "extract_person_definition_candidate",
+    "extract_person_candidate",
     "extract_fallback_answer",
     "extract_location_candidate",
 ]

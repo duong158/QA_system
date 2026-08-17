@@ -85,7 +85,7 @@ class FallbackExtractorTests(unittest.TestCase):
         self.assertEqual(candidate.answer, sentence)
         self.assertEqual(candidate.method, "whole_sentence")
 
-    def test_non_entity_question_keeps_existing_sentence_fallback(self):
+    def test_time_question_extracts_exact_temporal_expression(self):
         sentence = "Vào thế kỷ 10, Paris đã là một thành phố chính của Pháp."
         candidate = extract_fallback_answer(
             "Paris trở thành thành phố quan trọng từ thế kỷ nào?",
@@ -93,8 +93,8 @@ class FallbackExtractorTests(unittest.TestCase):
             sentence,
         )
 
-        self.assertEqual(candidate.answer, sentence)
-        self.assertEqual(candidate.method, "whole_sentence")
+        self.assertEqual(candidate.answer, "thế kỷ 10")
+        self.assertEqual(candidate.method, "temporal_expression_pattern")
 
 
     def test_extracts_event_location_with_relation_evidence(self):

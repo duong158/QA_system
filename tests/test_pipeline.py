@@ -131,7 +131,67 @@ class BelowThresholdContrastPredictor:
         return results
 
 
+class TruncatedAliasPredictor:
+    def predict_many(self, question, contexts, no_answer_threshold, **kwargs):
+        results = []
+        for context in contexts:
+            answer = "là Lâm Bá"
+            start = context.index(answer)
+            results.append(
+                {
+                    "answer": answer,
+                    "candidate_answer": answer,
+                    "candidate_start": start,
+                    "candidate_end": start + len(answer),
+                    "confidence": 0.73,
+                    "reader_threshold_score": 0.73,
+                    "score_margin": 1.22,
+                    "passes_reader_threshold": True,
+                    "valid_span": True,
+                    "start": start,
+                    "end": start + len(answer),
+                }
+            )
+        return results
+
+
 class PipelineTests(unittest.TestCase):
+    def test_complete_alias_phrase_beats_truncated_neural_name(self):
+        question = (
+            "Tên gọi nào được Phạm Văn Đồng sử dụng khi làm Phó chủ nhiệm "
+            "cơ quan Biện sự xứ tại Quế Lâm?"
+        )
+        context = (
+            "Ông còn có tên gọi là Lâm Bá Kiệt khi làm Phó chủ nhiệm cơ quan "
+            "Biện sự xứ tại Quế Lâm (Chủ nhiệm là Hồ Học Lãm)."
+        )
+        with patch(
+            "backend.viqa_api.INDEX.retrieve",
+            return_value=[make_hit("doc_00001_P0001", context, 12.0, 1.0)],
+        ), patch(
+            "backend.viqa_api.READERS.get",
+            return_value=TruncatedAliasPredictor(),
+        ):
+            result = ask_question(
+                {
+                    "question": question,
+                    "retriever": "bm25",
+                    "reader": "phobert",
+                    "top_k": 1,
+                }
+            )
+
+        self.assertEqual(result["question_type"], "ENTITY")
+        self.assertEqual(result["answer"], "Lâm Bá Kiệt")
+        self.assertEqual(result["reader_method"], "phrase_fallback")
+        self.assertEqual(result["fallback_method"], "alias_relation_pattern")
+        self.assertEqual(result["reader_candidate"]["text"], "là Lâm Bá")
+        self.assertEqual(
+            result["reader_candidate"]["rejection_reason"],
+            "SPAN_BOUNDARY_INCOMPLETE",
+        )
+        self.assertEqual(result["fallback_candidate"]["relation_type"], "ALIAS")
+
     def test_generic_sentence_fallback_cannot_overwrite_valid_neural_span(self):
         question = "Địa danh nào được nhắc đến?"
         context = "Hà Nội là thủ đô của Việt Nam."
@@ -434,7 +494,7 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["selected_passage_id"], "DOC_P0002")
         self.assertIn("thế kỷ 10", result["answer"])
         self.assertEqual(by_id["DOC_P0001"]["answer_type_score"], 0.0)
-        self.assertEqual(by_id["DOC_P0001"]["rejection_reason"], "ANSWER_TYPE_MISMATCH")
+        self.assertEqual(by_id["DOC_P0001"]["rejection_reason"], "SPAN_BOUNDARY_INCOMPLETE")
         self.assertEqual(by_id["DOC_P0002"]["answer_type_score"], 1.0)
         self.assertIsNone(result["scores"]["answer_confidence"])
 

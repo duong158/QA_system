@@ -16,6 +16,7 @@ class RerankingConfigTests(unittest.TestCase):
         self.assertTrue(config.require_calibrated_reader_profile)
         self.assertAlmostEqual(config.phrase_fallback_penalty, 1.0)
         self.assertAlmostEqual(config.fallback_penalty, 0.6)
+        self.assertEqual(config.reader_span_candidates, 5)
         self.assertEqual(config.default_top_k, 10)
         self.assertEqual(config.candidate_count(10), 20)
         self.assertAlmostEqual(

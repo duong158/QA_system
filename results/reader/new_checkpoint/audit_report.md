@@ -10,6 +10,8 @@
   `0.20`, Relation `0.10`; final gate `0.625` from a stratified 100-example
   candidate-pipeline benchmark.
 - Phrase fallback penalty is `1.0`; whole-sentence fallback remains penalized at `0.6`.
+- Reader inference preserves the top 5 valid spans per passage. Boundary-aware
+  reranking penalizes shifted/incomplete spans without blindly extending them.
 
 ## Checkpoint audit
 
@@ -93,4 +95,3 @@ full 3,814-example **end-to-end Top-10/20-candidate** run is not complete on thi
 CPU-only host; the measured 100-example stratified run takes about 6.9 minutes,
 which projects to roughly 4.4 hours. Its candidate cache and evaluator are
 versioned so the full run can be executed on Kaggle GPU before promotion.
-

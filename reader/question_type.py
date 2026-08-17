@@ -44,12 +44,14 @@ LOCATION_QUESTION_PATTERNS = (
     r"\btai dau\b",
     r"\bnoi nao\b",
     r"\bdia diem nao\b",
+    r"\bdia danh nao\b",
+    r"\bkhu vuc nao\b",
     r"\b(?:thanh pho|tinh|quoc gia|nuoc) nao\b",
 )
 NUMBER_QUESTION_PATTERNS = (
     r"\bbao nhieu\b",
     r"\bmay\b",
-    r"\bso luong\b",
+    r"\bso luong\b.{0,40}\bbao nhieu\b",
     r"\bty le bao nhieu\b",
 )
 DEFINITION_QUESTION_PATTERNS = (
@@ -64,6 +66,9 @@ ENTITY_QUESTION_PATTERNS = (
     r"\bcong trinh nao\b",
     r"\btac pham nao\b",
     r"\bto chuc nao\b",
+    r"\bten goi nao\b",
+    r"\bbi danh nao\b",
+    r"\bten nao\b",
     r"\bloai nao\b",
     r"\bchia (?:nhu nao|nhu the nao|thanh gi|lam gi)\b",
     r"\b(?:bao gom|gom) nhung gi\b",

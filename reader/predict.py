@@ -5,7 +5,7 @@ import math
 import os
 import sys
 from pathlib import Path
-from typing import Sequence
+from typing import Any, Sequence
 
 import numpy as np
 import torch
@@ -111,7 +111,8 @@ class ReaderPredictor:
         no_answer_threshold: float | None = None,
         top_n_start: int | None = None,
         top_n_end: int | None = None,
-    ) -> dict[str, float | int | str | bool | None]:
+        span_candidate_limit: int | None = None,
+    ) -> dict[str, Any]:
         return self.predict_batch(
             [question],
             [context],
@@ -121,6 +122,7 @@ class ReaderPredictor:
             no_answer_threshold=no_answer_threshold,
             top_n_start=top_n_start,
             top_n_end=top_n_end,
+            span_candidate_limit=span_candidate_limit,
         )[0]
 
     def predict_many(
@@ -128,7 +130,7 @@ class ReaderPredictor:
         question: str,
         contexts: Sequence[str],
         **kwargs,
-    ) -> list[dict[str, float | int | str | bool | None]]:
+    ) -> list[dict[str, Any]]:
         return self.predict_batch([question] * len(contexts), contexts, **kwargs)
 
     def predict_batch(
@@ -141,7 +143,8 @@ class ReaderPredictor:
         no_answer_threshold: float | None = None,
         top_n_start: int | None = None,
         top_n_end: int | None = None,
-    ) -> list[dict[str, float | int | str | bool | None]]:
+        span_candidate_limit: int | None = None,
+    ) -> list[dict[str, Any]]:
         """Run arbitrary question/context pairs in shared model-forward batches."""
 
         if len(questions) != len(contexts):
@@ -197,7 +200,9 @@ class ReaderPredictor:
         offsets = inputs["offset_mapping"].tolist()
         compact_offsets = uses_compact_offsets(self.tokenizer)
         sample_mapping = inputs["overflow_to_sample_mapping"].tolist()
-        best_by_sample: list[tuple[SpanCandidate, int, int] | None] = [None] * len(prepared)
+        candidates_by_sample: list[
+            dict[tuple[int, int], tuple[SpanCandidate, int, int]]
+        ] = [{} for _ in prepared]
         null_scores_by_sample: list[list[float]] = [[] for _ in prepared]
 
         for feature_index in range(len(start_logits)):
@@ -233,14 +238,31 @@ class ReaderPredictor:
                 )
                 if not has_clean_word_boundaries(item.raw_context, raw_start, raw_end):
                     continue
-                current = best_by_sample[sample_index]
+                key = (raw_start, raw_end)
+                current = candidates_by_sample[sample_index].get(key)
                 if current is None or candidate.score > current[0].score:
-                    best_by_sample[sample_index] = (candidate, raw_start, raw_end)
-                break
+                    candidates_by_sample[sample_index][key] = (candidate, raw_start, raw_end)
 
-        results: list[dict[str, float | int | str | bool | None]] = []
+        candidate_limit = max(
+            1,
+            min(
+                20,
+                int(
+                    span_candidate_limit
+                    or os.getenv("QA_READER_SPAN_CANDIDATES", "5")
+                ),
+            ),
+        )
+        ranked_by_sample = [
+            sorted(candidates.values(), key=lambda item: item[0].score, reverse=True)[
+                :candidate_limit
+            ]
+            for candidates in candidates_by_sample
+        ]
+        results: list[dict[str, Any]] = []
         for sample_index, item in enumerate(prepared):
-            selected = best_by_sample[sample_index]
+            ranked_candidates = ranked_by_sample[sample_index]
+            selected = ranked_candidates[0] if ranked_candidates else None
             null_score = min(null_scores_by_sample[sample_index], default=float("inf"))
             if selected is None:
                 results.append(
@@ -263,6 +285,7 @@ class ReaderPredictor:
                         "valid_span": False,
                         "passes_reader_threshold": False,
                         "has_answer": False,
+                        "span_candidates": [],
                     }
                 )
                 continue
@@ -280,6 +303,38 @@ class ReaderPredictor:
                 margin - threshold,
                 temperature=self.decision_config.margin_scale,
             )
+            span_candidates = []
+            for rank, (candidate, candidate_start, candidate_end) in enumerate(
+                ranked_candidates,
+                start=1,
+            ):
+                while candidate_start < candidate_end and item.raw_context[candidate_start].isspace():
+                    candidate_start += 1
+                while candidate_end > candidate_start and item.raw_context[candidate_end - 1].isspace():
+                    candidate_end -= 1
+                candidate_text = item.raw_context[candidate_start:candidate_end]
+                candidate_margin = float(candidate.score - null_score)
+                candidate_confidence = score_margin_to_confidence(
+                    candidate_margin - threshold,
+                    temperature=self.decision_config.margin_scale,
+                )
+                span_candidates.append(
+                    {
+                        "rank": rank,
+                        "text": candidate_text,
+                        "start": candidate_start,
+                        "end": candidate_end,
+                        "score": float(candidate.score),
+                        "start_score": candidate.start_score,
+                        "end_score": candidate.end_score,
+                        "score_margin": candidate_margin,
+                        "reader_threshold_score": round(candidate_confidence, 6),
+                        "passes_reader_threshold": should_return_answer(
+                            candidate_margin, threshold
+                        ),
+                        "valid_span": bool(candidate_text),
+                    }
+                )
             results.append(
                 {
                     # Backwards-compatible final Reader answer. The candidate is
@@ -307,6 +362,7 @@ class ReaderPredictor:
                     "valid_span": valid_span,
                     "passes_reader_threshold": passes_threshold,
                     "has_answer": passes_threshold,
+                    "span_candidates": span_candidates,
                 }
             )
         return results

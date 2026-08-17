@@ -25,12 +25,15 @@ from backend.config import load_pipeline_config
 from reader.candidates import AnswerCandidate
 from reader.fallback_extractor import (
     assess_contrast_relation,
+    detect_alias_relation,
     detect_contrast_relation,
     detect_location_relation,
     extract_fallback_answer,
+    extract_alias_candidate,
     extract_location_candidate,
 )
 from reader.question_type import QuestionType, assess_answer_type, detect_question_type
+from reader.span_boundaries import assess_span_boundary
 
 
 PIPELINE_CONFIG = load_pipeline_config()
@@ -215,6 +218,7 @@ def finite_or_none(value: Any) -> float | None:
 
 REJECTION_MESSAGES = {
     "LOW_READER_SCORE": "Reader evidence was below the configured minimum.",
+    "SPAN_BOUNDARY_INCOMPLETE": "The span starts or ends inside a semantic phrase or named entity.",
     "ANSWER_TYPE_MISMATCH": "The candidate did not match the expected answer type.",
     "LOW_RANKING_SCORE": "The candidate ranking score was below the configured minimum.",
     "NO_VALID_SPAN": "Reader did not produce a valid answer span.",
@@ -981,6 +985,19 @@ def _semantic_relation_assessment(
     candidate_details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     details = candidate_details or {}
+    typed_fallback_relation = str(details.get("relation_type") or "")
+    if candidate_method != "neural_span" and typed_fallback_relation in {
+        "TEMPORAL_EXPRESSION",
+        "NUMBER_EXPRESSION",
+        "PERSON_RELATION",
+        "PERSON_DEFINITION",
+    }:
+        return {
+            "relation_type": typed_fallback_relation,
+            "relation_score": float(details.get("relation_score", 0.0)),
+            "phrase_quality": float(details.get("phrase_quality", 0.0)),
+            "relation_evidence": bool(details.get("relation_evidence", False)),
+        }
     if detect_contrast_relation(question):
         score, evidence = assess_contrast_relation(answer)
         return {
@@ -988,6 +1005,26 @@ def _semantic_relation_assessment(
             "relation_score": score,
             "phrase_quality": score,
             "relation_evidence": evidence,
+        }
+    if detect_alias_relation(question):
+        matching_sentence = next(
+            (
+                sentence
+                for sentence in split_sentences(context)
+                if normalize_text(answer) in normalize_text(sentence)
+            ),
+            "",
+        )
+        extracted = extract_alias_candidate(question, matching_sentence)
+        expected = normalize_text(extracted.answer) if extracted else ""
+        proposed = re.sub(r"^la\s+", "", normalize_text(answer)).strip()
+        exact_alias = bool(expected and proposed == expected)
+        partial_alias = bool(expected and proposed and proposed in expected)
+        return {
+            "relation_type": "ALIAS",
+            "relation_score": 1.0 if exact_alias else (0.25 if partial_alias else 0.0),
+            "phrase_quality": 1.0 if exact_alias else (0.25 if partial_alias else 0.0),
+            "relation_evidence": exact_alias,
         }
     entity_location_relation = detect_location_relation(question)
     if question_type is QuestionType.ENTITY and entity_location_relation != "GENERIC_LOCATION":
@@ -1062,6 +1099,8 @@ def _semantic_relation_assessment(
 def _candidate_rejection(candidate: AnswerCandidate) -> str | None:
     if not candidate.valid_span:
         return "NO_VALID_SPAN"
+    if candidate.boundary_score < 0.20:
+        return "SPAN_BOUNDARY_INCOMPLETE"
     if not candidate.passes_evidence_gate:
         return "EVIDENCE_UNSUPPORTED"
     if not candidate.passes_relation_gate:
@@ -1094,6 +1133,7 @@ _REJECTION_DEBUG_PRIORITY = {
     # latest decision stage. This keeps diagnostics actionable instead of
     # letting a high-retrieval empty span hide a semantic/type/ranking failure.
     "LOW_RANKING_SCORE": 6,
+    "SPAN_BOUNDARY_INCOMPLETE": 5,
     "LOCATION_RELATION_MISMATCH": 5,
     "RELATION_MISMATCH": 5,
     "ANSWER_TYPE_MISMATCH": 4,
@@ -1158,6 +1198,11 @@ def _score_answer_candidate(
     )
     requires_relation = relation["relation_type"] in {
         "CONTRAST",
+        "ALIAS",
+        "TEMPORAL_EXPRESSION",
+        "NUMBER_EXPRESSION",
+        "PERSON_RELATION",
+        "PERSON_DEFINITION",
         "EVENT_LOCATION",
         "OBJECT_LOCATION",
         "BIRTH_LOCATION",
@@ -1173,6 +1218,15 @@ def _score_answer_candidate(
     candidate.relation_type = relation["relation_type"]
     candidate.relation_score = float(relation["relation_score"])
     candidate.evidence_score = 1.0 if lexical_evidence else 0.0
+    boundary = assess_span_boundary(
+        context,
+        candidate.start_char,
+        candidate.end_char,
+        question_type,
+        question,
+    )
+    candidate.boundary_score = boundary.score
+    candidate.boundary_reasons = boundary.reasons
     candidate.valid_span = bool(
         candidate.text
         and span_has_clean_word_boundaries(context, candidate.start_char, candidate.end_char)
@@ -1182,7 +1236,8 @@ def _score_answer_candidate(
         relation["relation_evidence"] if requires_relation else True
     )
     candidate.passes_type_gate = assessment.score >= required_type_score
-    reader_signal = candidate.reader_score * candidate.fallback_penalty
+    boundary_factor = 0.5 + 0.5 * candidate.boundary_score
+    reader_signal = candidate.reader_score * candidate.fallback_penalty * boundary_factor
     candidate.ranking_score = combine_ranking_scores(
         retrieval_score,
         reader_signal,
@@ -1207,22 +1262,46 @@ def build_passage_candidates(
     """Keep neural and fallback proposals in one pool until final ranking."""
 
     candidates: list[AnswerCandidate] = []
-    neural_text = str(
-        neural_output.get("candidate_answer")
-        or neural_output.get("best_span_answer")
-        or neural_output.get("answer")
-        or ""
-    ).strip()
-    neural_start = int(
-        neural_output.get("candidate_start", neural_output.get("best_span_start", neural_output.get("start", -1)))
-    )
-    neural_end = int(
-        neural_output.get("candidate_end", neural_output.get("best_span_end", neural_output.get("end", -1)))
-    )
-    if neural_text:
-        margin = float(neural_output.get("score_margin", float("-inf")))
+    raw_neural_candidates = list(neural_output.get("span_candidates") or [])
+    if not raw_neural_candidates:
+        raw_neural_candidates = [
+            {
+                "text": neural_output.get("candidate_answer")
+                or neural_output.get("best_span_answer")
+                or neural_output.get("answer")
+                or "",
+                "start": neural_output.get(
+                    "candidate_start",
+                    neural_output.get("best_span_start", neural_output.get("start", -1)),
+                ),
+                "end": neural_output.get(
+                    "candidate_end",
+                    neural_output.get("best_span_end", neural_output.get("end", -1)),
+                ),
+                "score_margin": neural_output.get("score_margin", float("-inf")),
+                "reader_threshold_score": neural_output.get(
+                    "reader_threshold_score", neural_output.get("confidence", 0.0)
+                ),
+                "passes_reader_threshold": neural_output.get("passes_reader_threshold"),
+                "valid_span": neural_output.get("valid_span", True),
+            }
+        ]
+
+    seen_neural_spans: set[tuple[int, int, str]] = set()
+    for raw_candidate in raw_neural_candidates:
+        neural_text = str(raw_candidate.get("text") or "").strip()
+        neural_start = int(raw_candidate.get("start", -1))
+        neural_end = int(raw_candidate.get("end", -1))
+        key = (neural_start, neural_end, neural_text)
+        if not neural_text or key in seen_neural_spans:
+            continue
+        seen_neural_spans.add(key)
+        margin = float(raw_candidate.get("score_margin", float("-inf")))
+        raw_passes_threshold = raw_candidate.get("passes_reader_threshold")
         passes_threshold = bool(
-            neural_output.get("passes_reader_threshold", margin >= READER_SCORE_MARGIN_THRESHOLD)
+            margin >= READER_SCORE_MARGIN_THRESHOLD
+            if raw_passes_threshold is None
+            else raw_passes_threshold
         )
         neural = AnswerCandidate(
             text=neural_text,
@@ -1231,11 +1310,19 @@ def build_passage_candidates(
             start_char=neural_start,
             end_char=neural_end,
             reader_score=float(
-                neural_output.get("reader_threshold_score", neural_output.get("confidence", 0.0))
+                raw_candidate.get(
+                    "reader_threshold_score", neural_output.get("confidence", 0.0)
+                )
             ),
             score_margin=margin,
+            reader_rank=int(raw_candidate.get("rank", 1)),
+            raw_span_score=(
+                float(raw_candidate["score"])
+                if raw_candidate.get("score") is not None
+                else None
+            ),
             fallback_penalty=1.0,
-            valid_span=bool(neural_output.get("valid_span", neural_text)),
+            valid_span=bool(raw_candidate.get("valid_span", neural_text)),
             passes_reader_threshold=passes_threshold,
         )
         candidates.append(
@@ -1329,6 +1416,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             max_seq_len=PIPELINE_CONFIG.reader_max_length,
             doc_stride=PIPELINE_CONFIG.reader_stride,
             no_answer_threshold=READER_SCORE_MARGIN_THRESHOLD,
+            span_candidate_limit=PIPELINE_CONFIG.reader_span_candidates,
         )
     else:
         outputs = [
@@ -1338,6 +1426,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 max_seq_len=PIPELINE_CONFIG.reader_max_length,
                 doc_stride=PIPELINE_CONFIG.reader_stride,
                 no_answer_threshold=READER_SCORE_MARGIN_THRESHOLD,
+                span_candidate_limit=PIPELINE_CONFIG.reader_span_candidates,
             )
             for context in contexts
         ]
@@ -1430,7 +1519,11 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "fallback_method": None,
             "passes_reader_threshold": False,
         }
-        reader_signal = float(representative["reader_score"]) * float(representative["fallback_penalty"])
+        reader_signal = (
+            float(representative["reader_score"])
+            * float(representative["fallback_penalty"])
+            * (0.5 + 0.5 * float(representative.get("boundary_score", 1.0)))
+        )
         item = {
             "rank": 0,
             "retrieval_rank": hit.retrieval_rank,
@@ -1459,6 +1552,8 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "relation_type": representative["relation_type"],
             "relation_score": round(float(representative["relation_score"]), 6),
             "phrase_quality": round(float(representative["relation_score"]), 6),
+            "boundary_score": round(float(representative.get("boundary_score", 1.0)), 6),
+            "boundary_reasons": list(representative.get("boundary_reasons", ())),
             "evidence_supported": bool(representative["passes_evidence_gate"]),
             "passes_reader_threshold": bool(representative["passes_reader_threshold"]),
             "neural_reader_answer": output.get("answer") or None,
@@ -1642,12 +1737,13 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "fallback_penalty": FALLBACK_PENALTY,
             "phrase_fallback_penalty": PHRASE_FALLBACK_PENALTY,
             "reader_score_margin_threshold": READER_SCORE_MARGIN_THRESHOLD,
+            "reader_span_candidates": PIPELINE_CONFIG.reader_span_candidates,
             "reader_fallback_threshold": READER_FALLBACK_THRESHOLD,
             "sentence_fallback_threshold": SENTENCE_FALLBACK_THRESHOLD,
             "retrieval_normalization": "min_max_within_top_k",
             "candidate_count": candidate_count,
             "rerank": "retrieval_reader_answer_type_relation",
-            "ranking_score_formula": "retriever_weight*retrieval_score + reader_weight*reader_signal + answer_type_weight*answer_type_score + relation_weight*relation_score",
+            "ranking_score_formula": "retriever_weight*retrieval_score + reader_weight*(reader_score*fallback_penalty*(0.5+0.5*boundary_score)) + answer_type_weight*answer_type_score + relation_weight*relation_score",
             "score_semantics": "All displayed scores are ranking signals, not correctness probabilities.",
         },
     }
@@ -1723,7 +1819,10 @@ class Handler(BaseHTTPRequestHandler):
                 {
                     "status": "ok",
                     "passages": len(INDEX.passages),
-                    "reader_models": ReaderManager.MODEL_FOLDERS,
+                    "reader_models": {
+                        **ReaderManager.MODEL_FOLDERS,
+                        "phobert": PIPELINE_CONFIG.reader_checkpoint.name,
+                    },
                     "supported_retrievers": sorted(SUPPORTED_RETRIEVERS),
                     "unsupported_retrievers": UNIMPLEMENTED_RETRIEVERS,
                     "supported_readers": sorted(SUPPORTED_READERS),
@@ -1734,12 +1833,15 @@ class Handler(BaseHTTPRequestHandler):
                         "retriever_weight": RETRIEVER_WEIGHT,
                         "reader_weight": READER_WEIGHT,
                         "answer_type_weight": ANSWER_TYPE_WEIGHT,
+                        "relation_weight": RELATION_WEIGHT,
                         "minimum_reader_score": MIN_READER_SCORE,
                         "minimum_answer_type_score": MIN_ANSWER_TYPE_SCORE,
                         "minimum_fallback_answer_type_score": MIN_FALLBACK_ANSWER_TYPE_SCORE,
                         "minimum_ranking_score": MIN_RANKING_SCORE,
                         "fallback_penalty": FALLBACK_PENALTY,
+                        "phrase_fallback_penalty": PHRASE_FALLBACK_PENALTY,
                         "reader_score_margin_threshold": READER_SCORE_MARGIN_THRESHOLD,
+                        "reader_span_candidates": PIPELINE_CONFIG.reader_span_candidates,
                         "reader_fallback_threshold": READER_FALLBACK_THRESHOLD,
                         "sentence_fallback_threshold": SENTENCE_FALLBACK_THRESHOLD,
                         "default_top_k": PIPELINE_CONFIG.default_top_k,

@@ -20,10 +20,14 @@ class AnswerCandidate:
     end_char: int
     reader_score: float
     score_margin: float | None
+    reader_rank: int | None = None
+    raw_span_score: float | None = None
     answer_type_score: float = 0.0
     relation_type: str | None = None
     relation_score: float = 0.0
     evidence_score: float = 0.0
+    boundary_score: float = 1.0
+    boundary_reasons: tuple[str, ...] = ()
     fallback_penalty: float = 1.0
     ranking_score: float = 0.0
     valid_span: bool = False

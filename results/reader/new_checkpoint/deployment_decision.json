@@ -11,8 +11,9 @@
     "relation_weight": 0.1,
     "phrase_fallback_penalty": 1.0,
     "sentence_fallback_penalty": 0.6,
+    "reader_span_candidates_per_passage": 5,
     "final_ranking_threshold": 0.625,
-    "scope": "100-example stratified end-to-end benchmark"
+    "scope": "100-example stratified end-to-end multi-span boundary-v2 benchmark"
   },
   "reasons": [
     "Answerable F1 improved by 3.88 points and answerable empty rate fell by 8.78 points.",

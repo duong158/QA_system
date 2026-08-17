@@ -22,6 +22,7 @@
   "sentence_fallback_threshold": 0.42,
   "reader_max_length": 256,
   "reader_stride": 80,
+  "reader_span_candidates": 5,
   "chunk_max_tokens": 220,
   "chunk_overlap_sentences": 2
 }

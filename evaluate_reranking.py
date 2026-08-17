@@ -24,6 +24,7 @@ WEIGHT_CONFIGS = {
 }
 DEFAULT_FINAL_THRESHOLDS = [round(index / 40, 3) for index in range(12, 37)]
 PHRASE_FALLBACK_PENALTIES = (0.6, 0.8, 0.9, 1.0)
+CACHE_SCHEMA_VERSION = 3
 
 
 def load_stratified_subset(size: int, seed: int) -> list[dict[str, Any]]:
@@ -57,7 +58,12 @@ def candidate_score(
     fallback_penalty = float(candidate.get("fallback_penalty", 1.0))
     if candidate.get("method") == "phrase_fallback" and phrase_fallback_penalty is not None:
         fallback_penalty = phrase_fallback_penalty
-    reader_signal = float(candidate.get("reader_score") or 0.0) * fallback_penalty
+    boundary_factor = 0.5 + 0.5 * float(candidate.get("boundary_score", 1.0))
+    reader_signal = (
+        float(candidate.get("reader_score") or 0.0)
+        * fallback_penalty
+        * boundary_factor
+    )
     return (
         config["retriever"] * float(candidate.get("retrieval_score") or 0.0)
         + config["reader"] * reader_signal
@@ -179,7 +185,8 @@ def main() -> None:
     if args.cache.is_file():
         cached = json.loads(args.cache.read_text(encoding="utf-8"))
         if (
-            cached.get("subset_size") == len(records)
+            cached.get("schema_version") == CACHE_SCHEMA_VERSION
+            and cached.get("subset_size") == len(records)
             and cached.get("seed") == args.seed
             and cached.get("top_k") == args.top_k
         ):
@@ -233,7 +240,14 @@ def main() -> None:
         args.cache.parent.mkdir(parents=True, exist_ok=True)
         args.cache.write_text(
             json.dumps(
-                {"subset_size": len(records), "seed": args.seed, "top_k": args.top_k, "rows": cache_rows},
+                {
+                    "schema_version": CACHE_SCHEMA_VERSION,
+                    "candidate_pipeline": "multi_span_boundary_v2",
+                    "subset_size": len(records),
+                    "seed": args.seed,
+                    "top_k": args.top_k,
+                    "rows": cache_rows,
+                },
                 ensure_ascii=False,
                 indent=2,
             ),

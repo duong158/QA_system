@@ -45,6 +45,7 @@ class PipelineConfig:
     sentence_fallback_threshold: float
     reader_max_length: int
     reader_stride: int
+    reader_span_candidates: int
     chunk_max_tokens: int
     chunk_overlap_sentences: int
 
@@ -139,6 +140,11 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
         ),
         reader_max_length=_env("QA_READER_MAX_LENGTH", payload["reader_max_length"], int),
         reader_stride=_env("QA_READER_STRIDE", payload["reader_stride"], int),
+        reader_span_candidates=_env(
+            "QA_READER_SPAN_CANDIDATES",
+            payload.get("reader_span_candidates", 5),
+            int,
+        ),
         chunk_max_tokens=_env("QA_CHUNK_MAX_TOKENS", payload["chunk_max_tokens"], int),
         chunk_overlap_sentences=_env(
             "QA_CHUNK_OVERLAP_SENTENCES", payload["chunk_overlap_sentences"], int
@@ -148,6 +154,8 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
         raise ValueError("default_top_k must be within 1..max_top_k")
     if config.minimum_candidate_count < config.default_top_k:
         raise ValueError("minimum_candidate_count must be at least default_top_k")
+    if not 1 <= config.reader_span_candidates <= 20:
+        raise ValueError("reader_span_candidates must be within 1..20")
     if config.require_calibrated_reader_profile and not config.reader_profile_calibrated:
         raise ValueError(
             f"Reader checkpoint {config.reader_checkpoint} has no matching full-validation "
