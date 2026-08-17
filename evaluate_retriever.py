@@ -24,7 +24,16 @@ def relevant(record: dict, hit) -> bool:
     passage = hit.passage.metadata
     passage_id = str(record.get("passage_id") or "")
     document_id = str(record.get("document_id") or "")
+    
     answer = str(record.get("answer") or record.get("answer_text") or "").strip()
+    
+    if not answer and "answers" in record and record["answers"]:
+        ans = record["answers"]
+        if isinstance(ans, dict) and "text" in ans and len(ans["text"]) > 0:
+            answer = str(ans["text"][0]).strip()
+        elif isinstance(ans, list) and len(ans) > 0 and isinstance(ans[0], dict) and "text" in ans[0]:
+            answer = str(ans[0]["text"]).strip()
+
     return bool(
         (passage_id and passage.passage_id == passage_id)
         or (document_id and passage.document_id == document_id)
@@ -54,7 +63,7 @@ def evaluate(records: list[dict], method: str, k_values: list[int]) -> dict[str,
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate passage retrieval with Recall@k and MRR")
     parser.add_argument("data", type=Path)
-    parser.add_argument("--method", choices=["bm25", "tfidf"], default="bm25")
+    parser.add_argument("--method", choices=["bm25", "tfidf", "dense", "hybrid"], default="bm25")
     parser.add_argument("--k", nargs="+", type=int, default=[1, 3, 5, 10])
     parser.add_argument("--output", type=Path)
     args = parser.parse_args()
