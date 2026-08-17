@@ -42,11 +42,10 @@ UNIMPLEMENTED_RETRIEVERS = {
     "dense": "Dense retrieval is not wired into this API yet: no embedding model/vector index is configured for online serving.",
     "pyserini": "Pyserini BM25 is not wired into this API yet: no Lucene index/runtime is configured for online serving.",
 }
-SUPPORTED_READERS = {"phobert"}
+SUPPORTED_READERS = {"phobert", "xlmr"}
 UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
-    "xlmr": "XLM-R QA is not implemented: the training notebook exists, but no runnable checkpoint is available under models/reader.",
 }
 
 if RETRIEVER_WEIGHT < 0 or READER_WEIGHT < 0 or RETRIEVER_WEIGHT + READER_WEIGHT <= 0:
@@ -334,7 +333,7 @@ def choose_reader_output(
             "start": int(fallback_output["start"]),
             "end": int(fallback_output["end"]),
         }
-    if neural_is_echo or not neural_span_is_clean or not definition_supported:
+    if neural_is_echo or not neural_span_is_clean:
         return {
             "method": "no_answer",
             "answer": None,
@@ -492,7 +491,6 @@ class PassageIndex:
             frequency = passage.term_counts.get(term, 0)
             if not frequency:
                 continue
-            frequency = min(frequency, 1)
             denominator = frequency + k1 * (
                 1 - b + b * passage_length / max(1.0, self.avg_passage_len)
             )
