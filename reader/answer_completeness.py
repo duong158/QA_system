@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from reader.cause_relations import fold_text
+from reader.semantic_policy import SEMANTIC_POLICIES
 
 
 _DANGLING_CONNECTORS = (
@@ -68,7 +69,7 @@ def assess_answer_completeness(answer: str) -> CompletenessAssessment:
         score = min(score, 0.15)
         reasons.append("UNBALANCED_DELIMITER")
     return CompletenessAssessment(
-        complete=score >= 0.50,
+        complete=score >= SEMANTIC_POLICIES.threshold("completeness"),
         score=score,
         reasons=tuple(reasons) or ("COMPLETE",),
     )

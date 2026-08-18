@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from reader.config import load_reader_decision_config
+from reader.semantic_policy import load_semantic_policy_registry
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -61,6 +62,7 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
     config_path = Path(path or os.getenv("QA_PIPELINE_CONFIG", DEFAULT_CONFIG_PATH))
     with config_path.open("r", encoding="utf-8") as handle:
         payload = json.load(handle)
+    semantic = load_semantic_policy_registry()
 
     reader_checkpoint = Path(
         os.getenv("QA_READER_CHECKPOINT", payload["reader_checkpoint"])
@@ -115,29 +117,31 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
             "QA_MIN_READER_SCORE", payload["minimum_reader_score"], float
         ),
         minimum_answer_type_score=_env(
-            "QA_MIN_ANSWER_TYPE_SCORE", payload["minimum_answer_type_score"], float
+            "QA_MIN_ANSWER_TYPE_SCORE", semantic.threshold("answer_type"), float
         ),
         minimum_fallback_answer_type_score=_env(
             "QA_MIN_FALLBACK_ANSWER_TYPE_SCORE",
-            payload["minimum_fallback_answer_type_score"],
+            semantic.method("sentence_fallback").min_answer_type_score,
             float,
         ),
         minimum_ranking_score=_env(
-            "QA_MIN_RANKING_SCORE", payload["minimum_ranking_score"], float
+            "QA_MIN_RANKING_SCORE", semantic.threshold("ranking"), float
         ),
         fallback_penalty=_env(
-            "QA_FALLBACK_PENALTY", payload["fallback_penalty"], float
+            "QA_FALLBACK_PENALTY", semantic.method("sentence_fallback").penalty, float
         ),
         phrase_fallback_penalty=_env(
             "QA_PHRASE_FALLBACK_PENALTY",
-            payload.get("phrase_fallback_penalty", 1.0),
+            semantic.method("phrase_fallback").penalty,
             float,
         ),
         reader_fallback_threshold=_env(
             "QA_READER_FALLBACK_THRESHOLD", payload["reader_fallback_threshold"], float
         ),
         sentence_fallback_threshold=_env(
-            "QA_SENTENCE_FALLBACK_THRESHOLD", payload["sentence_fallback_threshold"], float
+            "QA_SENTENCE_FALLBACK_THRESHOLD",
+            semantic.method("sentence_fallback").min_generation_score,
+            float,
         ),
         reader_max_length=_env("QA_READER_MAX_LENGTH", payload["reader_max_length"], int),
         reader_stride=_env("QA_READER_STRIDE", payload["reader_stride"], int),

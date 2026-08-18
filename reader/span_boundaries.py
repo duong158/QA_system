@@ -5,6 +5,7 @@ import unicodedata
 from dataclasses import dataclass
 
 from reader.question_type import QuestionType
+from reader.semantic_policy import SEMANTIC_POLICIES
 
 
 _WORD = r"[\wÀ-ỹĐđ'’-]+"
@@ -118,7 +119,11 @@ def assess_span_boundary(
             reasons.append("TRUNCATED_NAMED_ENTITY_LEFT")
 
     score = round(max(0.0, min(1.0, score)), 6)
-    return BoundaryAssessment(score, score >= 0.5, tuple(reasons) or ("CLEAN_BOUNDARY",))
+    return BoundaryAssessment(
+        score,
+        score >= SEMANTIC_POLICIES.validator_threshold("boundary", "assessment_pass"),
+        tuple(reasons) or ("CLEAN_BOUNDARY",),
+    )
 
 
 __all__ = ["BoundaryAssessment", "assess_span_boundary"]

@@ -1,7 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from typing import Any
+
+from reader.candidate_validation import GateResult
 
 
 @dataclass
@@ -33,6 +35,8 @@ class AnswerCandidate:
     question_modifier: str | None = None
     expected_answer_type: str | None = None
     semantic_status: str = "UNKNOWN"
+    semantic_policy: str = "GENERAL"
+    gate_results: dict[str, GateResult] = field(default_factory=dict)
     relation_validation_reason: str | None = None
     subject_match_reason: str | None = None
     completeness_score: float = 1.0

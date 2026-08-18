@@ -1,0 +1,68 @@
+{
+  "name": "semantic_holdout_v1",
+  "status": "LOCKED_DO_NOT_TUNE",
+  "created_date": "2026-08-18",
+  "source": "data\\processed\\viquad_val_clean.parquet",
+  "source_sha256": "d2fa4e594dd1a97f7a5869ebb6b267d29a7610b94c3c45f51094f43d48e1f727",
+  "dataset_file": "data\\evaluation\\semantic_holdout_v1.jsonl",
+  "dataset_sha256": "c9c4694f155ce8be829539f9fb03a62bcb82e9694605b2c00138daaa59a14648",
+  "rows": 260,
+  "seed": "semantic-holdout-v1-2026-08-18",
+  "requested_quotas": {
+    "CAUSE": 40,
+    "TIME": 40,
+    "LOCATION": 30,
+    "PURPOSE": 20,
+    "ENTITY": 30,
+    "DEFINITION": 20,
+    "GENERAL": 40,
+    "NO_ANSWER": 40
+  },
+  "actual_quotas": {
+    "CAUSE": 40,
+    "DEFINITION": 20,
+    "ENTITY": 30,
+    "GENERAL": 40,
+    "LOCATION": 30,
+    "NO_ANSWER": 40,
+    "PURPOSE": 20,
+    "TIME": 40
+  },
+  "excluded_counts": {
+    "prior_evaluation_id": 140
+  },
+  "excluded_prior_id_count": 150,
+  "exclusion_sources": [
+    "results\\cause_semantic_replay100.json",
+    "results\\fallback_phrase_after_subset40.json",
+    "results\\fallback_phrase_before_subset40.json",
+    "results\\location_diagnostic_after_subset40.json",
+    "results\\location_diagnostic_before_subset40.json",
+    "results\\location_pipeline_after_subset40.json",
+    "results\\manual_live_semantic_set_v1_after.json",
+    "results\\reranking_candidate_cache_new100.json",
+    "results\\reranking_candidate_cache_refinement100_v4.json",
+    "tests\\data\\qa_semantic_regressions.json",
+    "tests\\data\\manual_live_semantic_set_v1.json"
+  ],
+  "prior_broad_evaluation_id_count": 3814,
+  "prior_broad_evaluation_sources": [
+    "results\\reader_eval_results.json"
+  ],
+  "blind_scope": "Blind to explicit semantic regression questions and semantic/reranking candidate pools, but not model-blind: the validation split was previously used for Reader evaluation.",
+  "no_answer_relation_distribution": {
+    "CAUSE": 6,
+    "DEFINITION": 6,
+    "ENTITY": 6,
+    "GENERAL": 6,
+    "LOCATION": 6,
+    "PURPOSE": 5,
+    "TIME": 5
+  },
+  "policy": [
+    "Never add a failing holdout item to production rules and rerun under the v1 name.",
+    "Any production change after inspecting v1 requires a newly sampled v2 holdout.",
+    "The weak relation labels are for stratification, not human gold semantic annotations.",
+    "v1 is semantic-rule holdout only; it is not a model-blind test split."
+  ]
+}

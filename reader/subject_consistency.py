@@ -7,6 +7,7 @@ from typing import Any
 
 from reader.cause_relations import fold_text
 from reader.question_semantics import QuestionSemantics
+from reader.semantic_policy import SEMANTIC_POLICIES
 
 
 class SemanticStatus(str, Enum):
@@ -78,7 +79,7 @@ def score_subject_consistency(
     ]
     evidence_tokens = set(_normalized_words(evidence_sentence))
     overlap = len(set(subject_tokens) & evidence_tokens) / max(1, len(set(subject_tokens)))
-    if overlap >= 0.75 and len(subject_tokens) >= 2:
+    if overlap >= SEMANTIC_POLICIES.validator_threshold("subject", "token_overlap") and len(subject_tokens) >= 2:
         return SubjectConsistency(
             SemanticStatus.VALID.value,
             0.78,

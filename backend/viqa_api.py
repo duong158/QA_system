@@ -9,7 +9,6 @@ import sys
 import threading
 import time
 import traceback
-import unicodedata
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -24,24 +23,23 @@ from backend.chunking import Passage, chunk_document, split_sentences
 from backend.config import load_pipeline_config
 from reader.config import DEFAULT_MAX_ANSWER_LENGTH_BY_TYPE
 from reader.candidates import AnswerCandidate
-from reader.answer_refinement import QuestionRelation, detect_question_relation, refine_answer
-from reader.cause_relations import (
-    assess_cause_candidate,
-    cause_subject_match_score,
-    extract_cause_question,
+from reader.candidate_validation import (
+    ValidationContext,
+    evaluate_candidate_gates,
+    first_gate_failure,
 )
-from reader.fallback_extractor import (
-    assess_contrast_relation,
-    detect_alias_relation,
-    detect_contrast_relation,
-    detect_location_relation,
-    extract_fallback_answer,
-    extract_alias_candidate,
-    extract_location_candidate,
+from reader.answer_refinement import refine_answer
+from reader.fallback_policy import (
+    definition_subject,
+    relation_follows_subject,
+    sentence_fallback_predict,
 )
+from reader.lexical import DATE_TOKENS, STOPWORDS, normalize_text, raw_tokens, tokenize
 from reader.question_type import QuestionType, assess_answer_type, detect_question_type
 from reader.question_semantics import parse_question_semantics
-from reader.relation_validator import STRICT_RELATIONS, validate_candidate_relation
+from reader.relation_validator import relation_validation_details, validate_candidate_relation
+from reader.rejection_reasons import REJECTION_DEBUG_PRIORITY, REJECTION_MESSAGES
+from reader.semantic_policy import SEMANTIC_POLICIES
 from reader.span_boundaries import assess_span_boundary
 
 
@@ -59,11 +57,11 @@ ANSWER_TYPE_WEIGHT = PIPELINE_CONFIG.answer_type_weight
 RELATION_WEIGHT = PIPELINE_CONFIG.relation_weight
 MULTI_TYPE_COVERAGE_BONUS = PIPELINE_CONFIG.multi_type_coverage_bonus
 MIN_READER_SCORE = PIPELINE_CONFIG.minimum_reader_score
-MIN_ANSWER_TYPE_SCORE = PIPELINE_CONFIG.minimum_answer_type_score
-MIN_FALLBACK_ANSWER_TYPE_SCORE = PIPELINE_CONFIG.minimum_fallback_answer_type_score
-MIN_RANKING_SCORE = PIPELINE_CONFIG.minimum_ranking_score
-FALLBACK_PENALTY = PIPELINE_CONFIG.fallback_penalty
-PHRASE_FALLBACK_PENALTY = PIPELINE_CONFIG.phrase_fallback_penalty
+MIN_ANSWER_TYPE_SCORE = SEMANTIC_POLICIES.threshold("answer_type")
+MIN_FALLBACK_ANSWER_TYPE_SCORE = SEMANTIC_POLICIES.method("sentence_fallback").min_answer_type_score
+MIN_RANKING_SCORE = SEMANTIC_POLICIES.threshold("ranking")
+FALLBACK_PENALTY = SEMANTIC_POLICIES.method("sentence_fallback").penalty
+PHRASE_FALLBACK_PENALTY = SEMANTIC_POLICIES.method("phrase_fallback").penalty
 READER_SCORE_MARGIN_THRESHOLD = PIPELINE_CONFIG.reader_score_margin_threshold
 READER_FALLBACK_THRESHOLD = PIPELINE_CONFIG.reader_fallback_threshold
 SENTENCE_FALLBACK_THRESHOLD = PIPELINE_CONFIG.sentence_fallback_threshold
@@ -80,18 +78,6 @@ UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
 }
-
-STOPWORDS = {
-    "ai", "anh", "ay", "ban", "bang", "bao", "bi", "cac", "cai", "can", "chi",
-    "cho", "co", "con", "cua", "da", "dang", "day", "de", "den", "di", "do",
-    "duoc", "duoi", "gi", "giua", "hay", "hon", "khi", "khong", "la", "lai",
-    "lam", "may", "mot", "nao", "nay", "neu", "ngay", "nhieu", "nhu", "nhung",
-    "o", "phai", "qua", "ra", "rang", "sau", "se", "so", "tai", "the", "thi",
-    "theo", "tren", "trong", "truoc", "tu", "va", "vao", "ve", "vi", "voi",
-}
-
-DATE_TOKENS = {"ngay", "thang", "nam"}
-
 
 class PipelineError(RuntimeError):
     pass
@@ -126,21 +112,6 @@ class SearchHit:
     retrieval_score_raw: float
     retrieval_score_normalized: float = 0.0
     retrieval_rank: int = 0
-
-
-def normalize_text(value: str) -> str:
-    value = value.replace("Đ", "D").replace("đ", "d")
-    value = unicodedata.normalize("NFD", value.lower())
-    return "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
-
-
-def tokenize(value: str) -> list[str]:
-    tokens = re.findall(r"[\w%]+", normalize_text(value), flags=re.UNICODE)
-    return [token for token in tokens if len(token) > 1 and token not in STOPWORDS]
-
-
-def raw_tokens(value: str) -> list[str]:
-    return re.findall(r"[\w%]+", normalize_text(value), flags=re.UNICODE)
 
 
 def normalized_token_text(tokens: list[str] | tuple[str, ...]) -> str:
@@ -226,36 +197,6 @@ def finite_or_none(value: Any) -> float | None:
     return round(number, 6) if math.isfinite(number) else None
 
 
-REJECTION_MESSAGES = {
-    "LOW_READER_SCORE": "Reader evidence was below the configured minimum.",
-    "SPAN_BOUNDARY_INCOMPLETE": "The span starts or ends inside a semantic phrase or named entity.",
-    "ANSWER_TYPE_MISMATCH": "The candidate did not match the expected answer type.",
-    "LOW_RANKING_SCORE": "The candidate ranking score was below the configured minimum.",
-    "NO_VALID_SPAN": "Reader did not produce a valid answer span.",
-    "EVIDENCE_UNSUPPORTED": "The proposed answer was not supported by the source passage.",
-    "INSUFFICIENT_FALLBACK_EVIDENCE": "Fallback did not provide strong typed evidence.",
-    "LOCATION_RELATION_MISMATCH": "The candidate does not fill the location relation requested by the question.",
-    "RELATION_MISMATCH": "The candidate mentions the topic but does not express the relation requested by the question.",
-    "CAUSE_RELATION_MISMATCH": "The evidence has a causal form but does not establish the requested cause/effect direction.",
-    "CAUSE_TARGET_MISMATCH": "The causal evidence does not explain the target state or event requested by the question.",
-    "CAUSE_SUBJECT_MISMATCH": "The causal evidence concerns a different subject from the one requested by the question.",
-    "CAUSE_PHRASE_NOT_FOUND": "No standalone cause phrase connected to the requested subject and target was found.",
-    "CAUSE_RELATION_NOT_FOUND": "No cause/effect relation answering the requested target was found.",
-    "CAUSE_EFFECT_REPETITION": "The candidate repeats the effect instead of providing its cause.",
-    "TIME_SUBJECT_MISMATCH": "The time expression belongs to a different subject.",
-    "BIRTH_TIME_RELATION_MISMATCH": "The evidence does not connect the candidate time to the subject's birth.",
-    "DEATH_TIME_RELATION_MISMATCH": "The evidence does not connect the candidate time to the subject's death.",
-    "PURPOSE_SUBJECT_MISMATCH": "The purpose belongs to a different subject or action.",
-    "PURPOSE_RELATION_NOT_FOUND": "No purpose relation for the requested subject or action was found.",
-    "DANGLING_CONNECTOR": "The answer ends with a conjunction or connector and is not a complete clause.",
-    "INCOMPLETE_CLAUSE": "The proposed answer is not a complete standalone clause.",
-    "INCOMPLETE_RELATION": "The answer contains only part of the relation requested by the question.",
-    "RETRIEVAL_MISS": "Retriever returned no passage with a positive score.",
-    "LOWER_RANKING_SCORE": "A stronger valid candidate was selected.",
-    "NO_ANSWER": "No candidate satisfied the answer acceptance gates.",
-}
-
-
 def answer_is_supported(context: str, answer: str, start: int, end: int) -> bool:
     """Verify that a Reader/fallback answer is directly grounded in its passage."""
 
@@ -267,137 +208,6 @@ def answer_is_supported(context: str, answer: str, start: int, end: int) -> bool
     normalized_span = " ".join(normalize_text(source_span).split())
     return bool(normalized_answer) and (
         normalized_answer in normalized_span or normalized_span in normalized_answer
-    )
-
-
-def location_relation_assessment(
-    question: str,
-    context: str,
-    answer: str,
-    start: int,
-    end: int,
-    chosen_output: dict[str, Any],
-) -> dict[str, Any]:
-    relation_type = str(chosen_output.get("relation_type") or detect_location_relation(question))
-    if chosen_output.get("method") == "sentence_fallback":
-        return {
-            "relation_type": relation_type,
-            "relation_score": float(chosen_output.get("relation_score", 0.0)),
-            "phrase_quality": float(chosen_output.get("phrase_quality", 0.0)),
-            "relation_evidence": bool(chosen_output.get("relation_evidence", False)),
-        }
-
-    search_from = 0
-    for sentence in split_sentences(context):
-        sentence = sentence.strip()
-        sentence_start = context.find(sentence, search_from)
-        if sentence_start < 0:
-            sentence_start = context.find(sentence)
-        sentence_end = sentence_start + len(sentence) if sentence_start >= 0 else -1
-        search_from = max(search_from, sentence_end)
-        if sentence_start < 0 or not (sentence_start <= start and end <= sentence_end):
-            continue
-        extracted = extract_location_candidate(question, sentence, relation_type)
-        extracted_answer = normalize_text(extracted.answer)
-        normalized_answer = normalize_text(answer)
-        same_phrase = bool(normalized_answer) and (
-            normalized_answer in extracted_answer or extracted_answer in normalized_answer
-        )
-        return {
-            "relation_type": relation_type,
-            "relation_score": extracted.relation_score if same_phrase else 0.0,
-            "phrase_quality": extracted.phrase_quality if same_phrase else 0.0,
-            "relation_evidence": bool(extracted.relation_evidence and same_phrase),
-        }
-    return {
-        "relation_type": relation_type,
-        "relation_score": 0.0,
-        "phrase_quality": 0.0,
-        "relation_evidence": False,
-    }
-
-
-def candidate_rejection_reason(candidate: dict[str, Any]) -> str | None:
-    if not candidate.get("reader_answer") or candidate.get("reader_method") == "no_answer":
-        return "NO_VALID_SPAN"
-    if not candidate.get("lexical_evidence", candidate.get("evidence_supported")):
-        return "EVIDENCE_UNSUPPORTED"
-    relation_type = candidate.get("relation_type")
-    requires_relation = (
-        QuestionType.LOCATION.value in candidate.get("question_type", [])
-        and relation_type != "GENERIC_LOCATION"
-    )
-    generic_whole_sentence = (
-        QuestionType.LOCATION.value in candidate.get("question_type", [])
-        and relation_type == "GENERIC_LOCATION"
-        and candidate.get("reader_method") == "sentence_fallback"
-        and candidate.get("fallback_method") in {None, "whole_sentence"}
-    )
-    if (requires_relation and not candidate.get("relation_evidence")) or generic_whole_sentence:
-        return "LOCATION_RELATION_MISMATCH"
-    if float(candidate.get("reader_score", 0.0)) < MIN_READER_SCORE:
-        return "LOW_READER_SCORE"
-    answer_type_score = float(candidate.get("answer_type_score", 0.0))
-    if answer_type_score < MIN_ANSWER_TYPE_SCORE:
-        return "ANSWER_TYPE_MISMATCH"
-    if (
-        candidate.get("reader_method") == "sentence_fallback"
-        and answer_type_score < MIN_FALLBACK_ANSWER_TYPE_SCORE
-    ):
-        return "INSUFFICIENT_FALLBACK_EVIDENCE"
-    strong_location_relation = (
-        QuestionType.LOCATION.value in candidate.get("question_type", [])
-        and bool(candidate.get("lexical_evidence"))
-        and bool(candidate.get("relation_evidence"))
-        and float(candidate.get("relation_score", 0.0)) >= 0.85
-        and float(candidate.get("phrase_quality", 0.0)) >= 0.65
-        and answer_type_score >= MIN_FALLBACK_ANSWER_TYPE_SCORE
-    )
-    if (
-        float(candidate.get("ranking_score", 0.0)) < MIN_RANKING_SCORE
-        and not strong_location_relation
-    ):
-        return "LOW_RANKING_SCORE"
-    return None
-
-
-ANSWER_CUE_PATTERNS = (
-    "duoc chia thanh",
-    "duoc chia lam",
-    "chia thanh",
-    "chia lam",
-    "bao gom",
-    "gom",
-    "la",
-    "duoc goi la",
-    "co nghia la",
-    "duoc dinh nghia",
-)
-
-
-def definition_subject(question: str) -> str:
-    normalized = normalize_text(question).strip(" ?!.")
-    match = re.match(
-        r"^(?:cho biet\s+)?(.+?)\s+(?:la ai|la gi|co nghia la gi|duoc dinh nghia nhu the nao)$",
-        normalized,
-    )
-    return re.sub(r"\s+", " ", match.group(1)).strip() if match else ""
-
-
-def relation_follows_subject(sentence: str, subject: str) -> bool:
-    if not subject:
-        return False
-    normalized = normalize_text(sentence)
-    match = re.search(rf"\b{re.escape(subject)}\b", normalized)
-    if not match:
-        return False
-    tail = normalized[match.end() : match.end() + 180]
-    tail = re.sub(r"^\s*\([^)]{0,120}\)", "", tail)
-    return bool(
-        re.match(
-            r"^\s*,?\s*(?:(?:hien|tung|chinh|duoc xem la|duoc biet den nhu)\s+)?la\b",
-            tail,
-        )
     )
 
 
@@ -413,127 +223,6 @@ def span_has_clean_word_boundaries(context: str, start: int, end: int) -> bool:
     starts_inside_word = start > 0 and context[start - 1].isalnum() and context[start].isalnum()
     ends_inside_word = end < len(context) and context[end - 1].isalnum() and context[end].isalnum()
     return not starts_inside_word and not ends_inside_word
-
-
-def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
-    """Select supporting evidence, then narrow it to a grounded answer phrase.
-
-    This is deliberately generic: it does not map specific questions to answers.
-    It first picks the context sentence with strong lexical overlap and Vietnamese
-    answer cues. The fallback phrase extractor may then return an exact subspan;
-    otherwise the supporting sentence remains the last-resort candidate.
-    """
-    question_tokens = set(tokenize(question))
-    if not question_tokens:
-        return {"answer": "", "confidence": 0.0, "start": -1, "end": -1, "reason": "empty_question_tokens"}
-
-    normalized_question = normalize_text(question)
-    question_types = detect_question_type(question)
-    subject = definition_subject(question)
-    subject_phrase = re.sub(
-        r"\b(bao gom nhung gi|gom nhung gi|co nhung gi|duoc chia thanh|duoc chia lam|duoc chia|chia thanh|chia lam|nhu the nao|nhu nao|la gi|la ai|chia|duoc|nao|gi|ai)\b",
-        " ",
-        normalized_question,
-    )
-    subject_phrase = re.sub(r"\s+", " ", subject_phrase).strip()
-    best: dict[str, Any] = {"answer": "", "confidence": 0.0, "start": -1, "end": -1, "reason": "no_sentence"}
-    search_from = 0
-    for sentence in split_sentences(context):
-        sentence = sentence.strip()
-        if not sentence:
-            continue
-        start = context.find(sentence, search_from)
-        if start < 0:
-            start = context.find(sentence)
-        end = start + len(sentence) if start >= 0 else -1
-        search_from = max(search_from, end)
-
-        sentence_tokens = set(tokenize(sentence))
-        overlap = len(question_tokens & sentence_tokens) / max(1, len(question_tokens))
-        normalized_sentence = normalize_text(sentence)
-        phrase = extract_fallback_answer(question, [qt.value for qt in question_types], sentence)
-        cue_bonus = 0.0
-        if any(pattern in normalized_sentence for pattern in ANSWER_CUE_PATTERNS):
-            cue_bonus += 0.18
-        if phrase.method == "contrast_relation_pattern" and phrase.relation_evidence:
-            cue_bonus += 0.30
-        if phrase.method == "role_relation_pattern" and phrase.relation_evidence:
-            cue_bonus += 0.40
-        if phrase.method in {
-            "cause_clause_pattern",
-            "purpose_clause_pattern",
-            "method_clause_pattern",
-        } and phrase.relation_evidence:
-            cue_bonus += 0.32
-        if phrase.method == "property_description_pattern" and phrase.relation_evidence:
-            cue_bonus += 0.60 if phrase.phrase_quality >= 0.95 else 0.10
-        elif phrase.method == "description_sentence_pattern" and phrase.relation_evidence:
-            cue_bonus += 0.24
-        if len(subject_phrase) >= 8 and subject_phrase in normalized_sentence:
-            cue_bonus += 0.22
-        if len(sentence_tokens) >= 6:
-            cue_bonus += 0.04
-        if len(sentence) > 520:
-            cue_bonus -= 0.12
-        score = max(0.0, min(0.70, overlap * 0.78 + cue_bonus))
-        if QuestionType.LOCATION in question_types:
-            if phrase.relation_evidence:
-                score = min(0.70, score + 0.24 * phrase.relation_score)
-            elif phrase.method == "whole_sentence":
-                score = min(score, 0.68)
-        relation_matched = relation_follows_subject(sentence, subject)
-        if subject:
-            if relation_matched:
-                score = min(0.70, score + 0.18)
-            else:
-                score = min(score, SENTENCE_FALLBACK_THRESHOLD - 0.07)
-
-        if score > best["confidence"]:
-            best = {
-                "answer": sentence,
-                "confidence": round(score, 6),
-                "start": start,
-                "end": end,
-                "reason": "definition_relation" if relation_matched else "sentence_overlap_cue",
-                "_phrase": phrase,
-            }
-    if not best.get("answer"):
-        return best
-
-    supporting_sentence = str(best["answer"])
-    supporting_start = int(best["start"])
-    supporting_end = int(best["end"])
-    phrase = best.pop("_phrase", None) or extract_fallback_answer(
-        question, [qt.value for qt in question_types], supporting_sentence
-    )
-    if phrase.answer and phrase.start_char >= 0:
-        best.update(
-            {
-                "answer": phrase.answer,
-                "start": supporting_start + phrase.start_char,
-                "end": supporting_start + phrase.end_char,
-                "sentence_answer": supporting_sentence,
-                "sentence_start": supporting_start,
-                "sentence_end": supporting_end,
-                "fallback_method": phrase.method,
-                "phrase_score": phrase.score,
-                "phrase_start": phrase.start_char,
-                "phrase_end": phrase.end_char,
-                "relation_type": phrase.relation_type,
-                "relation_score": phrase.relation_score,
-                "phrase_quality": phrase.phrase_quality,
-                "lexical_evidence": phrase.lexical_evidence,
-                "relation_evidence": phrase.relation_evidence,
-                "relation_method": phrase.relation_method,
-                "question_subject": phrase.question_subject,
-                "question_target": phrase.question_target,
-                "cause_pattern_score": phrase.cause_pattern_score,
-                "subject_match_score": phrase.subject_match_score,
-                "target_relation_score": phrase.target_relation_score,
-                "relation_rejection_reason": phrase.relation_rejection_reason,
-            }
-        )
-    return best
 
 
 def choose_reader_output(
@@ -567,21 +256,20 @@ def choose_reader_output(
         neural_start,
         neural_end,
     )
-    neural_relation_supported = True
-    requires_location_relation = (
-        QuestionType.LOCATION in question_types
-        and detect_location_relation(question) != "GENERIC_LOCATION"
+    semantics = parse_question_semantics(question)
+    selection_policy = SEMANTIC_POLICIES.get(semantics.relation)
+    neural_validation = validate_candidate_relation(
+        semantics,
+        question,
+        context,
+        neural_answer,
+        neural_start,
+        neural_end,
+        "neural_span",
     )
-    if requires_location_relation and neural_answer:
-        neural_location_evidence = location_relation_assessment(
-            question,
-            context,
-            neural_answer,
-            neural_start,
-            neural_end,
-            {"method": "neural_span"},
-        )
-        neural_relation_supported = bool(neural_location_evidence["relation_evidence"])
+    neural_relation_supported = (
+        not selection_policy.require_relation_match or neural_validation.relation_evidence
+    )
     neural_ready = (
         bool(neural_answer)
         and not neural_is_echo
@@ -1229,265 +917,31 @@ def _semantic_relation_assessment(
     candidate_method: str,
     candidate_details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if not isinstance(question_types, list):
-        question_types = [question_types]
-    details = candidate_details or {}
-    typed_fallback_relation = str(details.get("relation_type") or "")
-    question_relation = detect_question_relation(question, question_types if question_types else [QuestionType.GENERAL])
-    frame = extract_cause_question(question) if question_relation is QuestionRelation.CAUSE else None
-    if question_relation is QuestionRelation.CAUSE and frame is not None:
-        cause = assess_cause_candidate(
-            question,
-            context,
-            answer,
-            str(details.get("sentence_answer") or details.get("evidence_sentence") or "") or None,
-        )
-        # Enforce the semantic gate when either side explicitly proposes a
-        # causal phrase. Unrecognized neural spans retain the prior neutral
-        # handling, avoiding a blanket false-negative regression while the
-        # rule extractor intentionally remains conservative.
-        if cause.cause_pattern_score > 0.0 or typed_fallback_relation == "CAUSE":
-            return {
-                "relation_type": "CAUSE",
-                "relation_score": cause.relation_score,
-                "phrase_quality": cause.cause_pattern_score,
-                "relation_evidence": cause.relation_evidence,
-                "relation_method": cause.relation_method,
-                "question_subject": frame.subject if frame else None,
-                "question_target": frame.target if frame else None,
-                "cause_pattern_score": cause.cause_pattern_score,
-                "subject_match_score": cause.subject_match_score,
-                "target_relation_score": cause.target_relation_score,
-                "relation_rejection_reason": cause.rejection_reason,
-                "evidence_sentence": cause.evidence_sentence,
-                "cause_effect": cause.effect,
-            }
-        subject_presence = cause_subject_match_score(question, context)
-        if subject_presence < 0.50:
-            return {
-                "relation_type": "CAUSE",
-                "relation_score": 0.0,
-                "phrase_quality": 0.0,
-                "relation_evidence": False,
-                "relation_method": "CAUSE_SUBJECT_PRESENCE_GATE",
-                "question_subject": frame.subject,
-                "question_target": frame.target,
-                "cause_pattern_score": 0.0,
-                "subject_match_score": subject_presence,
-                "target_relation_score": 0.0,
-                "relation_rejection_reason": "CAUSE_SUBJECT_MISMATCH",
-                "evidence_sentence": "",
-                "cause_effect": "",
-            }
-    if candidate_method != "neural_span" and typed_fallback_relation in {
-        "TEMPORAL_EXPRESSION",
-        "NUMBER_EXPRESSION",
-        "PERSON_RELATION",
-        "PERSON_DEFINITION",
-        "PROPERTY_DESCRIPTION",
-        "SITUATION_DESCRIPTION",
-        "ROLE_RELATION",
-        "CAUSE",
-        "BIRTH_TIME",
-        "DEATH_TIME",
-        "PURPOSE",
-        "METHOD",
-    }:
-        return {
-            "relation_type": typed_fallback_relation,
-            "relation_score": float(details.get("relation_score", 0.0)),
-            "phrase_quality": float(details.get("phrase_quality", 0.0)),
-            "relation_evidence": bool(details.get("relation_evidence", False)),
-        }
-    if detect_contrast_relation(question):
-        score, evidence = assess_contrast_relation(answer)
-        return {
-            "relation_type": "CONTRAST",
-            "relation_score": score,
-            "phrase_quality": score,
-            "relation_evidence": evidence,
-        }
-    if detect_alias_relation(question):
-        matching_sentence = next(
-            (
-                sentence
-                for sentence in split_sentences(context)
-                if normalize_text(answer) in normalize_text(sentence)
-            ),
-            "",
-        )
-        extracted = extract_alias_candidate(question, matching_sentence)
-        expected = normalize_text(extracted.answer) if extracted else ""
-        proposed = re.sub(r"^la\s+", "", normalize_text(answer)).strip()
-        exact_alias = bool(expected and proposed == expected)
-        partial_alias = bool(expected and proposed and proposed in expected)
-        return {
-            "relation_type": "ALIAS",
-            "relation_score": 1.0 if exact_alias else (0.25 if partial_alias else 0.0),
-            "phrase_quality": 1.0 if exact_alias else (0.25 if partial_alias else 0.0),
-            "relation_evidence": exact_alias,
-        }
-    entity_location_relation = detect_location_relation(question)
-    if QuestionType.ENTITY in question_types and entity_location_relation != "GENERIC_LOCATION":
-        fallback_method = str(details.get("fallback_method") or "")
-        if candidate_method != "neural_span" and fallback_method != "whole_sentence":
-            score = max(
-                float(details.get("relation_score", 0.0)),
-                float(details.get("phrase_score", 0.0)),
-            )
-            return {
-                "relation_type": "ENTITY_LOCATION_RELATION",
-                "relation_score": score,
-                "phrase_quality": float(details.get("phrase_quality", score)),
-                "relation_evidence": score >= 0.72,
-            }
-        matching_sentence = next(
-            (
-                sentence
-                for sentence in split_sentences(context)
-                if normalize_text(answer) in normalize_text(sentence)
-            ),
-            "",
-        )
-        extracted = extract_fallback_answer(question, [qt.value for qt in question_types], matching_sentence)
-        same_relation_phrase = bool(extracted.answer) and (
-            normalize_text(answer) in normalize_text(extracted.answer)
-            or normalize_text(extracted.answer) in normalize_text(answer)
-        )
-        score = float(extracted.score) if same_relation_phrase and extracted.method != "whole_sentence" else 0.0
-        return {
-            "relation_type": "ENTITY_LOCATION_RELATION",
-            "relation_score": score,
-            "phrase_quality": score,
-            "relation_evidence": score >= 0.72,
-        }
-    if QuestionType.LOCATION in question_types:
-        return location_relation_assessment(
-            question,
-            context,
-            answer,
-            start,
-            end,
-            {
-                "method": "sentence_fallback" if candidate_method != "neural_span" else "neural_span",
-                "relation_type": details.get("relation_type"),
-                "relation_score": details.get("relation_score", 0.0),
-                "phrase_quality": details.get("phrase_quality", 0.0),
-                "relation_evidence": details.get("relation_evidence", False),
-            },
-        )
-    subject = definition_subject(question)
-    if QuestionType.DEFINITION in question_types and subject:
-        supported = any(
-            relation_follows_subject(sentence, subject)
-            and normalize_text(answer) in normalize_text(sentence)
-            for sentence in split_sentences(context)
-        )
-        return {
-            "relation_type": "DEFINITION",
-            "relation_score": 1.0 if supported else 0.0,
-            "phrase_quality": 1.0 if supported else 0.0,
-            "relation_evidence": supported,
-        }
-    return {
-        "relation_type": None,
-        "relation_score": 0.5,
-        "phrase_quality": 0.5,
-        "relation_evidence": True,
-    }
+    """Compatibility wrapper around the registry-dispatched validator."""
+
+    semantics = parse_question_semantics(question)
+    validation = validate_candidate_relation(
+        semantics,
+        question,
+        context,
+        answer,
+        start,
+        end,
+        candidate_method,
+        candidate_details,
+    )
+    return relation_validation_details(validation)
 
 
 def _candidate_rejection(candidate: AnswerCandidate) -> str | None:
-    """
-    if not candidate.valid_span:
-        return "NO_VALID_SPAN"
-    if candidate.boundary_score < 0.20:
-        return "SPAN_BOUNDARY_INCOMPLETE"
-    if not candidate.passes_completeness_gate:
-        if "DANGLING_CONNECTOR" in candidate.completeness_reasons:
-            return "DANGLING_CONNECTOR"
-        return "INCOMPLETE_RELATION"
-    if not candidate.passes_evidence_gate:
-        return "EVIDENCE_UNSUPPORTED"
-    if not candidate.passes_relation_gate:
-        if candidate.relation_validation_reason in REJECTION_MESSAGES:
-            return str(candidate.relation_validation_reason)
-        if candidate.relation_type == "CAUSE":
-            return candidate.relation_rejection_reason or "CAUSE_RELATION_MISMATCH"
-        return (
-            "LOCATION_RELATION_MISMATCH"
-            if candidate.relation_type and "LOCATION" in candidate.relation_type
-            else "RELATION_MISMATCH"
-        )
-    if candidate.answer_type_score < MIN_ANSWER_TYPE_SCORE:
-        return "ANSWER_TYPE_MISMATCH"
-    if not candidate.passes_type_gate:
-        return (
-            "INSUFFICIENT_FALLBACK_EVIDENCE"
-            if candidate.method == "sentence_fallback"
-            else "ANSWER_TYPE_MISMATCH"
-        )
-    strong_cause_relation = (
-        candidate.relation_type == "CAUSE"
-        and candidate.cause_pattern_score >= 0.85
-        and candidate.subject_match_score >= 0.75
-        and candidate.target_relation_score >= 0.55
-        and candidate.relation_score >= 0.80
-        and candidate.answer_type_score >= MIN_ANSWER_TYPE_SCORE
-    )
-    strong_time_relation = (
-        candidate.relation_type in {"BIRTH_TIME", "DEATH_TIME"}
-        and candidate.semantic_status == "VALID"
-        and candidate.subject_match_score >= 0.75
-        and candidate.relation_score >= 0.90
-        and candidate.answer_type_score >= MIN_ANSWER_TYPE_SCORE
-    )
-    strong_grounded_relation = strong_cause_relation or strong_time_relation or (
-        candidate.passes_evidence_gate
-        and candidate.passes_relation_gate
-        and candidate.relation_score >= 0.85
-        and candidate.answer_type_score >= MIN_FALLBACK_ANSWER_TYPE_SCORE
-    )
-    if candidate.ranking_score < MIN_RANKING_SCORE and not strong_grounded_relation:
-        return "LOW_RANKING_SCORE"
-    """
-    return None
-
-
-_REJECTION_DEBUG_PRIORITY = {
-    # When every proposal is rejected, prefer the candidate that reached the
-    # latest decision stage. This keeps diagnostics actionable instead of
-    # letting a high-retrieval empty span hide a semantic/type/ranking failure.
-    "LOW_RANKING_SCORE": 6,
-    "SPAN_BOUNDARY_INCOMPLETE": 5,
-    "INCOMPLETE_RELATION": 5,
-    "LOCATION_RELATION_MISMATCH": 5,
-    "RELATION_MISMATCH": 5,
-    "CAUSE_RELATION_MISMATCH": 5,
-    "CAUSE_TARGET_MISMATCH": 5,
-    "CAUSE_SUBJECT_MISMATCH": 5,
-    "CAUSE_PHRASE_NOT_FOUND": 5,
-    "CAUSE_RELATION_NOT_FOUND": 5,
-    "CAUSE_EFFECT_REPETITION": 5,
-    "TIME_SUBJECT_MISMATCH": 5,
-    "BIRTH_TIME_RELATION_MISMATCH": 5,
-    "DEATH_TIME_RELATION_MISMATCH": 5,
-    "PURPOSE_SUBJECT_MISMATCH": 5,
-    "PURPOSE_RELATION_NOT_FOUND": 5,
-    "DANGLING_CONNECTOR": 5,
-    "INCOMPLETE_CLAUSE": 5,
-    "ANSWER_TYPE_MISMATCH": 4,
-    "INSUFFICIENT_FALLBACK_EVIDENCE": 3,
-    "EVIDENCE_UNSUPPORTED": 2,
-    "NO_VALID_SPAN": 1,
-}
+    return first_gate_failure(candidate.gate_results)
 
 
 def _candidate_selection_key(candidate: dict[str, Any]) -> tuple[float, ...]:
     rejection_reason = candidate.get("rejection_reason")
     return (
         1.0 if rejection_reason is None else 0.0,
-        float(_REJECTION_DEBUG_PRIORITY.get(str(rejection_reason), 0)),
+        float(REJECTION_DEBUG_PRIORITY.get(str(rejection_reason), 0)),
         float(candidate.get("ranking_score", 0.0)),
         float(candidate.get("evidence_score", 0.0)),
         float(candidate.get("reader_score", 0.0)),
@@ -1537,16 +991,6 @@ def _score_answer_candidate(
         candidate.start_char,
         candidate.end_char,
     )
-    relation = _semantic_relation_assessment(
-        question,
-        question_types,
-        context,
-        candidate.text,
-        candidate.start_char,
-        candidate.end_char,
-        candidate.method,
-        relation_details,
-    )
     semantic_validation = validate_candidate_relation(
         semantics,
         question,
@@ -1557,26 +1001,7 @@ def _score_answer_candidate(
         candidate.method,
         relation_details,
     )
-    if semantics.relation in STRICT_RELATIONS:
-        relation = {
-            "relation_type": semantic_validation.relation_type,
-            "relation_score": semantic_validation.relation_score,
-            "phrase_quality": max(
-                semantic_validation.cause_pattern_score,
-                semantic_validation.target_relation_score,
-            ),
-            "relation_evidence": semantic_validation.relation_evidence,
-            "relation_method": semantic_validation.relation_method,
-            "question_subject": semantics.subject,
-            "question_target": semantics.target,
-            "cause_pattern_score": semantic_validation.cause_pattern_score,
-            "subject_match_score": semantic_validation.subject_match_score,
-            "target_relation_score": semantic_validation.target_relation_score,
-            "relation_rejection_reason": semantic_validation.reason,
-            "semantic_status": semantic_validation.status,
-            "subject_match_reason": semantic_validation.subject_match_reason,
-            "evidence_sentence": semantic_validation.evidence_sentence,
-        }
+    relation = relation_validation_details(semantic_validation)
 
     assessment = assess_answer_type(
         question_types,
@@ -1586,41 +1011,8 @@ def _score_answer_candidate(
         candidate_method=candidate.fallback_method,
         multi_type_coverage_bonus=MULTI_TYPE_COVERAGE_BONUS,
     )
-    fallback_phrase = candidate.method == "phrase_fallback"
-    strong_semantic_relation = (
-        relation["relation_type"] == "CONTRAST"
-        and float(relation["relation_score"]) >= 0.80
-    )
-    required_type_score = (
-        MIN_FALLBACK_ANSWER_TYPE_SCORE
-        if candidate.method == "sentence_fallback" and not strong_semantic_relation
-        else MIN_ANSWER_TYPE_SCORE
-    )
-    requires_relation = relation["relation_type"] in {
-        "CONTRAST",
-        "ALIAS",
-        "TEMPORAL_EXPRESSION",
-        "NUMBER_EXPRESSION",
-        "PERSON_RELATION",
-        "PERSON_DEFINITION",
-        "PROPERTY_DESCRIPTION",
-        "SITUATION_DESCRIPTION",
-        "ROLE_RELATION",
-        "CAUSE",
-        "BIRTH_TIME",
-        "DEATH_TIME",
-        "PURPOSE",
-        "METHOD",
-        "EVENT_LOCATION",
-        "OBJECT_LOCATION",
-        "BIRTH_LOCATION",
-        "DEATH_LOCATION",
-        "ORGANIZED_LOCATION",
-        "HEADQUARTERS_LOCATION",
-        "RESIDENCE_LOCATION",
-        "DEFINITION",
-        "ENTITY_LOCATION_RELATION",
-    }
+    policy = SEMANTIC_POLICIES.get(semantics.relation)
+    method_policy = SEMANTIC_POLICIES.method(candidate.method)
     candidate.answer_type_score = float(assessment.score)
     candidate.answer_type_reason = assessment.reason
     candidate.relation_type = relation["relation_type"]
@@ -1635,6 +1027,7 @@ def _score_answer_candidate(
     candidate.semantic_status = str(relation.get("semantic_status") or (
         "VALID" if relation.get("relation_evidence") else "UNKNOWN"
     ))
+    candidate.semantic_policy = policy.relation_type
     candidate.relation_validation_reason = relation.get("relation_rejection_reason")
     candidate.subject_match_reason = relation.get("subject_match_reason")
     candidate.evidence_score = 1.0 if lexical_evidence else 0.0
@@ -1651,12 +1044,6 @@ def _score_answer_candidate(
         candidate.text
         and span_has_clean_word_boundaries(context, candidate.start_char, candidate.end_char)
     )
-    candidate.passes_evidence_gate = bool(lexical_evidence and not answer_repeats_question(question, candidate.text))
-    candidate.passes_completeness_gate = bool(candidate.relation_complete)
-    candidate.passes_relation_gate = bool(
-        relation["relation_evidence"] if requires_relation else True
-    )
-    candidate.passes_type_gate = assessment.score >= required_type_score
     boundary_factor = 0.5 + 0.5 * candidate.boundary_score
     completeness_factor = 0.5 + 0.5 * candidate.completeness_score
     reader_signal = (
@@ -1672,6 +1059,25 @@ def _score_answer_candidate(
         relation_score=candidate.relation_score,
         relation_weight=RELATION_WEIGHT,
     )
+    validation_context = ValidationContext(
+        semantics=semantics,
+        policy=policy,
+        method_policy=method_policy,
+        relation=semantic_validation,
+        lexical_evidence=bool(
+            lexical_evidence and not answer_repeats_question(question, candidate.text)
+        ),
+    )
+    candidate.gate_results = evaluate_candidate_gates(
+        candidate,
+        semantics,
+        validation_context,
+        SEMANTIC_POLICIES,
+    )
+    candidate.passes_evidence_gate = candidate.gate_results["evidence"].passed
+    candidate.passes_completeness_gate = candidate.gate_results["completeness"].passed
+    candidate.passes_relation_gate = candidate.gate_results["relation"].passed
+    candidate.passes_type_gate = candidate.gate_results["answer_type"].passed
     candidate.rejection_reason = _candidate_rejection(candidate)
     candidate.passes_final_gate = candidate.rejection_reason is None
     return candidate
@@ -1751,7 +1157,7 @@ def build_passage_candidates(
                 if raw_candidate.get("score") is not None
                 else None
             ),
-            fallback_penalty=1.0,
+            fallback_penalty=SEMANTIC_POLICIES.method("neural_span").penalty,
             valid_span=bool(raw_candidate.get("valid_span", neural_text)),
             passes_reader_threshold=passes_threshold,
         )
@@ -1794,11 +1200,7 @@ def build_passage_candidates(
             end_char=int(fallback_output.get("end", -1)),
             reader_score=float(fallback_output.get("confidence", 0.0)),
             score_margin=None,
-            fallback_penalty=(
-                PHRASE_FALLBACK_PENALTY
-                if method == "phrase_fallback"
-                else FALLBACK_PENALTY
-            ),
+            fallback_penalty=SEMANTIC_POLICIES.method(method).penalty,
             valid_span=True,
             passes_reader_threshold=False,
             fallback_method=fallback_method,
@@ -1907,6 +1309,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 "fallback_method": candidate.fallback_method,
             }
             row = candidate.to_dict()
+            row["gates"] = list(row["gate_results"].values())
             row["display_text"] = format_display_answer(question, metadata.text, candidate_output)
             row["retrieval_score"] = float(hit.retrieval_score_normalized)
             row["retrieval_rank"] = int(hit.retrieval_rank)
@@ -1971,6 +1374,9 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "completeness_score": 1.0,
             "relation_complete": True,
             "completeness_reasons": (),
+            "semantic_policy": "GENERAL",
+            "gate_results": {},
+            "gates": [],
             "question_relation": "FACTOID",
             "refinement_method": "UNCHANGED",
             "refinement_changed": False,
@@ -2026,6 +1432,8 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "question_predicate": representative.get("question_predicate"),
             "question_modifier": representative.get("question_modifier"),
             "semantic_status": representative.get("semantic_status", "UNKNOWN"),
+            "semantic_policy": representative.get("semantic_policy", "GENERAL"),
+            "gates": representative.get("gates", []),
             "relation_validation_reason": representative.get("relation_validation_reason"),
             "subject_match_reason": representative.get("subject_match_reason"),
             "completeness_score": round(float(representative.get("completeness_score", 1.0)), 6),
@@ -2171,6 +1579,8 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         "question_predicate": (decision_candidate or {}).get("question_predicate"),
         "question_modifier": (decision_candidate or {}).get("question_modifier"),
         "semantic_status": (decision_candidate or {}).get("semantic_status", "UNKNOWN"),
+        "semantic_policy": (decision_candidate or {}).get("semantic_policy", "GENERAL"),
+        "gates": (decision_candidate or {}).get("gates", []),
         "relation_validation_reason": (decision_candidate or {}).get("relation_validation_reason"),
         "subject_match_reason": (decision_candidate or {}).get("subject_match_reason"),
         "relation_method": (decision_candidate or {}).get("relation_method"),
@@ -2249,6 +1659,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         },
         "passages": visible_passages,
         "scoring": {
+            "semantic_policy_version": SEMANTIC_POLICIES.version,
             "retriever_weight": RETRIEVER_WEIGHT,
             "reader_weight": READER_WEIGHT,
             "answer_type_weight": ANSWER_TYPE_WEIGHT,

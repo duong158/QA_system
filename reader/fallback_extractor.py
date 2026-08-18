@@ -8,6 +8,7 @@ from typing import Any
 from reader.answer_refinement import QuestionRelation, detect_question_relation
 from reader.cause_relations import extract_cause_candidate, extract_cause_question
 from reader.question_type import QuestionType
+from reader.semantic_policy import SEMANTIC_POLICIES
 
 
 @dataclass(frozen=True)
@@ -163,6 +164,7 @@ LOCATION_RELATION_NORMALIZED_PATTERNS = {
     "RESIDENCE_LOCATION": r"(?:sinh song|cu tru|tap trung|song(?=\s+(?:o|tai)))",
 }
 _LOCATION_PREPOSITION = r"(?:ở|tại|trên|trong)"
+_LOCATION_SUPPLEMENTAL_RELATIONS = frozenset({"OBJECT_LOCATION"})
 _LOCATION_DESIGNATORS = {
     "chau", "dao", "dia diem", "huyen", "khu vuc", "lanh tho", "mien", "nuoc",
     "phuong", "quan", "quoc gia", "thanh pho", "thi tran", "tinh", "xa",
@@ -364,7 +366,7 @@ _PERSON_TITLE = (
 
 
 def _person_definition_subject(question: str) -> str | None:
-    """Return the named subject in questions such as ``Phạm Văn Đồng là ai?``."""
+    """Return the named subject from a Vietnamese person-definition question."""
 
     match = re.fullmatch(
         r"\s*(?P<subject>.+?)\s+là\s+ai\s*[?!.]*\s*",
@@ -468,29 +470,36 @@ def extract_person_candidate(question: str, sentence: str) -> FallbackCandidate 
     return max(candidates, key=lambda item: (item.score, -len(_tokens(item.answer)))) if candidates else None
 
 
+def _extract_situation_description(sentence: str, relation_type: str) -> FallbackCandidate | None:
+    answer = sentence.strip().rstrip(".!?;")
+    start = sentence.find(answer)
+    if not answer:
+        return None
+    return FallbackCandidate(
+        answer=answer,
+        method="description_sentence_pattern",
+        score=0.84,
+        evidence_sentence=sentence,
+        start_char=start,
+        end_char=start + len(answer),
+        relation_type=relation_type,
+        relation_score=0.84,
+        phrase_quality=0.82,
+        lexical_evidence=True,
+        relation_evidence=True,
+    )
+
+
+_DESCRIPTION_HANDLERS = {"SITUATION_DESCRIPTION": _extract_situation_description}
+
+
 def extract_description_candidate(question: str, sentence: str) -> FallbackCandidate | None:
     relation_type = detect_description_relation(question)
     if relation_type is None:
         return None
-
-    if relation_type == "SITUATION_DESCRIPTION":
-        answer = sentence.strip().rstrip(".!?;")
-        start = sentence.find(answer)
-        if not answer:
-            return None
-        return FallbackCandidate(
-            answer=answer,
-            method="description_sentence_pattern",
-            score=0.84,
-            evidence_sentence=sentence,
-            start_char=start,
-            end_char=start + len(answer),
-            relation_type=relation_type,
-            relation_score=0.84,
-            phrase_quality=0.82,
-            lexical_evidence=True,
-            relation_evidence=True,
-        )
+    handler = _DESCRIPTION_HANDLERS.get(relation_type)
+    if handler is not None:
+        return handler(sentence, relation_type)
 
     intensity = r"(?:rất|vô[\s_]+cùng|cực[\s_]+kỳ|khá|tương[\s_]+đối|đặc[\s_]+biệt)"
     expression = re.compile(
@@ -561,6 +570,17 @@ def extract_role_candidate(question: str, sentence: str) -> FallbackCandidate | 
             )
         )
     return max(candidates, key=lambda item: (item.score, len(_tokens(item.answer)))) if candidates else None
+
+
+def _identity_answer(answer: str) -> str:
+    return answer
+
+
+def _normalize_cause_answer(answer: str) -> str:
+    return re.sub(r"\s*\([^)]*\)\s*$", "", answer).rstrip()
+
+
+_RELATION_ANSWER_NORMALIZERS = {"CAUSE": _normalize_cause_answer}
 
 
 def extract_clause_candidate(
@@ -648,8 +668,8 @@ def extract_clause_candidate(
             if not answer:
                 continue
             start += len(sentence[start:end]) - len(sentence[start:end].lstrip())
-            if relation_type == "CAUSE":
-                answer = re.sub(r"\s*\([^)]*\)\s*$", "", answer).rstrip()
+            normalizer = _RELATION_ANSWER_NORMALIZERS.get(relation_type, _identity_answer)
+            answer = normalizer(answer)
             end = start + len(answer)
             candidates.append(
                 FallbackCandidate(
@@ -753,7 +773,7 @@ def _subject_matches(subject: str, text: str) -> bool:
         return True
     text_tokens = set(_tokens(text))
     coverage = len(subject_tokens & text_tokens) / len(subject_tokens)
-    return coverage >= 0.6
+    return coverage >= SEMANTIC_POLICIES.validator_threshold("location", "subject_coverage")
 
 
 def _trim_location_span(sentence: str, start: int, end: int | None = None) -> tuple[int, int]:
@@ -812,7 +832,7 @@ def _location_candidate(
         return None
     answer = sentence[start:end]
     quality = _location_phrase_quality(answer)
-    if quality < 0.60:
+    if quality < SEMANTIC_POLICIES.validator_threshold("location", "phrase_quality"):
         return None
     return FallbackCandidate(
         answer=answer,
@@ -825,7 +845,8 @@ def _location_candidate(
         relation_score=relation_score,
         phrase_quality=quality,
         lexical_evidence=True,
-        relation_evidence=relation_score >= 0.75,
+        relation_evidence=relation_score
+        >= SEMANTIC_POLICIES.validator_threshold("location", "relation_evidence"),
     )
 
 
@@ -862,7 +883,7 @@ def extract_location_candidate(
             if candidate:
                 candidates.append(candidate)
 
-        if relation_type == "OBJECT_LOCATION":
+        if relation_type in _LOCATION_SUPPLEMENTAL_RELATIONS:
             object_links = re.compile(
                 rf"\b(?:thuộc[\s_]+|{_LOCATION_PREPOSITION}[\s_]+)",
                 re.IGNORECASE,
@@ -1112,7 +1133,7 @@ def extract_fallback_answer(
                 answer,
                 relation.base_score,
             )
-            if score < 0.72:
+            if score < SEMANTIC_POLICIES.validator_threshold("location", "entity_relation"):
                 continue
             candidates.append(
                 FallbackCandidate(

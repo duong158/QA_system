@@ -2,7 +2,7 @@
   "benchmark": "manual_live_semantic_set_v1",
   "run_date": "2026-08-18",
   "environment": {
-    "endpoint": "http://127.0.0.1:8000/ask",
+    "endpoint": "http://127.0.0.1:8000/api/ask",
     "passage_count": 6544,
     "retriever": "BM25",
     "reader": "PHOBERT",

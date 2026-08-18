@@ -5,6 +5,8 @@ import unicodedata
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from reader.semantic_policy import SEMANTIC_POLICIES
+
 
 _CAUSE_QUESTION_PATTERNS = (
     re.compile(r"^(?:vi sao|tai sao|do dau|boi dau)\s+(?P<target>.+?)\s*[?!.]*$"),
@@ -158,7 +160,7 @@ def _semantic_predicate_score(target: str, effect: str, sentence: str) -> float:
     effect_tokens = _content_tokens(effect)
     if target_tokens:
         overlap = len(target_tokens & effect_tokens) / len(target_tokens)
-        if overlap >= 0.66:
+        if overlap >= SEMANTIC_POLICIES.validator_threshold("cause", "predicate_overlap"):
             return 1.0
         if overlap > 0:
             return 0.72
@@ -283,13 +285,15 @@ def extract_cause_candidate(
             6,
         )
         relation_evidence = bool(
-            pattern_score >= 0.85 and subject_score >= 0.75 and target_score >= 0.55
+            pattern_score >= SEMANTIC_POLICIES.validator_threshold("cause", "evidence_pattern")
+            and subject_score >= SEMANTIC_POLICIES.validator_threshold("cause", "evidence_subject")
+            and target_score >= SEMANTIC_POLICIES.validator_threshold("cause", "evidence_target")
         )
-        if subject_score < 0.50:
+        if subject_score < SEMANTIC_POLICIES.validator_threshold("cause", "subject_mismatch"):
             reason = "CAUSE_SUBJECT_MISMATCH"
-        elif target_score < 0.55:
+        elif target_score < SEMANTIC_POLICIES.validator_threshold("cause", "evidence_target"):
             reason = "CAUSE_TARGET_MISMATCH"
-        elif pattern_score < 0.65:
+        elif pattern_score < SEMANTIC_POLICIES.validator_threshold("cause", "pattern_mismatch"):
             reason = "CAUSE_RELATION_MISMATCH"
         else:
             reason = None
