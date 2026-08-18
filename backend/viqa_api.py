@@ -81,14 +81,7 @@ UNIMPLEMENTED_READERS = {
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
 }
 
-STOPWORDS = {
-    "ai", "anh", "ay", "ban", "bang", "bao", "bi", "cac", "cai", "can", "chi",
-    "cho", "co", "con", "cua", "da", "dang", "day", "de", "den", "di", "do",
-    "duoc", "duoi", "gi", "giua", "hay", "hon", "khi", "khong", "la", "lai",
-    "lam", "may", "mot", "nao", "nay", "neu", "ngay", "nhieu", "nhu", "nhung",
-    "o", "phai", "qua", "ra", "rang", "sau", "se", "so", "tai", "the", "thi",
-    "theo", "tren", "trong", "truoc", "tu", "va", "vao", "ve", "vi", "voi",
-}
+
 
 class PipelineError(RuntimeError):
     pass
