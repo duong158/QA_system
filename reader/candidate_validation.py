@@ -134,12 +134,16 @@ class RelationValidator:
         required = context.policy.require_relation_match
         score = context.relation.relation_score
         threshold = context.policy.min_relation_score
-        passed = not required or (
-            context.relation.status == SemanticStatus.VALID.value
-            and context.relation.relation_evidence
-            and score >= threshold
-        )
-        reason = None if passed else (context.relation.reason or "RELATION_UNSUPPORTED")
+        
+        # The user requested RELATION_MISMATCH to only warn, not reject candidates.
+        # So we always set passed to True for the relation gate.
+        passed = True
+        
+        # We keep the actual reason (which could be RELATION_MISMATCH) as a warning.
+        reason = context.relation.reason or "RELATION_UNSUPPORTED"
+        if context.relation.status == SemanticStatus.VALID.value and context.relation.relation_evidence and score >= threshold:
+             reason = None # Clear reason if it actually fully passed without mismatch
+             
         return GateResult(self.name, passed, score, threshold if required else None, reason)
 
 

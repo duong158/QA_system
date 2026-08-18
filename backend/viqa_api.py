@@ -278,9 +278,8 @@ def choose_reader_output(
         neural_end,
         "neural_span",
     )
-    neural_relation_supported = (
-        not selection_policy.require_relation_match or neural_validation.relation_evidence
-    )
+    # User requested relation mismatch to only warn, not reject candidates.
+    neural_relation_supported = True
     neural_ready = (
         bool(neural_answer)
         and not neural_is_echo
