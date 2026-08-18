@@ -72,6 +72,9 @@ UNIMPLEMENTED_RETRIEVERS = {
     "pyserini": "Pyserini BM25 is not wired into this API yet: no Lucene index/runtime is configured for online serving.",
 }
 
+DENSE_MODEL_NAME = os.getenv("QA_DENSE_MODEL", "keepitreal/vietnamese-sbert")
+RRF_K = int(os.getenv("QA_RRF_K", "60"))
+
 SUPPORTED_READERS = {"phobert", "xlmr"}
 UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
