@@ -683,6 +683,7 @@ class PassageIndex:
             frequency = passage.term_counts.get(term, 0)
             if not frequency:
                 continue
+            frequency = min(frequency, 1)
             denominator = frequency + k1 * (
                 1 - b + b * passage_length / max(1.0, self.avg_passage_len)
             )
