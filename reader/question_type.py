@@ -87,31 +87,67 @@ def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
     return any(re.search(pattern, text) for pattern in patterns)
 
 
+_classifier_pipeline = None
+
+def _get_classifier():
+    global _classifier_pipeline
+    if _classifier_pipeline is None:
+        import logging
+        logging.getLogger("transformers").setLevel(logging.ERROR)
+        from transformers import pipeline
+        import torch
+        
+        # Check if CUDA is available, else fallback to CPU
+        device = 0 if torch.cuda.is_available() else -1
+        
+        # Using a highly-capable multilingual zero-shot model
+        _classifier_pipeline = pipeline(
+            "zero-shot-classification", 
+            model="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
+            device=device
+        )
+    return _classifier_pipeline
+
+
 def detect_question_type(question: str) -> list[QuestionType]:
-    """Detect the expected answer categories without extracting an answer."""
+    """Detect the expected answer categories using zero-shot ML pipeline."""
 
     normalized = _normalized(question)
-    types = []
-    # Relation intent is orthogonal to the answer category. CAUSE questions
-    # expect a clause/phrase, even when their surface form contains "điều gì".
+    # Maintain structural CAUSE check since it relies heavily on question structure
     if _matches_any(normalized, CAUSE_QUESTION_PATTERNS):
         return [QuestionType.GENERAL]
-    # TIME must precede NUMBER because years and centuries are numeric answers.
-    if _matches_any(normalized, TIME_QUESTION_PATTERNS):
-        types.append(QuestionType.TIME)
-    if _matches_any(normalized, PERSON_QUESTION_PATTERNS):
-        types.append(QuestionType.PERSON)
-    if _matches_any(normalized, LOCATION_QUESTION_PATTERNS):
-        types.append(QuestionType.LOCATION)
-    if _matches_any(normalized, NUMBER_QUESTION_PATTERNS):
-        types.append(QuestionType.NUMBER)
-    if _matches_any(normalized, DEFINITION_QUESTION_PATTERNS):
-        types.append(QuestionType.DEFINITION)
-    if _matches_any(normalized, ENTITY_QUESTION_PATTERNS):
-        types.append(QuestionType.ENTITY)
-        
+
+    classifier = _get_classifier()
+    
+    # Semantic labels in Vietnamese for better zero-shot matching
+    label_map = {
+        "thời gian": QuestionType.TIME,
+        "người": QuestionType.PERSON,
+        "địa điểm": QuestionType.LOCATION,
+        "số lượng": QuestionType.NUMBER,
+        "định nghĩa": QuestionType.DEFINITION,
+        "thực thể": QuestionType.ENTITY,
+        "chung": QuestionType.GENERAL
+    }
+    
+    candidate_labels = list(label_map.keys())
+    
+    # Run multi-label zero-shot classification
+    result = classifier(question, candidate_labels, multi_label=True)
+    
+    types = []
+    # Any label with score above 0.5 is considered a match
+    threshold = 0.5
+    for label, score in zip(result["labels"], result["scores"]):
+        if score >= threshold:
+            q_type = label_map[label]
+            if q_type not in types:
+                types.append(q_type)
+    
     if not types:
+        # Fallback to GENERAL if nothing crosses threshold
         types.append(QuestionType.GENERAL)
+        
     return types
 
 
