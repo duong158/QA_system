@@ -47,7 +47,7 @@ def assess_span_boundary(
     context: str,
     start: int,
     end: int,
-    question_type: QuestionType | str,
+    question_types: list[QuestionType | str] | QuestionType | str,
     question: str = "",
 ) -> BoundaryAssessment:
     """Estimate whether a span starts and ends at a semantic phrase boundary.
@@ -64,7 +64,9 @@ def assess_span_boundary(
     if not tokens:
         return BoundaryAssessment(0.0, False, ("EMPTY_SPAN",))
 
-    expected = QuestionType(question_type)
+    if not isinstance(question_types, list):
+        question_types = [question_types]
+    expected_types = [QuestionType(qt) for qt in question_types]
     score = 1.0
     reasons: list[str] = []
     first = tokens[0].casefold()
@@ -82,13 +84,13 @@ def assess_span_boundary(
 
     word_count = len(tokens)
     normalized_question = _normalize(question)
-    if expected is QuestionType.TIME and word_count > 12:
+    if QuestionType.TIME in expected_types and word_count > 12:
         score = min(score, 0.15)
         reasons.append("OVERLONG_TIME_SPAN")
-    elif expected is QuestionType.NUMBER and word_count > 10:
+    elif QuestionType.NUMBER in expected_types and word_count > 10:
         score = min(score, 0.15)
         reasons.append("OVERLONG_NUMBER_SPAN")
-    elif expected is QuestionType.PERSON:
+    elif QuestionType.PERSON in expected_types:
         plural_person = bool(re.search(r"\b(?:nhung ai|nhung nguoi nao)\b", normalized_question))
         person_definition = bool(
             re.fullmatch(r".+\s+la\s+ai", normalized_question.strip(" ?!."))
@@ -97,11 +99,11 @@ def assess_span_boundary(
         if word_count > maximum:
             score = min(score, 0.15)
             reasons.append("OVERLONG_PERSON_SPAN")
-    elif expected is QuestionType.LOCATION and word_count > 16:
+    elif QuestionType.LOCATION in expected_types and word_count > 16:
         score = min(score, 0.30)
         reasons.append("OVERLONG_LOCATION_SPAN")
 
-    if expected in {QuestionType.ENTITY, QuestionType.PERSON, QuestionType.LOCATION}:
+    if any(qt in expected_types for qt in {QuestionType.ENTITY, QuestionType.PERSON, QuestionType.LOCATION}):
         right = re.match(rf"\s+(?P<word>{_WORD})", context[end:], flags=re.UNICODE)
         if right and _normalize(tokens[-1]) == "dau" and _normalize(right.group("word")) == "tien":
             score = min(score, 0.15)

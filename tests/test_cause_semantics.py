@@ -70,7 +70,7 @@ class CauseSemanticTests(unittest.TestCase):
         )
         frames = []
         for question in questions:
-            self.assertEqual(detect_question_type(question), QuestionType.GENERAL)
+            self.assertEqual(detect_question_type(question), [QuestionType.GENERAL])
             self.assertEqual(
                 detect_question_relation(question, QuestionType.GENERAL),
                 QuestionRelation.CAUSE,

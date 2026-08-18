@@ -181,7 +181,7 @@ class PipelineTests(unittest.TestCase):
                 }
             )
 
-        self.assertEqual(result["question_type"], "ENTITY")
+        self.assertEqual(result["question_type"], ["ENTITY"])
         self.assertEqual(result["answer"], "Lâm Bá Kiệt")
         self.assertEqual(result["reader_method"], "neural_span")
         self.assertEqual(result["answer_refinement"]["raw_answer"], "là Lâm Bá")
@@ -404,8 +404,8 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["selected_passage_id"], "DOC_P0002")
         self.assertEqual(result["answer"], "reader favorite")
         self.assertEqual(result["answer_source"]["passage_id"], "DOC_P0002")
-        self.assertEqual(result["scoring"]["retriever_weight"], 0.4)
-        self.assertEqual(result["scoring"]["reader_weight"], 0.4)
+        self.assertEqual(result["scoring"]["retriever_weight"], 0.3)
+        self.assertEqual(result["scoring"]["reader_weight"], 0.5)
         self.assertEqual(result["scoring"]["answer_type_weight"], 0.2)
         self.assertEqual(result["scoring"]["relation_weight"], 0.0)
         self.assertEqual(result["passages"][0]["passage_id"], "DOC_P0002")
@@ -490,7 +490,7 @@ class PipelineTests(unittest.TestCase):
             )
 
         by_id = {passage["passage_id"]: passage for passage in result["passages"]}
-        self.assertEqual(result["question_type"], "TIME")
+        self.assertEqual(result["question_type"], ["TIME"])
         self.assertTrue(result["has_answer"])
         self.assertEqual(result["selected_passage_id"], "DOC_P0002")
         self.assertIn("thế kỷ 10", result["answer"])
@@ -520,7 +520,7 @@ class PipelineTests(unittest.TestCase):
 
         candidate = result["passages"][0]
         self.assertEqual(MIN_FALLBACK_ANSWER_TYPE_SCORE, 0.75)
-        self.assertEqual(result["question_type"], "ENTITY")
+        self.assertEqual(result["question_type"], ["ENTITY"])
         self.assertTrue(result["has_answer"])
         self.assertEqual(result["answer"], "nhà thờ Saint-Pierre")
         self.assertEqual(result["fallback_method"], "entity_relation_pattern")
@@ -596,8 +596,8 @@ class PipelineTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Retriever 'pyserini' is not implemented"):
             ask_question({"question": "test question", "retriever": "pyserini", "reader": "phobert", "top_k": 2})
 
-        with self.assertRaisesRegex(ValueError, "Reader 'xlmr' is not implemented"):
-            ask_question({"question": "test question", "retriever": "bm25", "reader": "xlmr", "top_k": 2})
+        with self.assertRaisesRegex(ValueError, "Reader 'vibert' is not implemented"):
+            ask_question({"question": "test question", "retriever": "bm25", "reader": "vibert", "top_k": 2})
 
     def test_production_backend_contains_no_question_answer_mapping(self):
         source = __import__("pathlib").Path("backend/viqa_api.py").read_text(encoding="utf-8")

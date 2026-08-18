@@ -16,7 +16,7 @@ ROOT = Path(__file__).resolve().parent
 
 
 def is_cause_question(question: str) -> bool:
-    question_type = detect_question_type(question)
+    question_type = detect_question_type(question)[0]
     return detect_question_relation(question, question_type) is QuestionRelation.CAUSE
 
 

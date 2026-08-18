@@ -94,10 +94,10 @@ export function AnswerPanel({ response, submittedQuestion, state, compareMode, o
         <span>
           Answer confidence: {typeof response?.answer_confidence === 'number' ? `${(response.answer_confidence * 100).toFixed(1)}%` : 'not calibrated'}
         </span>
-        <span>Question type: {response?.question_type ?? '--'}</span>
+        <span>Question type: {Array.isArray(response?.question_type) ? response.question_type.join(', ') : (response?.question_type ?? '--')}</span>
         <span>Reader method: {response?.reader_method ?? '--'}</span>
         {response?.fallback_method ? <span>Fallback method: {response.fallback_method}</span> : null}
-        {response?.question_type === 'LOCATION' ? (
+        {(Array.isArray(response?.question_type) ? response.question_type.includes('LOCATION') : response?.question_type === 'LOCATION') ? (
           <span>
             Relation: {response.relation_type ?? '--'} ({response.relation_score?.toFixed(2) ?? '0.00'})
           </span>

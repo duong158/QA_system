@@ -239,14 +239,14 @@ export function HomePage() {
                 <p>Retriever raw: {selectedSource.retrieval_score_raw?.toFixed(4) ?? '--'}</p>
                 <p>Retriever normalized: {selectedSource.retrieval_score_normalized?.toFixed(4) ?? '--'}</p>
                 <p>Original retrieval rank: {selectedSource.retrieval_rank ?? '--'}</p>
-                <p>Question type: {selectedSource.question_type ?? '--'}</p>
+                <p>Question type: {Array.isArray(selectedSource.question_type) ? selectedSource.question_type.join(', ') : (selectedSource.question_type ?? '--')}</p>
                 <p>Reader method: {selectedSource.reader_method ?? 'neural_span'}</p>
                 <p>Reader candidate: {selectedSource.reader_answer || 'No span'}</p>
                 <p>Neural score: {selectedSource.neural_reader_score?.toFixed(4) ?? '--'}</p>
                 <p>Fallback score: {selectedSource.fallback_score?.toFixed(4) ?? '--'}</p>
                 <p>Reader margin: {selectedSource.reader_score_margin?.toFixed(4) ?? '--'}</p>
                 <p>Answer-type score: {selectedSource.answer_type_score?.toFixed(4) ?? '--'} ({selectedSource.answer_type_reason ?? '--'})</p>
-                {selectedSource.question_type === 'LOCATION' ? (
+                {(Array.isArray(selectedSource.question_type) ? selectedSource.question_type.includes('LOCATION') : selectedSource.question_type === 'LOCATION') ? (
                   <>
                     <p>Relation: {selectedSource.relation_type ?? '--'} ({selectedSource.relation_score?.toFixed(4) ?? '0.0000'})</p>
                     <p>Location phrase quality: {selectedSource.phrase_quality?.toFixed(4) ?? '--'}</p>

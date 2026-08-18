@@ -72,7 +72,7 @@ def evaluate(records: list[dict], method: str, k_values: list[int]) -> dict:
     }
 
 def main():
-    data_path = Path("data/raw/viquad2_test.parquet")
+    data_path = Path("data/raw/viquad2_validation.parquet")
     print(f"Loading {data_path}...")
     records = load_records(data_path)
     

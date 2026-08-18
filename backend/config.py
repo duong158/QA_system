@@ -48,6 +48,7 @@ class PipelineConfig:
     reader_span_candidates: int
     chunk_max_tokens: int
     chunk_overlap_sentences: int
+    multi_type_coverage_bonus: float
 
     def candidate_count(self, top_k: int) -> int:
         return min(
@@ -148,6 +149,11 @@ def load_pipeline_config(path: str | Path | None = None) -> PipelineConfig:
         chunk_max_tokens=_env("QA_CHUNK_MAX_TOKENS", payload["chunk_max_tokens"], int),
         chunk_overlap_sentences=_env(
             "QA_CHUNK_OVERLAP_SENTENCES", payload["chunk_overlap_sentences"], int
+        ),
+        multi_type_coverage_bonus=_env(
+            "QA_MULTI_TYPE_COVERAGE_BONUS",
+            payload.get("multi_type_coverage_bonus", 0.10),
+            float,
         ),
     )
     if config.default_top_k <= 0 or config.default_top_k > config.max_top_k:

@@ -35,7 +35,7 @@ def load_stratified_subset(size: int, seed: int) -> list[dict[str, Any]]:
         raw_answer_start = row.get("answer_start", -1)
         answer_start = int(raw_answer_start if raw_answer_start is not None else -1)
         answerable = answer_start >= 0 and bool(row.get("answer_text"))
-        buckets[(detect_question_type(str(row["question"])).value, answerable)].append(row)
+        buckets[(detect_question_type(str(row["question"]))[0].value, answerable)].append(row)
 
     selected: list[dict[str, Any]] = []
     keys = sorted(buckets)
@@ -319,7 +319,7 @@ def main() -> None:
             answerable = answer_start >= 0 and bool(gold)
             if not answerable:
                 gold = ""
-            question_types[detect_question_type(question).value] += 1
+            question_types[detect_question_type(question)[0].value] += 1
 
             started = time.perf_counter()
             response = ask_question(
@@ -369,7 +369,7 @@ def main() -> None:
         )
     else:
         for row in cache_rows:
-            question_types[detect_question_type(row["question"]).value] += 1
+            question_types[detect_question_type(row["question"])[0].value] += 1
 
     config_results: dict[str, Any] = {}
     for name, config in WEIGHT_CONFIGS.items():

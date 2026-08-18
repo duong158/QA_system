@@ -113,7 +113,7 @@ def main() -> None:
         question = str(record["question"])
         context = str(record.get("context") or "")
         gold, answerable = _gold(record)
-        question_type = detect_question_type(question).value
+        question_type = detect_question_type(question)[0].value
         question_type_counts[question_type] += 1
         started = time.perf_counter()
         if args.mode == "oracle":

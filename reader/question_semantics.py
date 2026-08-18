@@ -172,7 +172,8 @@ def _subject_from_nominal_time_question(question: str, folded: str) -> str | Non
 
 def parse_question_semantics(question: str) -> QuestionSemantics:
     question = str(question or "").strip()
-    question_type = detect_question_type(question)
+    question_types = detect_question_type(question)
+    question_type = question_types[0] if question_types else QuestionType.GENERAL
     folded = fold_text(question).strip()
     coarse_relation = detect_question_relation(question, question_type)
     birth_time_intent = bool(

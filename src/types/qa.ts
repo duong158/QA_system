@@ -32,7 +32,7 @@ export interface PassageResult {
   retrieval_score: number;
   retrieval_score_raw?: number;
   retrieval_score_normalized?: number;
-  question_type?: QuestionType;
+  question_type?: QuestionType[];
   reader_method?: string;
   reader_answer?: string | null;
   reader_span_answer?: string | null;
@@ -83,7 +83,7 @@ export type QuestionType = 'TIME' | 'PERSON' | 'LOCATION' | 'NUMBER' | 'DEFINITI
 
 export interface QaResponse {
   question: string;
-  question_type?: QuestionType;
+  question_type?: QuestionType[];
   answer_type?: QuestionType;
   answer: string | null;
   has_answer?: boolean;

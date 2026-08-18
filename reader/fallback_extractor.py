@@ -1023,7 +1023,7 @@ def _candidate_quality(
 
 def extract_fallback_answer(
     question: str,
-    question_type: str,
+    question_type: str | list[Any],
     sentence: str,
 ) -> FallbackCandidate:
     """Narrow a selected supporting sentence to a grounded answer phrase.
@@ -1037,6 +1037,14 @@ def extract_fallback_answer(
     sentence = str(sentence or "").strip()
     if not sentence:
         return FallbackCandidate("", "whole_sentence", 0.0, "", -1, -1)
+
+    if isinstance(question_type, list):
+        best_cand = None
+        for qt in question_type:
+            cand = extract_fallback_answer(question, qt, sentence)
+            if best_cand is None or cand.score > best_cand.score:
+                best_cand = cand
+        return best_cand or FallbackCandidate(sentence, "whole_sentence", 0.4, sentence, 0, len(sentence))
 
     normalized_type = str(getattr(question_type, "value", question_type)).upper()
     contrast = extract_contrast_candidate(question, sentence)

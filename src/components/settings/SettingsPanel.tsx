@@ -20,7 +20,7 @@ const retrieverOptions: Array<{ value: RetrieverType; label: string; description
 const readerOptions: Array<{ value: ReaderType; label: string; implemented: boolean }> = [
   { value: 'phobert', label: 'PhoBERT QA', implemented: true },
   { value: 'vibert', label: 'viBERT QA', implemented: false },
-  { value: 'xlmr', label: 'XLM-R QA', implemented: false },
+  { value: 'xlmr', label: 'XLM-R QA', implemented: true },
 ];
 
 const topKOptions = [1, 3, 5, 10];

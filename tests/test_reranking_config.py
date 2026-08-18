@@ -7,8 +7,8 @@ from backend.viqa_api import combine_ranking_scores, min_max_normalize
 class RerankingConfigTests(unittest.TestCase):
     def test_temporary_production_weights_and_candidate_pool(self):
         config = load_pipeline_config()
-        self.assertAlmostEqual(config.retriever_weight, 0.4)
-        self.assertAlmostEqual(config.reader_weight, 0.4)
+        self.assertAlmostEqual(config.retriever_weight, 0.3)
+        self.assertAlmostEqual(config.reader_weight, 0.5)
         self.assertAlmostEqual(config.answer_type_weight, 0.2)
         self.assertAlmostEqual(config.relation_weight, 0.0)
         self.assertAlmostEqual(config.reader_score_margin_threshold, -3.5)

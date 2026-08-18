@@ -46,7 +46,7 @@ def load_question_type_subset(
     rows = [
         row
         for row in rows
-        if detect_question_type(str(row["question"])).value == question_type
+        if detect_question_type(str(row["question"]))[0].value == question_type
     ]
     random.Random(seed).shuffle(rows)
     buckets: dict[bool, list[dict[str, Any]]] = {True: [], False: []}

@@ -214,13 +214,13 @@ class SpanBoundaryTests(unittest.TestCase):
     def test_descriptive_quantity_question_is_not_forced_to_number(self):
         self.assertEqual(
             detect_question_type("Số lượng cá thể kiến biến đổi như thế nào?"),
-            QuestionType.GENERAL,
+            [QuestionType.GENERAL],
         )
 
     def test_khu_vuc_question_is_location(self):
         self.assertEqual(
             detect_question_type("Người di cư tập trung ở khu vực nào?"),
-            QuestionType.LOCATION,
+            [QuestionType.LOCATION],
         )
 
 
