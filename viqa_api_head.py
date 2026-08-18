@@ -57,7 +57,6 @@ RETRIEVER_WEIGHT = PIPELINE_CONFIG.retriever_weight
 READER_WEIGHT = PIPELINE_CONFIG.reader_weight
 ANSWER_TYPE_WEIGHT = PIPELINE_CONFIG.answer_type_weight
 RELATION_WEIGHT = PIPELINE_CONFIG.relation_weight
-MULTI_TYPE_COVERAGE_BONUS = PIPELINE_CONFIG.multi_type_coverage_bonus
 MIN_READER_SCORE = PIPELINE_CONFIG.minimum_reader_score
 MIN_ANSWER_TYPE_SCORE = PIPELINE_CONFIG.minimum_answer_type_score
 MIN_FALLBACK_ANSWER_TYPE_SCORE = PIPELINE_CONFIG.minimum_fallback_answer_type_score
@@ -75,10 +74,11 @@ UNIMPLEMENTED_RETRIEVERS = {
 }
 DENSE_MODEL_NAME = os.getenv("QA_DENSE_MODEL", "keepitreal/vietnamese-sbert")
 RRF_K = int(os.getenv("QA_RRF_K", "60"))
-SUPPORTED_READERS = {"phobert", "xlmr"}
+SUPPORTED_READERS = {"phobert"}
 UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
+    "xlmr": "XLM-R QA is not implemented: the training notebook exists, but no runnable checkpoint is available under models/reader.",
 }
 
 STOPWORDS = {
@@ -129,7 +129,7 @@ class SearchHit:
 
 
 def normalize_text(value: str) -> str:
-    value = value.replace("Đ", "D").replace("đ", "d")
+    value = value.replace("─É", "D").replace("─æ", "d")
     value = unicodedata.normalize("NFD", value.lower())
     return "".join(ch for ch in value if unicodedata.category(ch) != "Mn")
 
@@ -324,11 +324,11 @@ def candidate_rejection_reason(candidate: dict[str, Any]) -> str | None:
         return "EVIDENCE_UNSUPPORTED"
     relation_type = candidate.get("relation_type")
     requires_relation = (
-        QuestionType.LOCATION.value in candidate.get("question_type", [])
+        candidate.get("question_type") == QuestionType.LOCATION.value
         and relation_type != "GENERIC_LOCATION"
     )
     generic_whole_sentence = (
-        QuestionType.LOCATION.value in candidate.get("question_type", [])
+        candidate.get("question_type") == QuestionType.LOCATION.value
         and relation_type == "GENERIC_LOCATION"
         and candidate.get("reader_method") == "sentence_fallback"
         and candidate.get("fallback_method") in {None, "whole_sentence"}
@@ -346,7 +346,7 @@ def candidate_rejection_reason(candidate: dict[str, Any]) -> str | None:
     ):
         return "INSUFFICIENT_FALLBACK_EVIDENCE"
     strong_location_relation = (
-        QuestionType.LOCATION.value in candidate.get("question_type", [])
+        candidate.get("question_type") == QuestionType.LOCATION.value
         and bool(candidate.get("lexical_evidence"))
         and bool(candidate.get("relation_evidence"))
         and float(candidate.get("relation_score", 0.0)) >= 0.85
@@ -428,7 +428,7 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
         return {"answer": "", "confidence": 0.0, "start": -1, "end": -1, "reason": "empty_question_tokens"}
 
     normalized_question = normalize_text(question)
-    question_types = detect_question_type(question)
+    question_type = detect_question_type(question)[0]
     subject = definition_subject(question)
     subject_phrase = re.sub(
         r"\b(bao gom nhung gi|gom nhung gi|co nhung gi|duoc chia thanh|duoc chia lam|duoc chia|chia thanh|chia lam|nhu the nao|nhu nao|la gi|la ai|chia|duoc|nao|gi|ai)\b",
@@ -451,7 +451,7 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
         sentence_tokens = set(tokenize(sentence))
         overlap = len(question_tokens & sentence_tokens) / max(1, len(question_tokens))
         normalized_sentence = normalize_text(sentence)
-        phrase = extract_fallback_answer(question, [qt.value for qt in question_types], sentence)
+        phrase = extract_fallback_answer(question, question_type.value, sentence)
         cue_bonus = 0.0
         if any(pattern in normalized_sentence for pattern in ANSWER_CUE_PATTERNS):
             cue_bonus += 0.18
@@ -476,7 +476,7 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
         if len(sentence) > 520:
             cue_bonus -= 0.12
         score = max(0.0, min(0.70, overlap * 0.78 + cue_bonus))
-        if QuestionType.LOCATION in question_types:
+        if question_type is QuestionType.LOCATION:
             if phrase.relation_evidence:
                 score = min(0.70, score + 0.24 * phrase.relation_score)
             elif phrase.method == "whole_sentence":
@@ -504,7 +504,7 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
     supporting_start = int(best["start"])
     supporting_end = int(best["end"])
     phrase = best.pop("_phrase", None) or extract_fallback_answer(
-        question, [qt.value for qt in question_types], supporting_sentence
+        question, question_type.value, supporting_sentence
     )
     if phrase.answer and phrase.start_char >= 0:
         best.update(
@@ -557,7 +557,7 @@ def choose_reader_output(
         neural_output.get("candidate_end", neural_output.get("best_span_end", neural_output.get("end", -1)))
     )
     neural_is_echo = answer_repeats_question(question, neural_answer)
-    question_types = detect_question_type(question)
+    question_type = detect_question_type(question)[0]
     subject = definition_subject(question)
     definition_supported = not subject or any(
         relation_follows_subject(sentence, subject) for sentence in split_sentences(context)
@@ -569,7 +569,7 @@ def choose_reader_output(
     )
     neural_relation_supported = True
     requires_location_relation = (
-        QuestionType.LOCATION in question_types
+        question_type is QuestionType.LOCATION
         and detect_location_relation(question) != "GENERIC_LOCATION"
     )
     if requires_location_relation and neural_answer:
@@ -729,12 +729,12 @@ def concise_source_answer(question: str, answer: str, max_chars: int = 280) -> s
                     predicate = predicate[: stop.start()].rstrip(" ,;:")
                 if predicate:
                     subject_text = answer[subject_match.start() : subject_match.end()].strip()
-                    answer = f"{subject_text} là {predicate}"
+                    answer = f"{subject_text} l├á {predicate}"
 
     answer = answer.split(";", 1)[0].strip()
     if len(answer) > max_chars:
         shortened = answer[: max_chars + 1].rsplit(" ", 1)[0].rstrip(" ,;:")
-        answer = f"{shortened}…"
+        answer = f"{shortened}ΓÇª"
     elif answer[-1:] not in ".!?":
         answer = f"{answer}."
     return answer
@@ -868,7 +868,7 @@ class DenseScorer:
             normalize_embeddings=True,
         ).astype(np.float32)
 
-        # Cosine similarity (embeddings are L2-normalized → dot product)
+        # Cosine similarity (embeddings are L2-normalized ΓåÆ dot product)
         similarities = (self._passage_embeddings @ query_vec.T).flatten()
         top_indices = np.argsort(similarities)[::-1][:top_k]
         selected = [(passages[i], float(similarities[i])) for i in top_indices if similarities[i] > 0]
@@ -1134,7 +1134,7 @@ class PassageIndex:
         # BM25 leg
         bm25_hits = self._lexical_retrieve(question, "bm25", expanded_k)
 
-        # Dense leg — gracefully degrade to BM25-only if dense is unavailable
+        # Dense leg ΓÇö gracefully degrade to BM25-only if dense is unavailable
         dense_hits = DENSE_SCORER.retrieve(question, self.passages, expanded_k)
         if not dense_hits:
             return self._lexical_retrieve(question, "bm25", top_k)
@@ -1185,12 +1185,11 @@ DENSE_SCORER = DenseScorer(DENSE_MODEL_NAME)
 
 
 def _empty_response(question: str, retriever: str, reader: str, elapsed: int) -> dict[str, Any]:
-    question_types = detect_question_type(question)
-    qt_values = [qt.value for qt in question_types]
+    question_type = detect_question_type(question)[0].value
     return {
         "question": question,
-        "question_type": qt_values,
-        "answer_type": qt_values,
+        "question_type": question_type,
+        "answer_type": question_type,
         "answer": None,
         "has_answer": False,
         "confidence": None,
@@ -1204,7 +1203,7 @@ def _empty_response(question: str, retriever: str, reader: str, elapsed: int) ->
         "source": None,
         "answer_source": None,
         "top_retrieved_passage": None,
-        "no_answer_reason": "Không tìm thấy câu trả lời đủ tin cậy trong các đoạn được truy xuất.",
+        "no_answer_reason": "Kh├┤ng t├¼m thß║Ñy c├óu trß║ú lß╗¥i ─æß╗º tin cß║¡y trong c├íc ─æoß║ín ─æ╞░ß╗úc truy xuß║Ñt.",
         "rejection_reason": "RETRIEVAL_MISS",
         "rejection_detail": REJECTION_MESSAGES["RETRIEVAL_MISS"],
         "scores": {
@@ -1221,7 +1220,7 @@ def _empty_response(question: str, retriever: str, reader: str, elapsed: int) ->
 
 def _semantic_relation_assessment(
     question: str,
-    question_types: list[QuestionType] | QuestionType,
+    question_type: QuestionType,
     context: str,
     answer: str,
     start: int,
@@ -1229,11 +1228,9 @@ def _semantic_relation_assessment(
     candidate_method: str,
     candidate_details: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    if not isinstance(question_types, list):
-        question_types = [question_types]
     details = candidate_details or {}
     typed_fallback_relation = str(details.get("relation_type") or "")
-    question_relation = detect_question_relation(question, question_types if question_types else [QuestionType.GENERAL])
+    question_relation = detect_question_relation(question, question_type)
     frame = extract_cause_question(question) if question_relation is QuestionRelation.CAUSE else None
     if question_relation is QuestionRelation.CAUSE and frame is not None:
         cause = assess_cause_candidate(
@@ -1328,7 +1325,7 @@ def _semantic_relation_assessment(
             "relation_evidence": exact_alias,
         }
     entity_location_relation = detect_location_relation(question)
-    if QuestionType.ENTITY in question_types and entity_location_relation != "GENERIC_LOCATION":
+    if question_type is QuestionType.ENTITY and entity_location_relation != "GENERIC_LOCATION":
         fallback_method = str(details.get("fallback_method") or "")
         if candidate_method != "neural_span" and fallback_method != "whole_sentence":
             score = max(
@@ -1349,7 +1346,7 @@ def _semantic_relation_assessment(
             ),
             "",
         )
-        extracted = extract_fallback_answer(question, [qt.value for qt in question_types], matching_sentence)
+        extracted = extract_fallback_answer(question, question_type.value, matching_sentence)
         same_relation_phrase = bool(extracted.answer) and (
             normalize_text(answer) in normalize_text(extracted.answer)
             or normalize_text(extracted.answer) in normalize_text(answer)
@@ -1361,7 +1358,7 @@ def _semantic_relation_assessment(
             "phrase_quality": score,
             "relation_evidence": score >= 0.72,
         }
-    if QuestionType.LOCATION in question_types:
+    if question_type is QuestionType.LOCATION:
         return location_relation_assessment(
             question,
             context,
@@ -1377,7 +1374,7 @@ def _semantic_relation_assessment(
             },
         )
     subject = definition_subject(question)
-    if QuestionType.DEFINITION in question_types and subject:
+    if question_type is QuestionType.DEFINITION and subject:
         supported = any(
             relation_follows_subject(sentence, subject)
             and normalize_text(answer) in normalize_text(sentence)
@@ -1398,7 +1395,6 @@ def _semantic_relation_assessment(
 
 
 def _candidate_rejection(candidate: AnswerCandidate) -> str | None:
-    """
     if not candidate.valid_span:
         return "NO_VALID_SPAN"
     if candidate.boundary_score < 0.20:
@@ -1450,7 +1446,6 @@ def _candidate_rejection(candidate: AnswerCandidate) -> str | None:
     )
     if candidate.ranking_score < MIN_RANKING_SCORE and not strong_grounded_relation:
         return "LOW_RANKING_SCORE"
-    """
     return None
 
 
@@ -1498,14 +1493,14 @@ def _score_answer_candidate(
     candidate: AnswerCandidate,
     *,
     question: str,
-    question_types: list[QuestionType] | QuestionType,
+    question_type: QuestionType,
     context: str,
     retrieval_score: float,
     relation_details: dict[str, Any] | None = None,
 ) -> AnswerCandidate:
     refinement = refine_answer(
         question,
-        question_types if question_types else [QuestionType.GENERAL],
+        question_type,
         context,
         candidate.start_char,
         candidate.end_char,
@@ -1539,7 +1534,7 @@ def _score_answer_candidate(
     )
     relation = _semantic_relation_assessment(
         question,
-        question_types,
+        question_type,
         context,
         candidate.text,
         candidate.start_char,
@@ -1577,14 +1572,12 @@ def _score_answer_candidate(
             "subject_match_reason": semantic_validation.subject_match_reason,
             "evidence_sentence": semantic_validation.evidence_sentence,
         }
-
     assessment = assess_answer_type(
-        question_types,
+        question_type,
         candidate.text,
         relation_score=float(relation["relation_score"]),
         phrase_quality=float(relation["phrase_quality"]),
         candidate_method=candidate.fallback_method,
-        multi_type_coverage_bonus=MULTI_TYPE_COVERAGE_BONUS,
     )
     fallback_phrase = candidate.method == "phrase_fallback"
     strong_semantic_relation = (
@@ -1642,7 +1635,7 @@ def _score_answer_candidate(
         context,
         candidate.start_char,
         candidate.end_char,
-        question_types,
+        question_type,
         question,
     )
     candidate.boundary_score = boundary.score
@@ -1679,7 +1672,7 @@ def _score_answer_candidate(
 
 def build_passage_candidates(
     question: str,
-    question_types: list[QuestionType] | QuestionType,
+    question_type: QuestionType,
     passage_id: str,
     context: str,
     retrieval_score: float,
@@ -1687,9 +1680,6 @@ def build_passage_candidates(
     fallback_output: dict[str, Any],
 ) -> list[AnswerCandidate]:
     """Keep neural and fallback proposals in one pool until final ranking."""
-
-    if not isinstance(question_types, list):
-        question_types = [question_types]
 
     candidates: list[AnswerCandidate] = []
     raw_neural_candidates = list(neural_output.get("span_candidates") or [])
@@ -1759,7 +1749,7 @@ def build_passage_candidates(
             _score_answer_candidate(
                 neural,
                 question=question,
-                question_types=question_types,
+                question_type=question_type,
                 context=context,
                 retrieval_score=retrieval_score,
             )
@@ -1810,7 +1800,7 @@ def build_passage_candidates(
             _score_answer_candidate(
                 fallback,
                 question=question,
-                question_types=question_types,
+                question_type=question_type,
                 context=context,
                 retrieval_score=retrieval_score,
                 relation_details=fallback_output,
@@ -1841,7 +1831,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("question is required")
     validate_retriever(retriever)
     validate_reader(reader_name)
-    question_types = detect_question_type(question)
+    question_type = detect_question_type(question)[0]
 
     candidate_count = PIPELINE_CONFIG.candidate_count(top_k)
     hits = INDEX.retrieve(question, retriever, candidate_count)
@@ -1890,7 +1880,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         fallback_output = sentence_fallback_predict(question, metadata.text)
         candidates = build_passage_candidates(
             question,
-            question_types,
+            question_type,
             metadata.passage_id,
             metadata.text,
             hit.retrieval_score_normalized,
@@ -1998,13 +1988,13 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "retrieval_score": round(hit.retrieval_score_normalized, 6),
             "retrieval_score_raw": round(hit.retrieval_score_raw, 6),
             "retrieval_score_normalized": round(hit.retrieval_score_normalized, 6),
-            "question_type": [qt.value for qt in question_types],
+            "question_type": question_type.value,
             "reader_method": representative["method"],
             "reader_answer": representative["display_text"] or None,
             "reader_span_answer": representative["text"] or None,
             "reader_score": round(float(representative["reader_score"]), 6),
             "reader_signal": round(reader_signal, 6),
-            "answer_type": [qt.value for qt in question_types],
+            "answer_type": question_type.value,
             "answer_type_score": round(float(representative["answer_type_score"]), 6),
             "answer_type_reason": representative["answer_type_reason"],
             "lexical_evidence": bool(representative["passes_evidence_gate"]),
@@ -2067,8 +2057,8 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 "start": int(representative["start_char"]),
                 "end": int(representative["end_char"]),
                 "raw_text": representative.get("raw_text") or representative["text"],
-                "raw_start": int(representative["raw_start_char"] if representative.get("raw_start_char") is not None else representative["start_char"]),
-                "raw_end": int(representative["raw_end_char"] if representative.get("raw_end_char") is not None else representative["end_char"]),
+                "raw_start": int(representative.get("raw_start_char", representative["start_char"])),
+                "raw_end": int(representative.get("raw_end_char", representative["end_char"])),
                 "refinement_method": representative.get("refinement_method", "UNCHANGED"),
             },
             "ranking_score": round(float(representative["ranking_score"]), 6),
@@ -2148,13 +2138,13 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         (decision_candidate or {}).get("rejection_reason") or "NO_ANSWER"
     )
     no_answer_reason = None if has_answer else (
-        "Không tìm thấy câu trả lời đủ tin cậy trong các đoạn được truy xuất."
+        "Kh├┤ng t├¼m thß║Ñy c├óu trß║ú lß╗¥i ─æß╗º tin cß║¡y trong c├íc ─æoß║ín ─æ╞░ß╗úc truy xuß║Ñt."
     )
 
     response = {
         "question": question,
-        "question_type": [qt.value for qt in question_types],
-        "answer_type": [qt.value for qt in question_types],
+        "question_type": question_type.value,
+        "answer_type": question_type.value,
         "answer": selected_candidate["display_text"] if selected_candidate is not None else None,
         "has_answer": has_answer,
         # Kept as a nullable compatibility field. No calibrated probability exists yet.
@@ -2253,7 +2243,6 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "reader_weight": READER_WEIGHT,
             "answer_type_weight": ANSWER_TYPE_WEIGHT,
             "relation_weight": RELATION_WEIGHT,
-            "multi_type_coverage_bonus": MULTI_TYPE_COVERAGE_BONUS,
             "minimum_reader_score": MIN_READER_SCORE,
             "minimum_answer_type_score": MIN_ANSWER_TYPE_SCORE,
             "minimum_fallback_answer_type_score": MIN_FALLBACK_ANSWER_TYPE_SCORE,
@@ -2398,21 +2387,21 @@ class Handler(BaseHTTPRequestHandler):
             eval_file = results_dir / "retriever_eval_all.json"
             eval_data = {}
             if eval_file.exists():
-                with open(eval_file, "r", encoding="utf-8-sig") as f:
+                with open(eval_file, "r", encoding="utf-8") as f:
                     eval_data = json.load(f)
                     
             # Fallback for old file
             if not eval_data:
                 bm25_file = results_dir / "bm25_retrieval_final.json"
                 if bm25_file.exists():
-                    with open(bm25_file, "r", encoding="utf-8-sig") as f:
+                    with open(bm25_file, "r", encoding="utf-8") as f:
                         eval_data = {"bm25": {"test": json.load(f).get("test", {})}}
                         
             # Load Reader Eval Results
             reader_file = results_dir / "reader_eval_results.json"
             reader_data = {}
             if reader_file.exists():
-                with open(reader_file, "r", encoding="utf-8-sig") as f:
+                with open(reader_file, "r", encoding="utf-8") as f:
                     reader_data = json.load(f)
                     
             em_score = 0.0
@@ -2478,7 +2467,7 @@ class Handler(BaseHTTPRequestHandler):
                     { "reader": "phobert", "exactMatch": em_score, "f1": f1_score, "avgLatencyMs": 248 }
                 ],
                 "errorAnalysis": [
-                    { "issue": "Span Boundary Alignment", "count": 18, "note": "Lỗi do tokenizer lệch 1-2 ký tự (có thể thấy trong span_integrity_errors.csv)." }
+                    { "issue": "Span Boundary Alignment", "count": 18, "note": "Lß╗ùi do tokenizer lß╗çch 1-2 k├╜ tß╗▒ (c├│ thß╗â thß║Ñy trong span_integrity_errors.csv)." }
                 ]
             }
             self._send_json(eval_response)
@@ -2532,11 +2521,11 @@ def main() -> None:
         print("Preloading reader model before accepting requests...")
         readers = get_readers()
         predictor = readers.get("phobert")
-        warmup_context = "Việt Nam là một quốc gia ở Đông Nam Á."
+        warmup_context = "Viß╗çt Nam l├á mß╗Öt quß╗æc gia ß╗ƒ ─É├┤ng Nam ├ü."
         predict_many = getattr(predictor, "predict_many", None)
         if callable(predict_many):
             predict_many(
-                "Việt Nam là gì?",
+                "Viß╗çt Nam l├á g├¼?",
                 [warmup_context] * min(8, RETRIEVER_MIN_CANDIDATES),
                 max_seq_len=PIPELINE_CONFIG.reader_max_length,
                 doc_stride=PIPELINE_CONFIG.reader_stride,
@@ -2544,7 +2533,7 @@ def main() -> None:
             )
         else:
             predictor.predict(
-                "Việt Nam là gì?",
+                "Viß╗çt Nam l├á g├¼?",
                 warmup_context,
                 max_seq_len=PIPELINE_CONFIG.reader_max_length,
                 doc_stride=PIPELINE_CONFIG.reader_stride,

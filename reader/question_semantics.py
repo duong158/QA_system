@@ -11,13 +11,13 @@ from reader.question_type import QuestionType, detect_question_type
 
 @dataclass(frozen=True)
 class QuestionSemantics:
-    question_type: str
+    question_type: list[str]
     relation: str
     subject: str | None
     predicate: str | None
     target: str | None
     modifier: str | None
-    expected_answer_type: str
+    expected_answer_type: list[str]
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -173,9 +173,10 @@ def _subject_from_nominal_time_question(question: str, folded: str) -> str | Non
 def parse_question_semantics(question: str) -> QuestionSemantics:
     question = str(question or "").strip()
     question_types = detect_question_type(question)
-    question_type = question_types[0] if question_types else QuestionType.GENERAL
+    if not question_types:
+        question_types = [QuestionType.GENERAL]
     folded = fold_text(question).strip()
-    coarse_relation = detect_question_relation(question, question_type)
+    coarse_relation = detect_question_relation(question, question_types)
     birth_time_intent = bool(
         re.search(r"\b(?:nam sinh cua|ngay sinh cua|sinh(?: vao)? nam)\b", folded)
     )
@@ -183,22 +184,22 @@ def parse_question_semantics(question: str) -> QuestionSemantics:
     if coarse_relation is QuestionRelation.CAUSE:
         relation = "CAUSE"
         body = _cause_body(question) or question.strip(" ?!.")
-    elif question_type is QuestionType.TIME or birth_time_intent:
+    elif QuestionType.TIME in question_types or birth_time_intent:
         relation = "BIRTH_TIME" if birth_time_intent else _time_relation(folded)
-        question_type = QuestionType.TIME
+        question_types = [QuestionType.TIME]
         nominal_subject = _subject_from_nominal_time_question(question, folded)
         if nominal_subject:
             return QuestionSemantics(
-                question_type=question_type.value,
+                question_type=[qt.value for qt in question_types],
                 relation=relation,
                 subject=nominal_subject,
                 predicate="sinh" if relation == "BIRTH_TIME" else None,
                 target=None,
                 modifier=None,
-                expected_answer_type=QuestionType.TIME.value,
+                expected_answer_type=[QuestionType.TIME.value],
             )
         body = _strip_interrogative_tail(question, relation)
-    elif question_type is QuestionType.LOCATION:
+    elif QuestionType.LOCATION in question_types:
         relation = _location_relation(folded)
         body = _strip_interrogative_tail(question, relation)
     elif coarse_relation is QuestionRelation.PURPOSE:
@@ -215,13 +216,13 @@ def parse_question_semantics(question: str) -> QuestionSemantics:
         definition = re.match(r"^(?P<subject>.+?)\s+(?:la ai|la gi)\s*[?!.]*$", folded)
         subject = _surface(question, *definition.span("subject")) if definition else None
         return QuestionSemantics(
-            question_type=question_type.value,
+            question_type=[qt.value for qt in question_types],
             relation=relation,
             subject=subject,
             predicate="là",
             target=None,
             modifier=None,
-            expected_answer_type=question_type.value,
+            expected_answer_type=[qt.value for qt in question_types],
         )
     elif re.search(r"\b(?:ten goi|bi danh|ten khac|ten nao)\b", folded):
         relation = "IDENTITY"
@@ -233,13 +234,13 @@ def parse_question_semantics(question: str) -> QuestionSemantics:
     subject, predicate, modifier = _split_subject_predicate(body)
     target = body if relation == "CAUSE" else None
     return QuestionSemantics(
-        question_type=question_type.value,
+        question_type=[qt.value for qt in question_types],
         relation=relation,
         subject=subject,
         predicate=predicate,
         target=target,
         modifier=modifier,
-        expected_answer_type=question_type.value,
+        expected_answer_type=[qt.value for qt in question_types],
     )
 
 

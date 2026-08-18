@@ -92,10 +92,12 @@ def _normalize(text: str) -> str:
 
 def detect_question_relation(
     question: str,
-    question_type: QuestionType | str,
+    question_types: list[QuestionType | str] | QuestionType | str,
 ) -> QuestionRelation:
     normalized = _normalize(question)
-    expected = QuestionType(question_type)
+    if not isinstance(question_types, list):
+        question_types = [question_types]
+    expected_types = [QuestionType(qt) for qt in question_types]
     if re.search(r"\b(?:khac nhau|su khac biet|khac biet giua|so voi)\b", normalized):
         return QuestionRelation.CONTRAST
     if re.search(
@@ -110,7 +112,7 @@ def detect_question_relation(
         return QuestionRelation.METHOD
     if re.search(r"\b(?:tinh chat|dac diem|tinh hinh|trang thai|vai tro|vi the)\b", normalized):
         return QuestionRelation.ATTRIBUTE
-    if expected is QuestionType.DEFINITION or re.search(r"\b(?:la gi|la ai)\b", normalized):
+    if QuestionType.DEFINITION in expected_types or re.search(r"\b(?:la gi|la ai)\b", normalized):
         return QuestionRelation.DEFINITION
     return QuestionRelation.FACTOID
 
@@ -160,10 +162,10 @@ def _expand_right_name_or_fixed_phrase(context: str, start: int, end: int) -> tu
 
 def assess_relation_completeness(
     question: str,
-    question_type: QuestionType | str,
+    question_types: list[QuestionType | str] | QuestionType | str,
     answer: str,
 ) -> tuple[float, bool, tuple[str, ...]]:
-    relation = detect_question_relation(question, question_type)
+    relation = detect_question_relation(question, question_types)
     normalized = _normalize(answer)
     reasons: list[str] = []
     score = 1.0
@@ -221,7 +223,7 @@ def assess_relation_completeness(
 
 def refine_answer(
     question: str,
-    question_type: QuestionType | str,
+    question_types: list[QuestionType | str] | QuestionType | str,
     context: str,
     start: int,
     end: int,
@@ -230,7 +232,7 @@ def refine_answer(
     if raw_start < 0 or raw_end <= raw_start or raw_end > len(context):
         return RefinementResult(
             "", "", "INVALID_OFFSETS", raw_start, raw_end, raw_start, raw_end,
-            detect_question_relation(question, question_type).value,
+            detect_question_relation(question, question_types).value,
             0.0, 0.0, 0.0, False, ("INVALID_OFFSETS",),
         )
 
@@ -241,10 +243,12 @@ def refine_answer(
     if (final_start, final_end) != (raw_start, raw_end):
         methods.append("punctuation_cleanup")
 
-    expected = QuestionType(question_type)
-    relation = detect_question_relation(question, expected)
+    if not isinstance(question_types, list):
+        question_types = [question_types]
+    expected_types = [QuestionType(qt) for qt in question_types]
+    relation = detect_question_relation(question, expected_types)
     factoid_types = {QuestionType.TIME, QuestionType.NUMBER, QuestionType.PERSON, QuestionType.LOCATION, QuestionType.ENTITY}
-    if expected in factoid_types and relation not in {QuestionRelation.DEFINITION, QuestionRelation.CONTRAST}:
+    if any(qt in factoid_types for qt in expected_types) and relation not in {QuestionRelation.DEFINITION, QuestionRelation.CONTRAST}:
         current = context[final_start:final_end]
         scaffold = _LEADING_FACTOID_SCAFFOLD.match(current)
         if scaffold:
@@ -277,7 +281,7 @@ def refine_answer(
     refined_answer = context[final_start:final_end]
     final_completeness = assess_answer_completeness(refined_answer)
     completeness_score, relation_complete, completeness_reasons = assess_relation_completeness(
-        question, expected, refined_answer
+        question, expected_types, refined_answer
     )
     completeness_score = min(completeness_score, final_completeness.score)
     relation_complete = bool(relation_complete and final_completeness.complete)
