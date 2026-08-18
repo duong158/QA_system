@@ -22,7 +22,14 @@ sys.path.insert(0, str(ROOT))
 
 from backend.chunking import Passage, chunk_document, split_sentences
 from backend.config import load_pipeline_config
+from reader.config import DEFAULT_MAX_ANSWER_LENGTH_BY_TYPE
 from reader.candidates import AnswerCandidate
+from reader.answer_refinement import QuestionRelation, detect_question_relation, refine_answer
+from reader.cause_relations import (
+    assess_cause_candidate,
+    cause_subject_match_score,
+    extract_cause_question,
+)
 from reader.fallback_extractor import (
     assess_contrast_relation,
     detect_alias_relation,
@@ -33,6 +40,8 @@ from reader.fallback_extractor import (
     extract_location_candidate,
 )
 from reader.question_type import QuestionType, assess_answer_type, detect_question_type
+from reader.question_semantics import parse_question_semantics
+from reader.relation_validator import STRICT_RELATIONS, validate_candidate_relation
 from reader.span_boundaries import assess_span_boundary
 
 
@@ -227,6 +236,20 @@ REJECTION_MESSAGES = {
     "INSUFFICIENT_FALLBACK_EVIDENCE": "Fallback did not provide strong typed evidence.",
     "LOCATION_RELATION_MISMATCH": "The candidate does not fill the location relation requested by the question.",
     "RELATION_MISMATCH": "The candidate mentions the topic but does not express the relation requested by the question.",
+    "CAUSE_RELATION_MISMATCH": "The evidence has a causal form but does not establish the requested cause/effect direction.",
+    "CAUSE_TARGET_MISMATCH": "The causal evidence does not explain the target state or event requested by the question.",
+    "CAUSE_SUBJECT_MISMATCH": "The causal evidence concerns a different subject from the one requested by the question.",
+    "CAUSE_PHRASE_NOT_FOUND": "No standalone cause phrase connected to the requested subject and target was found.",
+    "CAUSE_RELATION_NOT_FOUND": "No cause/effect relation answering the requested target was found.",
+    "CAUSE_EFFECT_REPETITION": "The candidate repeats the effect instead of providing its cause.",
+    "TIME_SUBJECT_MISMATCH": "The time expression belongs to a different subject.",
+    "BIRTH_TIME_RELATION_MISMATCH": "The evidence does not connect the candidate time to the subject's birth.",
+    "DEATH_TIME_RELATION_MISMATCH": "The evidence does not connect the candidate time to the subject's death.",
+    "PURPOSE_SUBJECT_MISMATCH": "The purpose belongs to a different subject or action.",
+    "PURPOSE_RELATION_NOT_FOUND": "No purpose relation for the requested subject or action was found.",
+    "DANGLING_CONNECTOR": "The answer ends with a conjunction or connector and is not a complete clause.",
+    "INCOMPLETE_CLAUSE": "The proposed answer is not a complete standalone clause.",
+    "INCOMPLETE_RELATION": "The answer contains only part of the relation requested by the question.",
     "RETRIEVAL_MISS": "Retriever returned no passage with a positive score.",
     "LOWER_RANKING_SCORE": "A stronger valid candidate was selected.",
     "NO_ANSWER": "No candidate satisfied the answer acceptance gates.",
@@ -436,6 +459,12 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
             cue_bonus += 0.30
         if phrase.method == "role_relation_pattern" and phrase.relation_evidence:
             cue_bonus += 0.40
+        if phrase.method in {
+            "cause_clause_pattern",
+            "purpose_clause_pattern",
+            "method_clause_pattern",
+        } and phrase.relation_evidence:
+            cue_bonus += 0.32
         if phrase.method == "property_description_pattern" and phrase.relation_evidence:
             cue_bonus += 0.60 if phrase.phrase_quality >= 0.95 else 0.10
         elif phrase.method == "description_sentence_pattern" and phrase.relation_evidence:
@@ -495,6 +524,13 @@ def sentence_fallback_predict(question: str, context: str) -> dict[str, Any]:
                 "phrase_quality": phrase.phrase_quality,
                 "lexical_evidence": phrase.lexical_evidence,
                 "relation_evidence": phrase.relation_evidence,
+                "relation_method": phrase.relation_method,
+                "question_subject": phrase.question_subject,
+                "question_target": phrase.question_target,
+                "cause_pattern_score": phrase.cause_pattern_score,
+                "subject_match_score": phrase.subject_match_score,
+                "target_relation_score": phrase.target_relation_score,
+                "relation_rejection_reason": phrase.relation_rejection_reason,
             }
         )
     return best
@@ -1141,12 +1177,10 @@ class ReaderManager:
 
 
 INDEX = PassageIndex(DOCS_DB)
-_READERS = None
+READERS = ReaderManager()
+_READERS = READERS
 def get_readers():
-    global _READERS
-    if _READERS is None:
-        _READERS = ReaderManager()
-    return _READERS
+    return READERS
 DENSE_SCORER = DenseScorer(DENSE_MODEL_NAME)
 
 
@@ -1196,6 +1230,52 @@ def _semantic_relation_assessment(
 ) -> dict[str, Any]:
     details = candidate_details or {}
     typed_fallback_relation = str(details.get("relation_type") or "")
+    question_relation = detect_question_relation(question, question_type)
+    frame = extract_cause_question(question) if question_relation is QuestionRelation.CAUSE else None
+    if question_relation is QuestionRelation.CAUSE and frame is not None:
+        cause = assess_cause_candidate(
+            question,
+            context,
+            answer,
+            str(details.get("sentence_answer") or details.get("evidence_sentence") or "") or None,
+        )
+        # Enforce the semantic gate when either side explicitly proposes a
+        # causal phrase. Unrecognized neural spans retain the prior neutral
+        # handling, avoiding a blanket false-negative regression while the
+        # rule extractor intentionally remains conservative.
+        if cause.cause_pattern_score > 0.0 or typed_fallback_relation == "CAUSE":
+            return {
+                "relation_type": "CAUSE",
+                "relation_score": cause.relation_score,
+                "phrase_quality": cause.cause_pattern_score,
+                "relation_evidence": cause.relation_evidence,
+                "relation_method": cause.relation_method,
+                "question_subject": frame.subject if frame else None,
+                "question_target": frame.target if frame else None,
+                "cause_pattern_score": cause.cause_pattern_score,
+                "subject_match_score": cause.subject_match_score,
+                "target_relation_score": cause.target_relation_score,
+                "relation_rejection_reason": cause.rejection_reason,
+                "evidence_sentence": cause.evidence_sentence,
+                "cause_effect": cause.effect,
+            }
+        subject_presence = cause_subject_match_score(question, context)
+        if subject_presence < 0.50:
+            return {
+                "relation_type": "CAUSE",
+                "relation_score": 0.0,
+                "phrase_quality": 0.0,
+                "relation_evidence": False,
+                "relation_method": "CAUSE_SUBJECT_PRESENCE_GATE",
+                "question_subject": frame.subject,
+                "question_target": frame.target,
+                "cause_pattern_score": 0.0,
+                "subject_match_score": subject_presence,
+                "target_relation_score": 0.0,
+                "relation_rejection_reason": "CAUSE_SUBJECT_MISMATCH",
+                "evidence_sentence": "",
+                "cause_effect": "",
+            }
     if candidate_method != "neural_span" and typed_fallback_relation in {
         "TEMPORAL_EXPRESSION",
         "NUMBER_EXPRESSION",
@@ -1204,6 +1284,11 @@ def _semantic_relation_assessment(
         "PROPERTY_DESCRIPTION",
         "SITUATION_DESCRIPTION",
         "ROLE_RELATION",
+        "CAUSE",
+        "BIRTH_TIME",
+        "DEATH_TIME",
+        "PURPOSE",
+        "METHOD",
     }:
         return {
             "relation_type": typed_fallback_relation,
@@ -1314,9 +1399,17 @@ def _candidate_rejection(candidate: AnswerCandidate) -> str | None:
         return "NO_VALID_SPAN"
     if candidate.boundary_score < 0.20:
         return "SPAN_BOUNDARY_INCOMPLETE"
+    if not candidate.passes_completeness_gate:
+        if "DANGLING_CONNECTOR" in candidate.completeness_reasons:
+            return "DANGLING_CONNECTOR"
+        return "INCOMPLETE_RELATION"
     if not candidate.passes_evidence_gate:
         return "EVIDENCE_UNSUPPORTED"
     if not candidate.passes_relation_gate:
+        if candidate.relation_validation_reason in REJECTION_MESSAGES:
+            return str(candidate.relation_validation_reason)
+        if candidate.relation_type == "CAUSE":
+            return candidate.relation_rejection_reason or "CAUSE_RELATION_MISMATCH"
         return (
             "LOCATION_RELATION_MISMATCH"
             if candidate.relation_type and "LOCATION" in candidate.relation_type
@@ -1330,7 +1423,22 @@ def _candidate_rejection(candidate: AnswerCandidate) -> str | None:
             if candidate.method == "sentence_fallback"
             else "ANSWER_TYPE_MISMATCH"
         )
-    strong_grounded_relation = (
+    strong_cause_relation = (
+        candidate.relation_type == "CAUSE"
+        and candidate.cause_pattern_score >= 0.85
+        and candidate.subject_match_score >= 0.75
+        and candidate.target_relation_score >= 0.55
+        and candidate.relation_score >= 0.80
+        and candidate.answer_type_score >= MIN_ANSWER_TYPE_SCORE
+    )
+    strong_time_relation = (
+        candidate.relation_type in {"BIRTH_TIME", "DEATH_TIME"}
+        and candidate.semantic_status == "VALID"
+        and candidate.subject_match_score >= 0.75
+        and candidate.relation_score >= 0.90
+        and candidate.answer_type_score >= MIN_ANSWER_TYPE_SCORE
+    )
+    strong_grounded_relation = strong_cause_relation or strong_time_relation or (
         candidate.passes_evidence_gate
         and candidate.passes_relation_gate
         and candidate.relation_score >= 0.85
@@ -1347,8 +1455,22 @@ _REJECTION_DEBUG_PRIORITY = {
     # letting a high-retrieval empty span hide a semantic/type/ranking failure.
     "LOW_RANKING_SCORE": 6,
     "SPAN_BOUNDARY_INCOMPLETE": 5,
+    "INCOMPLETE_RELATION": 5,
     "LOCATION_RELATION_MISMATCH": 5,
     "RELATION_MISMATCH": 5,
+    "CAUSE_RELATION_MISMATCH": 5,
+    "CAUSE_TARGET_MISMATCH": 5,
+    "CAUSE_SUBJECT_MISMATCH": 5,
+    "CAUSE_PHRASE_NOT_FOUND": 5,
+    "CAUSE_RELATION_NOT_FOUND": 5,
+    "CAUSE_EFFECT_REPETITION": 5,
+    "TIME_SUBJECT_MISMATCH": 5,
+    "BIRTH_TIME_RELATION_MISMATCH": 5,
+    "DEATH_TIME_RELATION_MISMATCH": 5,
+    "PURPOSE_SUBJECT_MISMATCH": 5,
+    "PURPOSE_RELATION_NOT_FOUND": 5,
+    "DANGLING_CONNECTOR": 5,
+    "INCOMPLETE_CLAUSE": 5,
     "ANSWER_TYPE_MISMATCH": 4,
     "INSUFFICIENT_FALLBACK_EVIDENCE": 3,
     "EVIDENCE_UNSUPPORTED": 2,
@@ -1376,6 +1498,34 @@ def _score_answer_candidate(
     retrieval_score: float,
     relation_details: dict[str, Any] | None = None,
 ) -> AnswerCandidate:
+    refinement = refine_answer(
+        question,
+        question_type,
+        context,
+        candidate.start_char,
+        candidate.end_char,
+    )
+    candidate.raw_text = refinement.raw_answer
+    candidate.raw_start_char = refinement.raw_start
+    candidate.raw_end_char = refinement.raw_end
+    candidate.text = refinement.refined_answer
+    candidate.start_char = refinement.final_start
+    candidate.end_char = refinement.final_end
+    candidate.refinement_method = refinement.refinement_method
+    candidate.refinement_changed = refinement.changed
+    candidate.question_relation = refinement.relation
+    candidate.completeness_score = refinement.completeness_score
+    candidate.completeness_before = refinement.completeness_before
+    candidate.completeness_after = refinement.completeness_after
+    candidate.relation_complete = refinement.relation_complete
+    candidate.completeness_reasons = refinement.completeness_reasons
+    semantics = parse_question_semantics(question)
+    candidate.semantic_relation = semantics.relation
+    candidate.question_subject = semantics.subject
+    candidate.question_target = semantics.target
+    candidate.question_predicate = semantics.predicate
+    candidate.question_modifier = semantics.modifier
+    candidate.expected_answer_type = semantics.expected_answer_type
     lexical_evidence = answer_is_supported(
         context,
         candidate.text,
@@ -1392,6 +1542,36 @@ def _score_answer_candidate(
         candidate.method,
         relation_details,
     )
+    semantic_validation = validate_candidate_relation(
+        semantics,
+        question,
+        context,
+        candidate.text,
+        candidate.start_char,
+        candidate.end_char,
+        candidate.method,
+        relation_details,
+    )
+    if semantics.relation in STRICT_RELATIONS:
+        relation = {
+            "relation_type": semantic_validation.relation_type,
+            "relation_score": semantic_validation.relation_score,
+            "phrase_quality": max(
+                semantic_validation.cause_pattern_score,
+                semantic_validation.target_relation_score,
+            ),
+            "relation_evidence": semantic_validation.relation_evidence,
+            "relation_method": semantic_validation.relation_method,
+            "question_subject": semantics.subject,
+            "question_target": semantics.target,
+            "cause_pattern_score": semantic_validation.cause_pattern_score,
+            "subject_match_score": semantic_validation.subject_match_score,
+            "target_relation_score": semantic_validation.target_relation_score,
+            "relation_rejection_reason": semantic_validation.reason,
+            "semantic_status": semantic_validation.status,
+            "subject_match_reason": semantic_validation.subject_match_reason,
+            "evidence_sentence": semantic_validation.evidence_sentence,
+        }
     assessment = assess_answer_type(
         question_type,
         candidate.text,
@@ -1419,6 +1599,11 @@ def _score_answer_candidate(
         "PROPERTY_DESCRIPTION",
         "SITUATION_DESCRIPTION",
         "ROLE_RELATION",
+        "CAUSE",
+        "BIRTH_TIME",
+        "DEATH_TIME",
+        "PURPOSE",
+        "METHOD",
         "EVENT_LOCATION",
         "OBJECT_LOCATION",
         "BIRTH_LOCATION",
@@ -1433,6 +1618,18 @@ def _score_answer_candidate(
     candidate.answer_type_reason = assessment.reason
     candidate.relation_type = relation["relation_type"]
     candidate.relation_score = float(relation["relation_score"])
+    candidate.relation_method = relation.get("relation_method")
+    candidate.question_subject = relation.get("question_subject") or semantics.subject
+    candidate.question_target = relation.get("question_target") or semantics.target
+    candidate.cause_pattern_score = float(relation.get("cause_pattern_score", 0.0))
+    candidate.subject_match_score = float(relation.get("subject_match_score", 0.0))
+    candidate.target_relation_score = float(relation.get("target_relation_score", 0.0))
+    candidate.relation_rejection_reason = relation.get("relation_rejection_reason")
+    candidate.semantic_status = str(relation.get("semantic_status") or (
+        "VALID" if relation.get("relation_evidence") else "UNKNOWN"
+    ))
+    candidate.relation_validation_reason = relation.get("relation_rejection_reason")
+    candidate.subject_match_reason = relation.get("subject_match_reason")
     candidate.evidence_score = 1.0 if lexical_evidence else 0.0
     boundary = assess_span_boundary(
         context,
@@ -1448,12 +1645,19 @@ def _score_answer_candidate(
         and span_has_clean_word_boundaries(context, candidate.start_char, candidate.end_char)
     )
     candidate.passes_evidence_gate = bool(lexical_evidence and not answer_repeats_question(question, candidate.text))
+    candidate.passes_completeness_gate = bool(candidate.relation_complete)
     candidate.passes_relation_gate = bool(
         relation["relation_evidence"] if requires_relation else True
     )
     candidate.passes_type_gate = assessment.score >= required_type_score
     boundary_factor = 0.5 + 0.5 * candidate.boundary_score
-    reader_signal = candidate.reader_score * candidate.fallback_penalty * boundary_factor
+    completeness_factor = 0.5 + 0.5 * candidate.completeness_score
+    reader_signal = (
+        candidate.reader_score
+        * candidate.fallback_penalty
+        * boundary_factor
+        * completeness_factor
+    )
     candidate.ranking_score = combine_ranking_scores(
         retrieval_score,
         reader_signal,
@@ -1550,6 +1754,23 @@ def build_passage_candidates(
                 retrieval_score=retrieval_score,
             )
         )
+
+    # Different raw start/end pairs can refine to the same grounded span.
+    # Keep only the strongest neural provenance for that final answer so the
+    # reranker does not count duplicate evidence as separate proposals.
+    deduplicated_neural: dict[tuple[int, int, str], AnswerCandidate] = {}
+    for candidate in candidates:
+        key = (candidate.start_char, candidate.end_char, candidate.text)
+        current = deduplicated_neural.get(key)
+        if current is None or (
+            candidate.ranking_score,
+            candidate.raw_span_score or float("-inf"),
+        ) > (
+            current.ranking_score,
+            current.raw_span_score or float("-inf"),
+        ):
+            deduplicated_neural[key] = candidate
+    candidates = list(deduplicated_neural.values())
 
     fallback_text = str(fallback_output.get("answer") or "").strip()
     if fallback_text:
@@ -1735,11 +1956,23 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "rejection_reason": "NO_VALID_SPAN",
             "fallback_method": None,
             "passes_reader_threshold": False,
+            "boundary_score": 1.0,
+            "boundary_reasons": (),
+            "completeness_score": 1.0,
+            "relation_complete": True,
+            "completeness_reasons": (),
+            "question_relation": "FACTOID",
+            "refinement_method": "UNCHANGED",
+            "refinement_changed": False,
+            "raw_text": "",
+            "raw_start_char": -1,
+            "raw_end_char": -1,
         }
         reader_signal = (
             float(representative["reader_score"])
             * float(representative["fallback_penalty"])
             * (0.5 + 0.5 * float(representative.get("boundary_score", 1.0)))
+            * (0.5 + 0.5 * float(representative.get("completeness_score", 1.0)))
         )
         item = {
             "rank": 0,
@@ -1768,9 +2001,31 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "relation_evidence": bool(representative["passes_relation_gate"]),
             "relation_type": representative["relation_type"],
             "relation_score": round(float(representative["relation_score"]), 6),
+            "relation_method": representative.get("relation_method"),
+            "question_subject": representative.get("question_subject"),
+            "question_target": representative.get("question_target"),
+            "cause_pattern_score": round(float(representative.get("cause_pattern_score", 0.0)), 6),
+            "subject_match_score": round(float(representative.get("subject_match_score", 0.0)), 6),
+            "target_relation_score": round(float(representative.get("target_relation_score", 0.0)), 6),
+            "relation_rejection_reason": representative.get("relation_rejection_reason"),
             "phrase_quality": round(float(representative["relation_score"]), 6),
             "boundary_score": round(float(representative.get("boundary_score", 1.0)), 6),
             "boundary_reasons": list(representative.get("boundary_reasons", ())),
+            "question_relation": representative.get("question_relation", "FACTOID"),
+            "semantic_relation": representative.get("semantic_relation", "GENERAL"),
+            "question_predicate": representative.get("question_predicate"),
+            "question_modifier": representative.get("question_modifier"),
+            "semantic_status": representative.get("semantic_status", "UNKNOWN"),
+            "relation_validation_reason": representative.get("relation_validation_reason"),
+            "subject_match_reason": representative.get("subject_match_reason"),
+            "completeness_score": round(float(representative.get("completeness_score", 1.0)), 6),
+            "completeness_before": round(float(representative.get("completeness_before", 1.0)), 6),
+            "completeness_after": round(float(representative.get("completeness_after", 1.0)), 6),
+            "relation_complete": bool(representative.get("relation_complete", True)),
+            "completeness_reasons": list(representative.get("completeness_reasons", ())),
+            "refinement_method": representative.get("refinement_method", "UNCHANGED"),
+            "refinement_changed": bool(representative.get("refinement_changed", False)),
+            "raw_answer": representative.get("raw_text") or representative["text"],
             "evidence_supported": bool(representative["passes_evidence_gate"]),
             "passes_reader_threshold": bool(representative["passes_reader_threshold"]),
             "neural_reader_answer": output.get("answer") or None,
@@ -1778,6 +2033,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "neural_reader_has_answer": bool(output.get("has_answer", output.get("answer"))),
             "neural_reader_score": round(float(output.get("confidence", 0.0)), 6),
             "neural_reader_confidence_is_calibrated": bool(output.get("confidence_is_calibrated", False)),
+            "neural_reader_max_answer_length": int(output.get("max_answer_length", 0)),
             "neural_reader_start_score": finite_or_none(output.get("start_score")),
             "neural_reader_end_score": finite_or_none(output.get("end_score")),
             "reader_score_raw": finite_or_none(output.get("score")),
@@ -1800,6 +2056,10 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 "text": representative["text"],
                 "start": int(representative["start_char"]),
                 "end": int(representative["end_char"]),
+                "raw_text": representative.get("raw_text") or representative["text"],
+                "raw_start": int(representative.get("raw_start_char", representative["start_char"])),
+                "raw_end": int(representative.get("raw_end_char", representative["end_char"])),
+                "refinement_method": representative.get("refinement_method", "UNCHANGED"),
             },
             "ranking_score": round(float(representative["ranking_score"]), 6),
             "answer_confidence": None,
@@ -1894,6 +2154,19 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         "fallback_method": (decision_candidate or {}).get("fallback_method"),
         "relation_type": (decision_candidate or {}).get("relation_type"),
         "relation_score": (decision_candidate or {}).get("relation_score", 0.0),
+        "question_relation": (decision_candidate or {}).get("question_relation", "FACTOID"),
+        "semantic_relation": (decision_candidate or {}).get("semantic_relation", "GENERAL"),
+        "question_subject": (decision_candidate or {}).get("question_subject"),
+        "question_target": (decision_candidate or {}).get("question_target"),
+        "question_predicate": (decision_candidate or {}).get("question_predicate"),
+        "question_modifier": (decision_candidate or {}).get("question_modifier"),
+        "semantic_status": (decision_candidate or {}).get("semantic_status", "UNKNOWN"),
+        "relation_validation_reason": (decision_candidate or {}).get("relation_validation_reason"),
+        "subject_match_reason": (decision_candidate or {}).get("subject_match_reason"),
+        "relation_method": (decision_candidate or {}).get("relation_method"),
+        "cause_pattern_score": (decision_candidate or {}).get("cause_pattern_score", 0.0),
+        "subject_match_score": (decision_candidate or {}).get("subject_match_score", 0.0),
+        "target_relation_score": (decision_candidate or {}).get("target_relation_score", 0.0),
         "lexical_evidence": bool((decision_candidate or {}).get("passes_evidence_gate", False)),
         "relation_evidence": bool((decision_candidate or {}).get("passes_relation_gate", False)),
         "selected_passage_id": selected["passage_id"] if selected is not None else None,
@@ -1912,6 +2185,10 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 "text": selected_candidate["text"],
                 "start": selected_candidate["start_char"],
                 "end": selected_candidate["end_char"],
+                "raw_text": selected_candidate.get("raw_text") or selected_candidate["text"],
+                "raw_start": selected_candidate.get("raw_start_char", selected_candidate["start_char"]),
+                "raw_end": selected_candidate.get("raw_end_char", selected_candidate["end_char"]),
+                "refinement_method": selected_candidate.get("refinement_method", "UNCHANGED"),
             }
             if selected_candidate is not None
             else None
@@ -1933,6 +2210,25 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             None,
         ),
         "selected_candidate": selected_candidate,
+        "answer_refinement": (
+            {
+                "raw_answer": selected_candidate.get("raw_text") or selected_candidate["text"],
+                "refined_answer": selected_candidate["text"],
+                "method": selected_candidate.get("refinement_method", "UNCHANGED"),
+                "changed": bool(selected_candidate.get("refinement_changed", False)),
+                "raw_start": selected_candidate.get("raw_start_char", selected_candidate["start_char"]),
+                "raw_end": selected_candidate.get("raw_end_char", selected_candidate["end_char"]),
+                "final_start": selected_candidate["start_char"],
+                "final_end": selected_candidate["end_char"],
+                "completeness_score": selected_candidate.get("completeness_score", 1.0),
+                "completeness_before": selected_candidate.get("completeness_before", 1.0),
+                "completeness_after": selected_candidate.get("completeness_after", 1.0),
+                "relation_complete": selected_candidate.get("relation_complete", True),
+                "completeness_reasons": selected_candidate.get("completeness_reasons", ()),
+            }
+            if selected_candidate is not None
+            else None
+        ),
         "scores": {
             "retrieval": (decision_candidate or {}).get("retrieval_score", 0.0),
             "reader": (decision_candidate or {}).get("reader_score", 0.0),
@@ -1955,12 +2251,13 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "phrase_fallback_penalty": PHRASE_FALLBACK_PENALTY,
             "reader_score_margin_threshold": READER_SCORE_MARGIN_THRESHOLD,
             "reader_span_candidates": PIPELINE_CONFIG.reader_span_candidates,
+            "reader_max_answer_length_by_type": DEFAULT_MAX_ANSWER_LENGTH_BY_TYPE,
             "reader_fallback_threshold": READER_FALLBACK_THRESHOLD,
             "sentence_fallback_threshold": SENTENCE_FALLBACK_THRESHOLD,
             "retrieval_normalization": "min_max_within_top_k",
             "candidate_count": candidate_count,
             "rerank": "retrieval_reader_answer_type_relation",
-            "ranking_score_formula": "retriever_weight*retrieval_score + reader_weight*(reader_score*fallback_penalty*(0.5+0.5*boundary_score)) + answer_type_weight*answer_type_score + relation_weight*relation_score",
+            "ranking_score_formula": "retriever_weight*retrieval_score + reader_weight*(reader_score*fallback_penalty*(0.5+0.5*boundary_score)*(0.5+0.5*completeness_score)) + answer_type_weight*answer_type_score + relation_weight*relation_score",
             "score_semantics": "All displayed scores are ranking signals, not correctness probabilities.",
         },
     }
@@ -2029,13 +2326,8 @@ def compare_retrievers(payload: dict[str, Any]) -> list[dict[str, Any]]:
     return rows
 
 
-_READERS = None
-
 def get_readers():
-    global _READERS
-    if _READERS is None:
-        _READERS = ReaderManager()
-    return _READERS
+    return READERS
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -2072,6 +2364,7 @@ class Handler(BaseHTTPRequestHandler):
                         "phrase_fallback_penalty": PHRASE_FALLBACK_PENALTY,
                         "reader_score_margin_threshold": READER_SCORE_MARGIN_THRESHOLD,
                         "reader_span_candidates": PIPELINE_CONFIG.reader_span_candidates,
+                        "reader_max_answer_length_by_type": DEFAULT_MAX_ANSWER_LENGTH_BY_TYPE,
                         "reader_fallback_threshold": READER_FALLBACK_THRESHOLD,
                         "sentence_fallback_threshold": SENTENCE_FALLBACK_THRESHOLD,
                         "default_top_k": PIPELINE_CONFIG.default_top_k,

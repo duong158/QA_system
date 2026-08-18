@@ -11,7 +11,7 @@ from typing import Any
 
 import polars as pl
 
-from reader.metrics import evaluate_predictions, exact_match, normalize_answer
+from reader.metrics import evaluate_predictions, exact_match, f1_score, normalize_answer
 from reader.question_type import detect_question_type
 
 
@@ -24,7 +24,7 @@ WEIGHT_CONFIGS = {
 }
 DEFAULT_FINAL_THRESHOLDS = [round(index / 40, 3) for index in range(12, 37)]
 PHRASE_FALLBACK_PENALTIES = (0.6, 0.8, 0.9, 1.0)
-CACHE_SCHEMA_VERSION = 3
+CACHE_SCHEMA_VERSION = 4
 
 
 def load_stratified_subset(size: int, seed: int) -> list[dict[str, Any]]:
@@ -59,10 +59,12 @@ def candidate_score(
     if candidate.get("method") == "phrase_fallback" and phrase_fallback_penalty is not None:
         fallback_penalty = phrase_fallback_penalty
     boundary_factor = 0.5 + 0.5 * float(candidate.get("boundary_score", 1.0))
+    completeness_factor = 0.5 + 0.5 * float(candidate.get("completeness_score", 1.0))
     reader_signal = (
         float(candidate.get("reader_score") or 0.0)
         * fallback_penalty
         * boundary_factor
+        * completeness_factor
     )
     return (
         config["retriever"] * float(candidate.get("retrieval_score") or 0.0)
@@ -81,6 +83,19 @@ def candidate_passes_hard_gates(candidate: dict[str, Any]) -> bool:
         and candidate.get("passes_evidence_gate")
         and candidate.get("passes_type_gate")
         and candidate.get("passes_relation_gate")
+        and candidate.get("passes_completeness_gate", True)
+    )
+
+
+def has_strong_cause_evidence(candidate: dict[str, Any]) -> bool:
+    """Mirror the production CAUSE override without lowering the global gate."""
+
+    return bool(
+        candidate.get("relation_type") == "CAUSE"
+        and float(candidate.get("cause_pattern_score") or 0.0) >= 0.85
+        and float(candidate.get("subject_match_score") or 0.0) >= 0.75
+        and float(candidate.get("target_relation_score") or 0.0) >= 0.55
+        and float(candidate.get("relation_score") or 0.0) >= 0.80
     )
 
 
@@ -99,7 +114,9 @@ def select_candidate(
         reverse=True,
     )
     for ranking_score, candidate in scored:
-        if candidate_passes_hard_gates(candidate) and ranking_score >= final_threshold:
+        if candidate_passes_hard_gates(candidate) and (
+            ranking_score >= final_threshold or has_strong_cause_evidence(candidate)
+        ):
             return candidate, ranking_score
     return None, (scored[0][0] if scored else 0.0)
 
@@ -111,6 +128,25 @@ def percentile(values: list[float], ratio: float) -> float:
     return ordered[round((len(ordered) - 1) * ratio)]
 
 
+def answer_length_histogram(values: list[int]) -> dict[str, int]:
+    buckets: Counter[str] = Counter()
+    for value in values:
+        if value == 0:
+            label = "0"
+        elif value <= 4:
+            label = "1-4"
+        elif value <= 8:
+            label = "5-8"
+        elif value <= 16:
+            label = "9-16"
+        elif value <= 32:
+            label = "17-32"
+        else:
+            label = "33+"
+        buckets[label] += 1
+    return dict(buckets)
+
+
 def _evaluate_configuration(
     rows: list[dict[str, Any]],
     config: dict[str, float],
@@ -118,17 +154,70 @@ def _evaluate_configuration(
     phrase_fallback_penalty: float | None = None,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     predictions: list[dict[str, Any]] = []
+    raw_predictions: list[dict[str, Any]] = []
     counts: Counter[str] = Counter()
+    refinement_outcomes: Counter[str] = Counter()
+    length_buckets: Counter[str] = Counter()
+    gold_lengths: list[int] = []
+    raw_lengths: list[int] = []
+    refined_lengths: list[int] = []
     for row in rows:
         selected, ranking_score = select_candidate(
             row["candidates"], config, threshold, phrase_fallback_penalty
         )
         prediction = str((selected or {}).get("display_text") or (selected or {}).get("text") or "")
+        raw_prediction = str((selected or {}).get("raw_text") or prediction)
+        raw_f1 = f1_score(row["gold_answer"], raw_prediction)
+        refined_f1 = f1_score(row["gold_answer"], prediction)
+        refinement_method = str((selected or {}).get("refinement_method") or "UNCHANGED")
+        changed = bool((selected or {}).get("refinement_changed", False))
+        if refined_f1 > raw_f1 + 1e-12:
+            outcome = "IMPROVED"
+        elif refined_f1 + 1e-12 < raw_f1:
+            outcome = "WORSENED"
+        elif changed:
+            outcome = "BOUNDARY_FIXED"
+        else:
+            outcome = "UNCHANGED"
+        refinement_outcomes[outcome] += 1
+
+        gold_length = len(normalize_answer(row["gold_answer"]).split())
+        raw_length = len(normalize_answer(raw_prediction).split())
+        refined_length = len(normalize_answer(prediction).split())
+        gold_lengths.append(gold_length)
+        raw_lengths.append(raw_length)
+        refined_lengths.append(refined_length)
+        if row["is_answerable"] and gold_length:
+            ratio = refined_length / gold_length
+            if ratio < 0.5:
+                length_bucket = "SEVERE_UNDER_SPAN"
+            elif ratio < 0.8:
+                length_bucket = "UNDER_SPAN"
+            elif ratio <= 1.25:
+                length_bucket = "ROUGHLY_CORRECT"
+            elif ratio <= 2.0:
+                length_bucket = "OVER_SPAN"
+            else:
+                length_bucket = "SEVERE_OVER_SPAN"
+            length_buckets[length_bucket] += 1
         predictions.append(
             {
                 "id": row["id"],
                 "gold_answer": row["gold_answer"],
                 "predicted_answer": prediction,
+                "raw_predicted_answer": raw_prediction,
+                "is_answerable": row["is_answerable"],
+                "refinement_method": refinement_method,
+                "refinement_outcome": outcome,
+                "raw_f1": raw_f1,
+                "refined_f1": refined_f1,
+            }
+        )
+        raw_predictions.append(
+            {
+                "id": row["id"],
+                "gold_answer": row["gold_answer"],
+                "predicted_answer": raw_prediction,
                 "is_answerable": row["is_answerable"],
             }
         )
@@ -153,6 +242,7 @@ def _evaluate_configuration(
         )
 
     metrics = evaluate_predictions(predictions)
+    raw_metrics = evaluate_predictions(raw_predictions)
     answerable_f1 = float(metrics["answerable"]["f1"])
     unanswerable_accuracy = float(metrics["unanswerable"]["accuracy"])
     metrics["reader_priority_score"] = 0.7 * answerable_f1 + 0.3 * unanswerable_accuracy
@@ -160,6 +250,30 @@ def _evaluate_configuration(
     metrics["ranking"]["high_score_wrong_answer_rate"] = (
         100.0 * counts["high_score_wrong_answer"] / len(rows)
     )
+    metrics["refinement"] = {
+        "raw": raw_metrics,
+        "refined": {
+            "overall": metrics["overall"],
+            "answerable": metrics["answerable"],
+            "unanswerable": metrics["unanswerable"],
+        },
+        "answerable_f1_delta": (
+            float(metrics["answerable"]["f1"])
+            - float(raw_metrics["answerable"]["f1"])
+        ),
+        "outcomes": dict(sorted(refinement_outcomes.items())),
+        "length_ratio_buckets": dict(sorted(length_buckets.items())),
+        "mean_token_length": {
+            "gold": statistics.fmean(gold_lengths) if gold_lengths else 0.0,
+            "raw_prediction": statistics.fmean(raw_lengths) if raw_lengths else 0.0,
+            "refined_prediction": statistics.fmean(refined_lengths) if refined_lengths else 0.0,
+        },
+        "token_length_histogram": {
+            "gold": answer_length_histogram(gold_lengths),
+            "raw_prediction": answer_length_histogram(raw_lengths),
+            "refined_prediction": answer_length_histogram(refined_lengths),
+        },
+    }
     return metrics, predictions
 
 
@@ -242,7 +356,7 @@ def main() -> None:
             json.dumps(
                 {
                     "schema_version": CACHE_SCHEMA_VERSION,
-                    "candidate_pipeline": "multi_span_boundary_v2",
+                    "candidate_pipeline": "multi_span_answer_refinement_v1",
                     "subset_size": len(records),
                     "seed": args.seed,
                     "top_k": args.top_k,

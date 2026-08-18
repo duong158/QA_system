@@ -1,6 +1,11 @@
 import unittest
 
-from evaluate_reranking import WEIGHT_CONFIGS, candidate_passes_hard_gates, candidate_score
+from evaluate_reranking import (
+    WEIGHT_CONFIGS,
+    candidate_passes_hard_gates,
+    candidate_score,
+    select_candidate,
+)
 
 
 class RerankingEvaluationTests(unittest.TestCase):
@@ -37,6 +42,33 @@ class RerankingEvaluationTests(unittest.TestCase):
 
         self.assertAlmostEqual(without_relation, 0.70)
         self.assertAlmostEqual(with_relation, 0.74)
+
+    def test_strong_cause_evidence_can_cross_gate_without_lowering_threshold(self):
+        candidate = {
+            "text": "xuất thân thấp kém",
+            "valid_span": True,
+            "passes_evidence_gate": True,
+            "passes_type_gate": True,
+            "passes_relation_gate": True,
+            "passes_completeness_gate": True,
+            "retrieval_score": 0.10,
+            "reader_score": 0.40,
+            "fallback_penalty": 1.0,
+            "answer_type_score": 0.80,
+            "relation_type": "CAUSE",
+            "relation_score": 0.95,
+            "cause_pattern_score": 0.96,
+            "subject_match_score": 0.95,
+            "target_relation_score": 0.95,
+        }
+        selected, score = select_candidate(
+            [candidate],
+            WEIGHT_CONFIGS["B_R40_Reader40_Type20"],
+            final_threshold=0.60,
+        )
+
+        self.assertLess(score, 0.60)
+        self.assertIs(selected, candidate)
 
 
 if __name__ == "__main__":

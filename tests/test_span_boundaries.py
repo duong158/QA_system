@@ -86,17 +86,14 @@ class SpanBoundaryTests(unittest.TestCase):
             neural_output,
             {},
         )
-        by_text = {candidate.text: candidate for candidate in candidates}
-
-        self.assertEqual(
-            by_text[shifted].rejection_reason,
-            "SPAN_BOUNDARY_INCOMPLETE",
-        )
-        self.assertIsNone(by_text[complete].rejection_reason)
-        self.assertGreater(
-            by_text[complete].ranking_score,
-            by_text[shifted].ranking_score,
-        )
+        self.assertEqual(len(candidates), 1)
+        refined = candidates[0]
+        self.assertEqual(refined.raw_text, shifted)
+        self.assertEqual(refined.text, complete)
+        self.assertTrue(refined.refinement_changed)
+        self.assertIn("leading_scaffold_compression", refined.refinement_method)
+        self.assertIn("phrase_expand_right", refined.refinement_method)
+        self.assertIsNone(refined.rejection_reason)
 
     def test_overlong_time_span_is_incomplete(self):
         context = (

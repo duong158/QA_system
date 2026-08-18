@@ -16,10 +16,10 @@ sys.path.insert(0, str(ROOT))
 
 from reader.config import (  # noqa: E402
     DEFAULT_DOC_STRIDE,
-    DEFAULT_MAX_ANSWER_LENGTH,
     DEFAULT_MAX_LENGTH,
     effective_model_max_length,
     load_reader_decision_config,
+    max_answer_length_for_type,
     validate_window_config,
 )
 from reader.postprocessing import (  # noqa: E402
@@ -31,6 +31,7 @@ from reader.postprocessing import (  # noqa: E402
     should_return_answer,
 )
 from reader.qa_tokenizer import encode_qa_batch, load_phobert_tokenizer  # noqa: E402
+from reader.question_type import detect_question_type  # noqa: E402
 from reader.text_preprocessing import (  # noqa: E402
     ReaderTextPreprocessor,
     align_raw_and_model_text,
@@ -154,9 +155,18 @@ class ReaderPredictor:
 
         max_seq_len = int(max_seq_len or os.getenv("QA_READER_MAX_LENGTH", DEFAULT_MAX_LENGTH))
         doc_stride = int(doc_stride or os.getenv("QA_READER_STRIDE", DEFAULT_DOC_STRIDE))
-        max_answer_len = int(
-            max_answer_len or os.getenv("QA_MAX_ANSWER_LENGTH", DEFAULT_MAX_ANSWER_LENGTH)
+        global_answer_length = os.getenv("QA_MAX_ANSWER_LENGTH")
+        explicit_answer_length = (
+            int(max_answer_len)
+            if max_answer_len is not None
+            else (int(global_answer_length) if global_answer_length is not None else None)
         )
+        max_answer_lengths = [
+            explicit_answer_length
+            if explicit_answer_length is not None
+            else max_answer_length_for_type(detect_question_type(question))
+            for question in questions
+        ]
         top_n_start = int(top_n_start or os.getenv("QA_TOP_N_START", "20"))
         top_n_end = int(top_n_end or os.getenv("QA_TOP_N_END", "20"))
         threshold = (
@@ -228,7 +238,7 @@ class ReaderPredictor:
                 sequence_ids,
                 top_n_start=top_n_start,
                 top_n_end=top_n_end,
-                max_answer_length=max_answer_len,
+                max_answer_length=max_answer_lengths[sample_index],
             )
             item = prepared[sample_index]
             for candidate in candidates:
@@ -286,6 +296,7 @@ class ReaderPredictor:
                         "passes_reader_threshold": False,
                         "has_answer": False,
                         "span_candidates": [],
+                        "max_answer_length": max_answer_lengths[sample_index],
                     }
                 )
                 continue
@@ -363,6 +374,7 @@ class ReaderPredictor:
                     "passes_reader_threshold": passes_threshold,
                     "has_answer": passes_threshold,
                     "span_candidates": span_candidates,
+                    "max_answer_length": max_answer_lengths[sample_index],
                 }
             )
         return results

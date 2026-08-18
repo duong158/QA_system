@@ -183,13 +183,14 @@ class PipelineTests(unittest.TestCase):
 
         self.assertEqual(result["question_type"], "ENTITY")
         self.assertEqual(result["answer"], "Lâm Bá Kiệt")
-        self.assertEqual(result["reader_method"], "phrase_fallback")
-        self.assertEqual(result["fallback_method"], "alias_relation_pattern")
-        self.assertEqual(result["reader_candidate"]["text"], "là Lâm Bá")
-        self.assertEqual(
-            result["reader_candidate"]["rejection_reason"],
-            "SPAN_BOUNDARY_INCOMPLETE",
-        )
+        self.assertEqual(result["reader_method"], "neural_span")
+        self.assertEqual(result["answer_refinement"]["raw_answer"], "là Lâm Bá")
+        self.assertEqual(result["answer_refinement"]["refined_answer"], "Lâm Bá Kiệt")
+        self.assertTrue(result["answer_refinement"]["changed"])
+        self.assertIsNone(result["fallback_method"])
+        self.assertEqual(result["reader_candidate"]["raw_text"], "là Lâm Bá")
+        self.assertEqual(result["reader_candidate"]["text"], "Lâm Bá Kiệt")
+        self.assertIsNone(result["reader_candidate"]["rejection_reason"])
         self.assertEqual(result["fallback_candidate"]["relation_type"], "ALIAS")
 
     def test_generic_sentence_fallback_cannot_overwrite_valid_neural_span(self):
@@ -404,9 +405,9 @@ class PipelineTests(unittest.TestCase):
         self.assertEqual(result["answer"], "reader favorite")
         self.assertEqual(result["answer_source"]["passage_id"], "DOC_P0002")
         self.assertEqual(result["scoring"]["retriever_weight"], 0.4)
-        self.assertEqual(result["scoring"]["reader_weight"], 0.3)
+        self.assertEqual(result["scoring"]["reader_weight"], 0.4)
         self.assertEqual(result["scoring"]["answer_type_weight"], 0.2)
-        self.assertEqual(result["scoring"]["relation_weight"], 0.1)
+        self.assertEqual(result["scoring"]["relation_weight"], 0.0)
         self.assertEqual(result["passages"][0]["passage_id"], "DOC_P0002")
         self.assertGreater(result["passages"][0]["ranking_score"], result["passages"][1]["ranking_score"])
         self.assertIsNone(result["answer_confidence"])

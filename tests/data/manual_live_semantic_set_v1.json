@@ -1,0 +1,92 @@
+{
+  "name": "manual_live_semantic_set_v1",
+  "purpose": "Diagnostic-only live semantic benchmark; do not tune production rules to these entities.",
+  "baseline": {
+    "fully_correct": 6,
+    "partially_correct": 1,
+    "wrong": 3,
+    "total": 10,
+    "average_latency_seconds": 4.57
+  },
+  "cases": [
+    {
+      "id": "cause_voltaire_direct",
+      "question": "Vì sao Voltaire bị khinh miệt?",
+      "expected_has_answer": true,
+      "expected_relation": "CAUSE",
+      "expected_subject": "Voltaire",
+      "answer_must_contain": ["xuất thân thấp kém"]
+    },
+    {
+      "id": "cause_voltaire_paraphrase",
+      "question": "Nguyên nhân nào khiến Voltaire bị khinh miệt?",
+      "expected_has_answer": true,
+      "expected_relation": "CAUSE",
+      "expected_subject": "Voltaire",
+      "answer_must_contain": ["xuất thân thấp kém"]
+    },
+    {
+      "id": "cause_slavery_subject_predicate",
+      "question": "Vì sao chủ nghĩa nô lệ phát triển mạnh tại các tiểu bang miền Nam?",
+      "expected_has_answer": true,
+      "expected_relation": "CAUSE",
+      "expected_subject": "chủ nghĩa nô lệ",
+      "answer_must_contain": ["nhu cầu lớn về bông vải tại châu Âu"]
+    },
+    {
+      "id": "cause_roosevelt_complete_clause",
+      "question": "Vì sao Roosevelt bị Hitler khinh thường?",
+      "expected_has_answer": true,
+      "expected_relation": "CAUSE",
+      "expected_subject": "Roosevelt",
+      "answer_must_contain": ["lãnh tụ yếu thế", "dao động"],
+      "answer_must_not_end_with": ["và", "hay", "hoặc", "nhưng"]
+    },
+    {
+      "id": "cause_madame_no_evidence",
+      "question": "Vì sao Madame du Barry bị khinh miệt?",
+      "expected_has_answer": false,
+      "expected_relation": "CAUSE",
+      "expected_subject": "Madame du Barry",
+      "expected_rejection_reason": "CAUSE_RELATION_NOT_FOUND"
+    },
+    {
+      "id": "definition_pham_van_dong",
+      "question": "Phạm Văn Đồng là ai?",
+      "expected_has_answer": true,
+      "expected_relation": "DEFINITION",
+      "expected_subject": "Phạm Văn Đồng",
+      "answer_must_contain": ["Thủ tướng"]
+    },
+    {
+      "id": "birth_time_pham_van_dong",
+      "question": "Phạm Văn Đồng sinh năm nào?",
+      "expected_has_answer": true,
+      "expected_relation": "BIRTH_TIME",
+      "expected_subject": "Phạm Văn Đồng",
+      "answer_must_contain": ["1906"],
+      "answer_must_not_contain": ["1970"]
+    },
+    {
+      "id": "event_location_french_revolution",
+      "question": "Cách mạng Pháp diễn ra ở đâu?",
+      "expected_has_answer": true,
+      "expected_relation": "EVENT_LOCATION",
+      "expected_subject": "Cách mạng Pháp",
+      "answer_must_contain": ["Paris"]
+    },
+    {
+      "id": "purpose_baibars",
+      "question": "Đoàn sứ giả được gửi đến chỗ Ilkhan Abaga với mục đích gì?",
+      "expected_has_answer": true,
+      "expected_relation": "PURPOSE",
+      "expected_subject": "Đoàn sứ giả",
+      "answer_must_contain": ["đánh lạc hướng", "Baibars"]
+    },
+    {
+      "id": "false_premise_mars",
+      "question": "Phạm Văn Đồng sinh ra trên Sao Hỏa vào năm nào?",
+      "expected_has_answer": false
+    }
+  ]
+}

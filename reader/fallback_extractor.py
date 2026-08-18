@@ -5,6 +5,10 @@ import unicodedata
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from reader.answer_refinement import QuestionRelation, detect_question_relation
+from reader.cause_relations import extract_cause_candidate, extract_cause_question
+from reader.question_type import QuestionType
+
 
 @dataclass(frozen=True)
 class FallbackCandidate:
@@ -19,6 +23,13 @@ class FallbackCandidate:
     phrase_quality: float = 0.0
     lexical_evidence: bool = False
     relation_evidence: bool = False
+    relation_method: str | None = None
+    question_subject: str | None = None
+    question_target: str | None = None
+    cause_pattern_score: float = 0.0
+    subject_match_score: float = 0.0
+    target_relation_score: float = 0.0
+    relation_rejection_reason: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -552,6 +563,112 @@ def extract_role_candidate(question: str, sentence: str) -> FallbackCandidate | 
     return max(candidates, key=lambda item: (item.score, len(_tokens(item.answer)))) if candidates else None
 
 
+def extract_clause_candidate(
+    question: str,
+    question_type: str,
+    sentence: str,
+) -> FallbackCandidate | None:
+    """Extract grounded CAUSE/PURPOSE/METHOD clauses without paraphrasing."""
+
+    relation = detect_question_relation(question, QuestionType(question_type))
+    if relation is QuestionRelation.CAUSE:
+        frame = extract_cause_question(question)
+        extracted = extract_cause_candidate(question, frame, sentence)
+        if extracted is None:
+            return None
+        return FallbackCandidate(
+            answer=extracted.answer,
+            method="cause_clause_pattern",
+            score=round(
+                0.55 * extracted.relation_score
+                + 0.45 * extracted.cause_pattern_score,
+                6,
+            ),
+            evidence_sentence=sentence,
+            start_char=extracted.start_char,
+            end_char=extracted.end_char,
+            relation_type="CAUSE",
+            relation_score=extracted.relation_score,
+            phrase_quality=extracted.cause_pattern_score,
+            lexical_evidence=True,
+            relation_evidence=extracted.relation_evidence,
+            relation_method=extracted.relation_method,
+            question_subject=frame.subject if frame else None,
+            question_target=frame.target if frame else None,
+            cause_pattern_score=extracted.cause_pattern_score,
+            subject_match_score=extracted.subject_match_score,
+            target_relation_score=extracted.target_relation_score,
+            relation_rejection_reason=extracted.rejection_reason,
+        )
+    configurations: dict[QuestionRelation, tuple[str, tuple[re.Pattern[str], ...]]] = {
+        QuestionRelation.CAUSE: (
+            "CAUSE",
+            (
+                re.compile(
+                    r"\b(?:bởi[\s_]+vì|vì|do|bởi)[\s_]+(?P<answer>[^,.;!?]{2,180}?)"
+                    r"(?=[\s_]+(?:nên|khiến|dẫn[\s_]+đến)\b|[,.;!?]|$)",
+                    re.IGNORECASE | re.UNICODE,
+                ),
+                re.compile(
+                    r"(?P<answer>[^,.;!?]{2,180}?)[\s_]+(?:nên|khiến|dẫn[\s_]+đến)\b",
+                    re.IGNORECASE | re.UNICODE,
+                ),
+            ),
+        ),
+        QuestionRelation.PURPOSE: (
+            "PURPOSE",
+            (
+                re.compile(
+                    r"\b(?:để|nhằm|với[\s_]+mục[\s_]+đích(?:[\s_]+là)?)"
+                    r"[\s_]+(?P<answer>[^,.;!?]{2,180}?)(?=[,.;!?]|$)",
+                    re.IGNORECASE | re.UNICODE,
+                ),
+            ),
+        ),
+        QuestionRelation.METHOD: (
+            "METHOD",
+            (
+                re.compile(
+                    r"\b(?:bằng[\s_]+cách|thông[\s_]+qua|nhờ)"
+                    r"[\s_]+(?P<answer>[^,.;!?]{2,180}?)(?=[,.;!?]|$)",
+                    re.IGNORECASE | re.UNICODE,
+                ),
+            ),
+        ),
+    }
+    configuration = configurations.get(relation)
+    if configuration is None:
+        return None
+    relation_type, patterns = configuration
+    candidates: list[FallbackCandidate] = []
+    for pattern in patterns:
+        for match in pattern.finditer(sentence):
+            start, end = match.span("answer")
+            answer = sentence[start:end].strip()
+            if not answer:
+                continue
+            start += len(sentence[start:end]) - len(sentence[start:end].lstrip())
+            if relation_type == "CAUSE":
+                answer = re.sub(r"\s*\([^)]*\)\s*$", "", answer).rstrip()
+            end = start + len(answer)
+            candidates.append(
+                FallbackCandidate(
+                    answer=answer,
+                    method=f"{relation_type.lower()}_clause_pattern",
+                    score=0.92,
+                    evidence_sentence=sentence,
+                    start_char=start,
+                    end_char=end,
+                    relation_type=relation_type,
+                    relation_score=0.94,
+                    phrase_quality=0.92,
+                    lexical_evidence=True,
+                    relation_evidence=True,
+                )
+            )
+    return max(candidates, key=lambda item: (item.score, -len(_tokens(item.answer)))) if candidates else None
+
+
 def extract_contrast_candidate(question: str, sentence: str) -> FallbackCandidate | None:
     if not detect_contrast_relation(question):
         return None
@@ -925,6 +1042,9 @@ def extract_fallback_answer(
     contrast = extract_contrast_candidate(question, sentence)
     if contrast is not None:
         return contrast
+    clause = extract_clause_candidate(question, normalized_type, sentence)
+    if clause is not None:
+        return clause
     alias = extract_alias_candidate(question, sentence)
     if alias is not None:
         return alias
@@ -1025,6 +1145,7 @@ __all__ = [
     "extract_person_candidate",
     "extract_description_candidate",
     "extract_role_candidate",
+    "extract_clause_candidate",
     "extract_fallback_answer",
     "extract_location_candidate",
 ]

@@ -1,0 +1,120 @@
+{
+  "methodology": "Fixed-candidate semantic replay: retriever, Reader checkpoint, tokenizer, spans, weights, threshold 0.60, and phrase penalty 1.0 are unchanged. Only CAUSE subject/target relation fields and gates are recomputed.",
+  "cache": "D:\\GitHub\\QA_system\\results\\reranking_candidate_cache_refinement100_v4.json",
+  "rows": 100,
+  "cause_rows": 3,
+  "config": {
+    "retriever": 0.4,
+    "reader": 0.4,
+    "answer_type": 0.2,
+    "relation": 0.0
+  },
+  "threshold": 0.6,
+  "before": {
+    "overall_f1": 31.443164730006835,
+    "answerable_f1": 26.88632946001367,
+    "unanswerable_accuracy": 36.0,
+    "false_positives": 32,
+    "false_negatives": 0,
+    "answerable_count": 50,
+    "unanswerable_count": 50
+  },
+  "after": {
+    "overall_f1": 31.443164730006835,
+    "answerable_f1": 26.88632946001367,
+    "unanswerable_accuracy": 36.0,
+    "false_positives": 32,
+    "false_negatives": 0,
+    "answerable_count": 50,
+    "unanswerable_count": 50
+  },
+  "cause_before": {
+    "overall_f1": 33.333333333333336,
+    "answerable_f1": 0.0,
+    "unanswerable_accuracy": 50.0,
+    "false_positives": 1,
+    "false_negatives": 0,
+    "answerable_count": 1,
+    "unanswerable_count": 2
+  },
+  "cause_after": {
+    "overall_f1": 33.333333333333336,
+    "answerable_f1": 0.0,
+    "unanswerable_accuracy": 50.0,
+    "false_positives": 1,
+    "false_negatives": 0,
+    "answerable_count": 1,
+    "unanswerable_count": 2
+  },
+  "cause_predictions_before": [
+    {
+      "id": "0001-0017-0005",
+      "gold_answer": "nạn dịch hạch đen",
+      "predicted_answer": "",
+      "raw_predicted_answer": "",
+      "is_answerable": true,
+      "refinement_method": "UNCHANGED",
+      "refinement_outcome": "UNCHANGED",
+      "raw_f1": 0.0,
+      "refined_f1": 0.0
+    },
+    {
+      "id": "0003-0015-0004",
+      "gold_answer": "",
+      "predicted_answer": "Nguyện vọng của người Canada về việc có chính phủ chịu trách nhiệm",
+      "raw_predicted_answer": "Nguyện vọng của người Canada về việc có chính phủ chịu trách nhiệm",
+      "is_answerable": false,
+      "refinement_method": "UNCHANGED",
+      "refinement_outcome": "UNCHANGED",
+      "raw_f1": 0.0,
+      "refined_f1": 0.0
+    },
+    {
+      "id": "0001-0073-0003",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "raw_predicted_answer": "",
+      "is_answerable": false,
+      "refinement_method": "UNCHANGED",
+      "refinement_outcome": "UNCHANGED",
+      "raw_f1": 1.0,
+      "refined_f1": 1.0
+    }
+  ],
+  "cause_predictions_after": [
+    {
+      "id": "0001-0017-0005",
+      "gold_answer": "nạn dịch hạch đen",
+      "predicted_answer": "",
+      "raw_predicted_answer": "",
+      "is_answerable": true,
+      "refinement_method": "UNCHANGED",
+      "refinement_outcome": "UNCHANGED",
+      "raw_f1": 0.0,
+      "refined_f1": 0.0
+    },
+    {
+      "id": "0003-0015-0004",
+      "gold_answer": "",
+      "predicted_answer": "Nguyện vọng của người Canada về việc có chính phủ chịu trách nhiệm",
+      "raw_predicted_answer": "Nguyện vọng của người Canada về việc có chính phủ chịu trách nhiệm",
+      "is_answerable": false,
+      "refinement_method": "UNCHANGED",
+      "refinement_outcome": "UNCHANGED",
+      "raw_f1": 0.0,
+      "refined_f1": 0.0
+    },
+    {
+      "id": "0001-0073-0003",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "raw_predicted_answer": "",
+      "is_answerable": false,
+      "refinement_method": "UNCHANGED",
+      "refinement_outcome": "UNCHANGED",
+      "raw_f1": 1.0,
+      "refined_f1": 1.0
+    }
+  ],
+  "predictions_changed": 0
+}

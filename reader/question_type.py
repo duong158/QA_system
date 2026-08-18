@@ -37,6 +37,8 @@ TIME_QUESTION_PATTERNS = (
     r"\btu (?:nam|thang|ngay|the ky) nao\b",
     r"\bvao (?:nam|thang|ngay|the ky) nao\b",
     r"\bthoi gian nao\b",
+    r"\bsinh(?: vao)? nam bao nhieu\b",
+    r"\bnam sinh cua\b.+\bbao nhieu\b",
 )
 PERSON_QUESTION_PATTERNS = (r"\bai\b", r"\bnguoi nao\b", r"\bnhan vat nao\b")
 LOCATION_QUESTION_PATTERNS = (
@@ -73,6 +75,12 @@ ENTITY_QUESTION_PATTERNS = (
     r"\bchia (?:nhu nao|nhu the nao|thanh gi|lam gi)\b",
     r"\b(?:bao gom|gom) nhung gi\b",
 )
+CAUSE_QUESTION_PATTERNS = (
+    r"\b(?:vi sao|tai sao|do dau|boi dau)\b",
+    r"\b(?:nguyen nhan|ly do)\b",
+    r"\b(?:dieu gi|yeu to nao) (?:khien|lam)\b",
+    r"\bvi nguyen nhan gi\b",
+)
 
 
 def _matches_any(text: str, patterns: tuple[str, ...]) -> bool:
@@ -83,6 +91,10 @@ def detect_question_type(question: str) -> QuestionType:
     """Detect the expected answer category without extracting an answer."""
 
     normalized = _normalized(question)
+    # Relation intent is orthogonal to the answer category. CAUSE questions
+    # expect a clause/phrase, even when their surface form contains "điều gì".
+    if _matches_any(normalized, CAUSE_QUESTION_PATTERNS):
+        return QuestionType.GENERAL
     # TIME must precede NUMBER because years and centuries are numeric answers.
     if _matches_any(normalized, TIME_QUESTION_PATTERNS):
         return QuestionType.TIME

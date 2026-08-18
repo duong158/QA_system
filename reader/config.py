@@ -12,6 +12,15 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MAX_LENGTH = 256
 DEFAULT_DOC_STRIDE = 80
 DEFAULT_MAX_ANSWER_LENGTH = 40
+DEFAULT_MAX_ANSWER_LENGTH_BY_TYPE = {
+    "TIME": 12,
+    "NUMBER": 10,
+    "PERSON": 16,
+    "LOCATION": 20,
+    "ENTITY": 24,
+    "DEFINITION": 48,
+    "GENERAL": 64,
+}
 DEFAULT_SCORE_MARGIN_THRESHOLD = 0.0
 DEFAULT_CONFIDENCE_TEMPERATURE = 10.0
 DEFAULT_MARGIN_SCALE = 10.0
@@ -26,6 +35,23 @@ class ReaderDecisionConfig:
     margin_scale: float = DEFAULT_MARGIN_SCALE
     calibrated: bool = False
     source: str | None = None
+
+
+def max_answer_length_for_type(question_type: Any) -> int:
+    """Return the initial, benchmarkable span-length cap for a question type."""
+
+    name = str(getattr(question_type, "value", question_type)).upper()
+    env_name = f"QA_MAX_ANSWER_LENGTH_{name}"
+    configured = os.getenv(env_name)
+    if configured is not None:
+        value = int(configured)
+    else:
+        value = int(
+            DEFAULT_MAX_ANSWER_LENGTH_BY_TYPE.get(name, DEFAULT_MAX_ANSWER_LENGTH)
+        )
+    if value <= 0:
+        raise ValueError(f"{env_name} must be positive")
+    return value
 
 
 def _candidate_config_paths(model_path: str | Path | None) -> list[Path]:
