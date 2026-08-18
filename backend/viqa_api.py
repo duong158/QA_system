@@ -81,13 +81,6 @@ UNIMPLEMENTED_READERS = {
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
 }
 
-if RETRIEVER_WEIGHT < 0 or READER_WEIGHT < 0 or RETRIEVER_WEIGHT + READER_WEIGHT <= 0:
-    raise ValueError("QA retriever/reader weights must be non-negative and have a positive sum")
-
-WEIGHT_TOTAL = RETRIEVER_WEIGHT + READER_WEIGHT
-RETRIEVER_WEIGHT /= WEIGHT_TOTAL
-READER_WEIGHT /= WEIGHT_TOTAL
-
 STOPWORDS = {
     "ai", "anh", "ay", "ban", "bang", "bao", "bi", "cac", "cai", "can", "chi",
     "cho", "co", "con", "cua", "da", "dang", "day", "de", "den", "di", "do",
