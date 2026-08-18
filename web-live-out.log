@@ -1,0 +1,15 @@
+
+> viqa-nexus@0.1.0 dev
+> vite --host 127.0.0.1
+
+
+  [32m[1mVITE[22m v5.4.21[39m  [2mready in [0m[1m321[22m[2m[0m ms[22m
+
+  [32m➜[39m  [1mLocal[22m:   [36mhttp://127.0.0.1:[1m5173[22m/[39m
+[2m9:11:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Header.tsx, /src/index.css[22m
+[2m9:11:26 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/layout/Header.tsx, /src/index.css[22m
+[2m9:12:01 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types/qa.ts[22m
+[2m9:12:02 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/answer/AnswerPanel.tsx, /src/index.css[22m
+[2m11:04:02 PM[22m [36m[1m[vite][22m[39m [32mpage reload [39m[2msrc/types/qa.ts[22m
+[2m11:04:03 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/answer/AnswerPanel.tsx, /src/index.css[22m
+[2m11:04:05 PM[22m [36m[1m[vite][22m[39m [32mhmr update [39m[2m/src/components/answer/PassageCard.tsx, /src/index.css[22m

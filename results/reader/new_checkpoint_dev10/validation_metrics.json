@@ -1,0 +1,23 @@
+{
+  "overall": {
+    "count": 10,
+    "em": 20.0,
+    "f1": 42.5
+  },
+  "answerable": {
+    "count": 8,
+    "em": 0.0,
+    "f1": 28.125,
+    "predicted_empty": 3,
+    "predicted_empty_rate": 37.5
+  },
+  "unanswerable": {
+    "count": 2,
+    "accuracy": 100.0,
+    "em": 100.0
+  },
+  "predicted_no_answer": {
+    "count": 5,
+    "rate": 50.0
+  }
+}

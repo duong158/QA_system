@@ -1,0 +1,31 @@
+{
+  "checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "status": "experimental",
+  "keep_checkpoint": true,
+  "production_ready": false,
+  "reader_threshold": -3.5,
+  "active_experimental_reranking": {
+    "retriever_weight": 0.4,
+    "reader_weight": 0.3,
+    "answer_type_weight": 0.2,
+    "relation_weight": 0.1,
+    "phrase_fallback_penalty": 1.0,
+    "sentence_fallback_penalty": 0.6,
+    "reader_span_candidates_per_passage": 5,
+    "final_ranking_threshold": 0.625,
+    "scope": "100-example stratified end-to-end multi-span boundary-v2 benchmark"
+  },
+  "reasons": [
+    "Answerable F1 improved by 3.88 points and answerable empty rate fell by 8.78 points.",
+    "Overall F1 regressed by 1.78 points.",
+    "Unanswerable accuracy regressed by 16.11 points.",
+    "Answerable EM regressed by 13.68 points, indicating span-boundary/answer-concision problems.",
+    "Full 3814-example end-to-end candidate-pipeline evaluation has not been completed on this CPU-only host."
+  ],
+  "promotion_requirements": [
+    "Run the cached candidate-pipeline benchmark on all 3814 validation examples, preferably on Kaggle GPU.",
+    "Retune the final gate without exceeding the Answerable-F1 safety floor.",
+    "Audit/retrain span labels and select checkpoints using post-processed Answerable F1.",
+    "Confirm false-positive and false-premise regressions before promotion."
+  ]
+}

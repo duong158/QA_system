@@ -1,0 +1,160 @@
+{
+  "semantic_policy_version": "v2",
+  "rows": 260,
+  "low_coverage_threshold": 5,
+  "rules": [
+    {
+      "rule_id": "CAUSE_MARKER_PREFIX",
+      "category": "question_relation",
+      "description": "Vietnamese causal interrogative prefix",
+      "general": true,
+      "matched_count": 31,
+      "correct_count": 31,
+      "incorrect_count": 0,
+      "precision": 1.0,
+      "warnings": []
+    },
+    {
+      "rule_id": "CAUSE_NOMINAL_PREFIX",
+      "category": "question_relation",
+      "description": "Nominal cause-question construction",
+      "general": true,
+      "matched_count": 3,
+      "correct_count": 3,
+      "incorrect_count": 0,
+      "precision": 1.0,
+      "warnings": [
+        "LOW_COVERAGE_RULE"
+      ]
+    },
+    {
+      "rule_id": "CAUSE_TRIGGER_PREFIX",
+      "category": "question_relation",
+      "description": "Cause trigger/effect construction",
+      "general": true,
+      "matched_count": 1,
+      "correct_count": 1,
+      "incorrect_count": 0,
+      "precision": 1.0,
+      "warnings": [
+        "LOW_COVERAGE_RULE"
+      ]
+    },
+    {
+      "rule_id": "CAUSE_MARKER_SUFFIX",
+      "category": "question_relation",
+      "description": "Vietnamese causal interrogative suffix",
+      "general": true,
+      "matched_count": 0,
+      "correct_count": 0,
+      "incorrect_count": 0,
+      "precision": null,
+      "warnings": [
+        "LOW_COVERAGE_RULE"
+      ]
+    },
+    {
+      "rule_id": "TIME_BIRTH_MARKER",
+      "category": "question_relation",
+      "description": "Birth-time question marker",
+      "general": true,
+      "matched_count": 0,
+      "correct_count": 0,
+      "incorrect_count": 0,
+      "precision": null,
+      "warnings": [
+        "LOW_COVERAGE_RULE"
+      ]
+    },
+    {
+      "rule_id": "TIME_DEATH_MARKER",
+      "category": "question_relation",
+      "description": "Death-time question marker",
+      "general": true,
+      "matched_count": 5,
+      "correct_count": 1,
+      "incorrect_count": 4,
+      "precision": 0.2,
+      "warnings": []
+    },
+    {
+      "rule_id": "LOCATION_INTERROGATIVE",
+      "category": "question_relation",
+      "description": "Location interrogative marker",
+      "general": true,
+      "matched_count": 18,
+      "correct_count": 18,
+      "incorrect_count": 0,
+      "precision": 1.0,
+      "warnings": []
+    },
+    {
+      "rule_id": "PURPOSE_INTERROGATIVE",
+      "category": "question_relation",
+      "description": "Purpose interrogative marker",
+      "general": true,
+      "matched_count": 18,
+      "correct_count": 18,
+      "incorrect_count": 0,
+      "precision": 1.0,
+      "warnings": []
+    },
+    {
+      "rule_id": "IDENTITY_INTERROGATIVE",
+      "category": "question_relation",
+      "description": "Alias or identity interrogative marker",
+      "general": true,
+      "matched_count": 1,
+      "correct_count": 0,
+      "incorrect_count": 1,
+      "precision": 0.0,
+      "warnings": [
+        "LOW_COVERAGE_RULE"
+      ]
+    },
+    {
+      "rule_id": "PREDICATE_AUXILIARY_BOUNDARY",
+      "category": "predicate_boundary",
+      "description": "Vietnamese aspect, passive, and modal auxiliary boundary",
+      "general": true,
+      "matched_count": 128,
+      "correct_count": 123,
+      "incorrect_count": 5,
+      "precision": 0.960938,
+      "warnings": []
+    },
+    {
+      "rule_id": "PREDICATE_EVENT_BOUNDARY",
+      "category": "predicate_boundary",
+      "description": "General event/state-change verb boundary",
+      "general": true,
+      "matched_count": 72,
+      "correct_count": 64,
+      "incorrect_count": 8,
+      "precision": 0.888889,
+      "warnings": []
+    },
+    {
+      "rule_id": "PREDICATE_COPULA_BOUNDARY",
+      "category": "predicate_boundary",
+      "description": "Vietnamese copular or possession boundary",
+      "general": true,
+      "matched_count": 113,
+      "correct_count": 112,
+      "incorrect_count": 1,
+      "precision": 0.99115,
+      "warnings": []
+    },
+    {
+      "rule_id": "PREDICATE_MODIFIER_BOUNDARY",
+      "category": "predicate_modifier",
+      "description": "Locative or temporal modifier boundary",
+      "general": true,
+      "matched_count": 139,
+      "correct_count": 77,
+      "incorrect_count": 62,
+      "precision": 0.553957,
+      "warnings": []
+    }
+  ]
+}

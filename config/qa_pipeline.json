@@ -1,0 +1,23 @@
+{
+  "default_retriever": "bm25",
+  "default_top_k": 10,
+  "max_top_k": 20,
+  "candidate_multiplier": 2,
+  "minimum_candidate_count": 20,
+  "maximum_candidate_count": 40,
+  "retriever_weight": 0.30,
+  "reader_weight": 0.50,
+  "answer_type_weight": 0.20,
+  "relation_weight": 0.00,
+  "multi_type_coverage_bonus": 0.10,
+  "reader_checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "reader_score_margin_threshold": null,
+  "require_calibrated_reader_profile": true,
+  "minimum_reader_score": 0.30,
+  "reader_fallback_threshold": 0.30,
+  "reader_max_length": 256,
+  "reader_stride": 80,
+  "reader_span_candidates": 5,
+  "chunk_max_tokens": 220,
+  "chunk_overlap_sentences": 2
+}

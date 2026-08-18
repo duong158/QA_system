@@ -1,0 +1,752 @@
+{
+  "semantic_policy_version": "v2",
+  "holdout": "semantic_holdout_v1",
+  "holdout_status": "LOCKED_DO_NOT_TUNE",
+  "holdout_sha256": "c9c4694f155ce8be829539f9fb03a62bcb82e9694605b2c00138daaa59a14648",
+  "rows": 260,
+  "parser_coverage": {
+    "rows": 260,
+    "question_semantics_parse_rate": 57.692,
+    "subject_parse_rate": 63.462,
+    "relation_parse_rate": 89.615,
+    "predicate_parse_rate": 87.308,
+    "relation_UNKNOWN_rate": 5.385,
+    "by_relation": {
+      "relation": {
+        "CAUSE": {
+          "passed": 35,
+          "total": 46,
+          "rate": 76.087
+        },
+        "DEFINITION": {
+          "passed": 25,
+          "total": 26,
+          "rate": 96.154
+        },
+        "ENTITY": {
+          "passed": 34,
+          "total": 36,
+          "rate": 94.444
+        },
+        "GENERAL": {
+          "passed": 42,
+          "total": 46,
+          "rate": 91.304
+        },
+        "LOCATION": {
+          "passed": 36,
+          "total": 36,
+          "rate": 100.0
+        },
+        "PURPOSE": {
+          "passed": 18,
+          "total": 25,
+          "rate": 72.0
+        },
+        "TIME": {
+          "passed": 43,
+          "total": 45,
+          "rate": 95.556
+        }
+      },
+      "subject": {
+        "CAUSE": {
+          "passed": 22,
+          "total": 46,
+          "rate": 47.826
+        },
+        "DEFINITION": {
+          "passed": 26,
+          "total": 26,
+          "rate": 100.0
+        },
+        "ENTITY": {
+          "passed": 19,
+          "total": 36,
+          "rate": 52.778
+        },
+        "GENERAL": {
+          "passed": 29,
+          "total": 46,
+          "rate": 63.043
+        },
+        "LOCATION": {
+          "passed": 19,
+          "total": 36,
+          "rate": 52.778
+        },
+        "PURPOSE": {
+          "passed": 23,
+          "total": 25,
+          "rate": 92.0
+        },
+        "TIME": {
+          "passed": 27,
+          "total": 45,
+          "rate": 60.0
+        }
+      },
+      "predicate": {
+        "CAUSE": {
+          "passed": 31,
+          "total": 46,
+          "rate": 67.391
+        },
+        "DEFINITION": {
+          "passed": 26,
+          "total": 26,
+          "rate": 100.0
+        },
+        "ENTITY": {
+          "passed": 36,
+          "total": 36,
+          "rate": 100.0
+        },
+        "GENERAL": {
+          "passed": 46,
+          "total": 46,
+          "rate": 100.0
+        },
+        "LOCATION": {
+          "passed": 31,
+          "total": 36,
+          "rate": 86.111
+        },
+        "PURPOSE": {
+          "passed": 23,
+          "total": 25,
+          "rate": 92.0
+        },
+        "TIME": {
+          "passed": 34,
+          "total": 45,
+          "rate": 75.556
+        }
+      },
+      "fully_parsed": {
+        "CAUSE": {
+          "passed": 20,
+          "total": 46,
+          "rate": 43.478
+        },
+        "DEFINITION": {
+          "passed": 25,
+          "total": 26,
+          "rate": 96.154
+        },
+        "ENTITY": {
+          "passed": 17,
+          "total": 36,
+          "rate": 47.222
+        },
+        "GENERAL": {
+          "passed": 28,
+          "total": 46,
+          "rate": 60.87
+        },
+        "LOCATION": {
+          "passed": 19,
+          "total": 36,
+          "rate": 52.778
+        },
+        "PURPOSE": {
+          "passed": 16,
+          "total": 25,
+          "rate": 64.0
+        },
+        "TIME": {
+          "passed": 25,
+          "total": 45,
+          "rate": 55.556
+        }
+      },
+      "unknown": {
+        "CAUSE": {
+          "passed": 9,
+          "total": 46,
+          "rate": 19.565
+        },
+        "DEFINITION": {
+          "passed": 0,
+          "total": 26,
+          "rate": 0.0
+        },
+        "ENTITY": {
+          "passed": 0,
+          "total": 36,
+          "rate": 0.0
+        },
+        "GENERAL": {
+          "passed": 0,
+          "total": 46,
+          "rate": 0.0
+        },
+        "LOCATION": {
+          "passed": 0,
+          "total": 36,
+          "rate": 0.0
+        },
+        "PURPOSE": {
+          "passed": 3,
+          "total": 25,
+          "rate": 12.0
+        },
+        "TIME": {
+          "passed": 2,
+          "total": 45,
+          "rate": 4.444
+        }
+      }
+    }
+  },
+  "unseen_paraphrase_diagnostic": {
+    "passed": 11,
+    "total": 12,
+    "rate": 91.667,
+    "cases": [
+      {
+        "question": "Vì sao hệ thống Z phát triển vượt bậc?",
+        "expected_relation_bucket": "CAUSE",
+        "actual_relation": "CAUSE",
+        "actual_relation_bucket": "CAUSE",
+        "subject": "hệ thống Z",
+        "predicate": "phát triển vượt bậc",
+        "passed": true
+      },
+      {
+        "question": "Điều gì làm thị trường Z gia tăng nhanh chóng?",
+        "expected_relation_bucket": "CAUSE",
+        "actual_relation": "CAUSE",
+        "actual_relation_bucket": "CAUSE",
+        "subject": "thị trường Z",
+        "predicate": "gia tăng nhanh chóng",
+        "passed": true
+      },
+      {
+        "question": "Yếu tố nào khiến ngành Z bùng nổ?",
+        "expected_relation_bucket": "CAUSE",
+        "actual_relation": "CAUSE",
+        "actual_relation_bucket": "CAUSE",
+        "subject": "ngành Z",
+        "predicate": "bùng nổ",
+        "passed": true
+      },
+      {
+        "question": "Nguyên nhân nào khiến dịch vụ Z trở nên phổ biến?",
+        "expected_relation_bucket": "CAUSE",
+        "actual_relation": "CAUSE",
+        "actual_relation_bucket": "CAUSE",
+        "subject": "dịch vụ Z trở nên phổ biến",
+        "predicate": null,
+        "passed": false
+      },
+      {
+        "question": "Vì đâu doanh nghiệp Z suy giảm?",
+        "expected_relation_bucket": "CAUSE",
+        "actual_relation": "CAUSE",
+        "actual_relation_bucket": "CAUSE",
+        "subject": "doanh nghiệp Z",
+        "predicate": "suy giảm",
+        "passed": true
+      },
+      {
+        "question": "Điều gì dẫn tới việc tổ chức Z sụp đổ?",
+        "expected_relation_bucket": "CAUSE",
+        "actual_relation": "CAUSE",
+        "actual_relation_bucket": "CAUSE",
+        "subject": "tổ chức Z",
+        "predicate": "sụp đổ",
+        "passed": true
+      },
+      {
+        "question": "Nguyễn Văn An chào đời vào năm nào?",
+        "expected_relation_bucket": "TIME",
+        "actual_relation": "BIRTH_TIME",
+        "actual_relation_bucket": "TIME",
+        "subject": "Nguyễn Văn An",
+        "predicate": "chào đời",
+        "passed": true
+      },
+      {
+        "question": "Nguyễn Văn An được sinh ra năm bao nhiêu?",
+        "expected_relation_bucket": "TIME",
+        "actual_relation": "BIRTH_TIME",
+        "actual_relation_bucket": "TIME",
+        "subject": "Nguyễn Văn An",
+        "predicate": "được sinh ra",
+        "passed": true
+      },
+      {
+        "question": "Năm sinh của Nguyễn Văn An là bao nhiêu?",
+        "expected_relation_bucket": "TIME",
+        "actual_relation": "BIRTH_TIME",
+        "actual_relation_bucket": "TIME",
+        "subject": "Nguyễn Văn An",
+        "predicate": "sinh",
+        "passed": true
+      },
+      {
+        "question": "Hội nghị Z được tổ chức tại địa điểm nào?",
+        "expected_relation_bucket": "LOCATION",
+        "actual_relation": "EVENT_LOCATION",
+        "actual_relation_bucket": "LOCATION",
+        "subject": "Hội nghị Z",
+        "predicate": "được tổ chức tại",
+        "passed": true
+      },
+      {
+        "question": "Đoàn nghiên cứu Z được thành lập nhằm mục tiêu gì?",
+        "expected_relation_bucket": "PURPOSE",
+        "actual_relation": "PURPOSE",
+        "actual_relation_bucket": "PURPOSE",
+        "subject": "Đoàn nghiên cứu Z",
+        "predicate": "được thành lập",
+        "passed": true
+      },
+      {
+        "question": "Tên gọi khác của tổ chức Z là gì?",
+        "expected_relation_bucket": "ENTITY",
+        "actual_relation": "IDENTITY",
+        "actual_relation_bucket": "ENTITY",
+        "subject": "Tên gọi khác của tổ chức Z",
+        "predicate": "là gì",
+        "passed": true
+      }
+    ]
+  },
+  "candidate_rows": 260,
+  "methodology_notes": [
+    "No threshold, retriever, checkpoint, or production semantic rule is tuned on this holdout.",
+    "Relation strata are frozen weak labels and are not equivalent to human semantic annotation.",
+    "Ablations rescore/select from one fixed production-generated candidate pool.",
+    "Reader-only still shares retrieval and Reader span generation with the full pipeline.",
+    "In-process latency excludes localhost HTTP serialization when --in-process is used."
+  ],
+  "ablation": {
+    "reader_only": {
+      "em": 3.4615384615384617,
+      "f1": 24.629919116753864,
+      "answerable_em": 0.0,
+      "answerable_f1": 25.01717713798184,
+      "overall_f1": 24.629919116753864,
+      "unanswerable_accuracy": 22.5,
+      "false_positive": 31,
+      "false_negative": 33,
+      "false_positive_rate": 77.5,
+      "false_negative_rate": 15.0,
+      "by_relation": {
+        "CAUSE": {
+          "rows": 46,
+          "em": 6.521739130434782,
+          "f1": 21.1449699941877,
+          "answerable_em": 0.0,
+          "answerable_f1": 16.816715493315858,
+          "unanswerable_accuracy": 50.0,
+          "false_positive": 3,
+          "false_negative": 18
+        },
+        "DEFINITION": {
+          "rows": 26,
+          "em": 3.8461538461538463,
+          "f1": 19.423116519659793,
+          "answerable_em": 0.0,
+          "answerable_f1": 20.250051475557733,
+          "unanswerable_accuracy": 16.666666666666668,
+          "false_positive": 5,
+          "false_negative": 2
+        },
+        "ENTITY": {
+          "rows": 36,
+          "em": 0.0,
+          "f1": 16.254802129415133,
+          "answerable_em": 0.0,
+          "answerable_f1": 19.50576255529816,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 6,
+          "false_negative": 2
+        },
+        "GENERAL": {
+          "rows": 46,
+          "em": 4.3478260869565215,
+          "f1": 31.646065642229324,
+          "answerable_em": 0.0,
+          "answerable_f1": 31.392975488563724,
+          "unanswerable_accuracy": 33.333333333333336,
+          "false_positive": 4,
+          "false_negative": 5
+        },
+        "LOCATION": {
+          "rows": 36,
+          "em": 0.0,
+          "f1": 11.33955006504026,
+          "answerable_em": 0.0,
+          "answerable_f1": 13.607460078048312,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 6,
+          "false_negative": 1
+        },
+        "PURPOSE": {
+          "rows": 25,
+          "em": 12.0,
+          "f1": 33.745605129500724,
+          "answerable_em": 0.0,
+          "answerable_f1": 27.182006411875903,
+          "unanswerable_accuracy": 60.0,
+          "false_positive": 2,
+          "false_negative": 5
+        },
+        "TIME": {
+          "rows": 45,
+          "em": 0.0,
+          "f1": 36.29674431848345,
+          "answerable_em": 0.0,
+          "answerable_f1": 40.83383735829388,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 5,
+          "false_negative": 0
+        }
+      }
+    },
+    "reader_plus_refinement": {
+      "em": 3.8461538461538463,
+      "f1": 22.049908124615033,
+      "answerable_em": 0.45454545454545453,
+      "answerable_f1": 21.968073238181404,
+      "overall_f1": 22.049908124615033,
+      "unanswerable_accuracy": 22.5,
+      "false_positive": 31,
+      "false_negative": 38,
+      "false_positive_rate": 77.5,
+      "false_negative_rate": 17.272727272727273,
+      "by_relation": {
+        "CAUSE": {
+          "rows": 46,
+          "em": 6.521739130434782,
+          "f1": 20.65510845226206,
+          "answerable_em": 0.0,
+          "answerable_f1": 16.25337472010137,
+          "unanswerable_accuracy": 50.0,
+          "false_positive": 3,
+          "false_negative": 20
+        },
+        "DEFINITION": {
+          "rows": 26,
+          "em": 3.8461538461538463,
+          "f1": 17.92839867711586,
+          "answerable_em": 0.0,
+          "answerable_f1": 18.30691828025062,
+          "unanswerable_accuracy": 16.666666666666668,
+          "false_positive": 5,
+          "false_negative": 2
+        },
+        "ENTITY": {
+          "rows": 36,
+          "em": 2.7777777777777777,
+          "f1": 20.354137192802483,
+          "answerable_em": 3.3333333333333335,
+          "answerable_f1": 24.42496463136298,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 6,
+          "false_negative": 3
+        },
+        "GENERAL": {
+          "rows": 46,
+          "em": 4.3478260869565215,
+          "f1": 26.47957406578096,
+          "answerable_em": 0.0,
+          "answerable_f1": 25.451510175648107,
+          "unanswerable_accuracy": 33.333333333333336,
+          "false_positive": 4,
+          "false_negative": 6
+        },
+        "LOCATION": {
+          "rows": 36,
+          "em": 0.0,
+          "f1": 7.329528159971186,
+          "answerable_em": 0.0,
+          "answerable_f1": 8.795433791965424,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 6,
+          "false_negative": 2
+        },
+        "PURPOSE": {
+          "rows": 25,
+          "em": 12.0,
+          "f1": 31.548532360999378,
+          "answerable_em": 0.0,
+          "answerable_f1": 24.43566545124923,
+          "unanswerable_accuracy": 60.0,
+          "false_positive": 2,
+          "false_negative": 5
+        },
+        "TIME": {
+          "rows": 45,
+          "em": 0.0,
+          "f1": 29.184824205335133,
+          "answerable_em": 0.0,
+          "answerable_f1": 32.832927231002024,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 5,
+          "false_negative": 0
+        }
+      }
+    },
+    "reader_refinement_subject": {
+      "em": 5.0,
+      "f1": 22.505676687457125,
+      "answerable_em": 0.45454545454545453,
+      "answerable_f1": 21.143072448812966,
+      "overall_f1": 22.505676687457125,
+      "unanswerable_accuracy": 27.5,
+      "false_positive": 29,
+      "false_negative": 56,
+      "false_positive_rate": 72.5,
+      "false_negative_rate": 25.454545454545453,
+      "by_relation": {
+        "CAUSE": {
+          "rows": 46,
+          "em": 10.869565217391305,
+          "f1": 21.910797059538478,
+          "answerable_em": 0.0,
+          "answerable_f1": 12.697416618469251,
+          "unanswerable_accuracy": 66.66666666666667,
+          "false_positive": 2,
+          "false_negative": 27
+        },
+        "DEFINITION": {
+          "rows": 26,
+          "em": 3.8461538461538463,
+          "f1": 17.92839867711586,
+          "answerable_em": 0.0,
+          "answerable_f1": 18.30691828025062,
+          "unanswerable_accuracy": 16.666666666666668,
+          "false_positive": 5,
+          "false_negative": 2
+        },
+        "ENTITY": {
+          "rows": 36,
+          "em": 2.7777777777777777,
+          "f1": 20.354137192802483,
+          "answerable_em": 3.3333333333333335,
+          "answerable_f1": 24.42496463136298,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 6,
+          "false_negative": 3
+        },
+        "GENERAL": {
+          "rows": 46,
+          "em": 4.3478260869565215,
+          "f1": 26.47957406578096,
+          "answerable_em": 0.0,
+          "answerable_f1": 25.451510175648107,
+          "unanswerable_accuracy": 33.333333333333336,
+          "false_positive": 4,
+          "false_negative": 6
+        },
+        "LOCATION": {
+          "rows": 36,
+          "em": 2.7777777777777777,
+          "f1": 11.782790946567307,
+          "answerable_em": 0.0,
+          "answerable_f1": 10.806015802547433,
+          "unanswerable_accuracy": 16.666666666666668,
+          "false_positive": 5,
+          "false_negative": 8
+        },
+        "PURPOSE": {
+          "rows": 25,
+          "em": 12.0,
+          "f1": 28.765359964470086,
+          "answerable_em": 0.0,
+          "answerable_f1": 20.956699955587606,
+          "unanswerable_accuracy": 60.0,
+          "false_positive": 2,
+          "false_negative": 10
+        },
+        "TIME": {
+          "rows": 45,
+          "em": 0.0,
+          "f1": 28.518157538668472,
+          "answerable_em": 0.0,
+          "answerable_f1": 32.08292723100203,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 5,
+          "false_negative": 0
+        }
+      }
+    },
+    "reader_refinement_subject_relation": {
+      "em": 5.769230769230769,
+      "f1": 20.58744993530784,
+      "answerable_em": 0.45454545454545453,
+      "answerable_f1": 17.966986287181992,
+      "overall_f1": 20.58744993530784,
+      "unanswerable_accuracy": 35.0,
+      "false_positive": 26,
+      "false_negative": 70,
+      "false_positive_rate": 65.0,
+      "false_negative_rate": 31.818181818181817,
+      "by_relation": {
+        "CAUSE": {
+          "rows": 46,
+          "em": 10.869565217391305,
+          "f1": 16.049819745471922,
+          "answerable_em": 0.0,
+          "answerable_f1": 5.957292707292707,
+          "unanswerable_accuracy": 83.33333333333333,
+          "false_positive": 1,
+          "false_negative": 32
+        },
+        "DEFINITION": {
+          "rows": 26,
+          "em": 3.8461538461538463,
+          "f1": 17.92839867711586,
+          "answerable_em": 0.0,
+          "answerable_f1": 18.30691828025062,
+          "unanswerable_accuracy": 16.666666666666668,
+          "false_positive": 5,
+          "false_negative": 2
+        },
+        "ENTITY": {
+          "rows": 36,
+          "em": 2.7777777777777777,
+          "f1": 20.354137192802483,
+          "answerable_em": 3.3333333333333335,
+          "answerable_f1": 24.42496463136298,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 6,
+          "false_negative": 3
+        },
+        "GENERAL": {
+          "rows": 46,
+          "em": 4.3478260869565215,
+          "f1": 26.47957406578096,
+          "answerable_em": 0.0,
+          "answerable_f1": 25.451510175648107,
+          "unanswerable_accuracy": 33.333333333333336,
+          "false_positive": 4,
+          "false_negative": 6
+        },
+        "LOCATION": {
+          "rows": 36,
+          "em": 2.7777777777777777,
+          "f1": 11.782790946567307,
+          "answerable_em": 0.0,
+          "answerable_f1": 10.806015802547433,
+          "unanswerable_accuracy": 16.666666666666668,
+          "false_positive": 5,
+          "false_negative": 8
+        },
+        "PURPOSE": {
+          "rows": 25,
+          "em": 16.0,
+          "f1": 16.0,
+          "answerable_em": 0.0,
+          "answerable_f1": 0.0,
+          "unanswerable_accuracy": 80.0,
+          "false_positive": 1,
+          "false_negative": 18
+        },
+        "TIME": {
+          "rows": 45,
+          "em": 2.2222222222222223,
+          "f1": 30.51815753866847,
+          "answerable_em": 0.0,
+          "answerable_f1": 31.832927231002024,
+          "unanswerable_accuracy": 20.0,
+          "false_positive": 4,
+          "false_negative": 1
+        }
+      }
+    },
+    "full_pipeline": {
+      "em": 12.692307692307692,
+      "f1": 26.563930013088243,
+      "answerable_em": 4.545454545454546,
+      "answerable_f1": 20.93919001546793,
+      "overall_f1": 26.563930013088243,
+      "unanswerable_accuracy": 57.5,
+      "false_positive": 17,
+      "false_negative": 97,
+      "false_positive_rate": 42.5,
+      "false_negative_rate": 44.09090909090909,
+      "by_relation": {
+        "CAUSE": {
+          "rows": 46,
+          "em": 8.695652173913043,
+          "f1": 20.779588456039917,
+          "answerable_em": 0.0,
+          "answerable_f1": 13.896526724445902,
+          "unanswerable_accuracy": 66.66666666666667,
+          "false_positive": 2,
+          "false_negative": 24
+        },
+        "DEFINITION": {
+          "rows": 26,
+          "em": 23.076923076923077,
+          "f1": 26.661789297658864,
+          "answerable_em": 0.0,
+          "answerable_f1": 4.6603260869565215,
+          "unanswerable_accuracy": 100.0,
+          "false_positive": 0,
+          "false_negative": 18
+        },
+        "ENTITY": {
+          "rows": 36,
+          "em": 5.555555555555555,
+          "f1": 26.93748054697917,
+          "answerable_em": 6.666666666666667,
+          "answerable_f1": 32.32497665637501,
+          "unanswerable_accuracy": 0.0,
+          "false_positive": 6,
+          "false_negative": 2
+        },
+        "GENERAL": {
+          "rows": 46,
+          "em": 6.521739130434782,
+          "f1": 24.002451103033877,
+          "answerable_em": 0.0,
+          "answerable_f1": 20.102818768488955,
+          "unanswerable_accuracy": 50.0,
+          "false_positive": 3,
+          "false_negative": 13
+        },
+        "LOCATION": {
+          "rows": 36,
+          "em": 16.666666666666668,
+          "f1": 18.78306878306878,
+          "answerable_em": 0.0,
+          "answerable_f1": 2.53968253968254,
+          "unanswerable_accuracy": 100.0,
+          "false_positive": 0,
+          "false_negative": 27
+        },
+        "PURPOSE": {
+          "rows": 25,
+          "em": 24.0,
+          "f1": 33.181101384491214,
+          "answerable_em": 15.0,
+          "answerable_f1": 26.476376730614014,
+          "unanswerable_accuracy": 60.0,
+          "false_positive": 2,
+          "false_negative": 12
+        },
+        "TIME": {
+          "rows": 45,
+          "em": 13.333333333333334,
+          "f1": 37.288314476720274,
+          "answerable_em": 12.5,
+          "answerable_f1": 39.44935378631031,
+          "unanswerable_accuracy": 20.0,
+          "false_positive": 4,
+          "false_negative": 1
+        }
+      }
+    }
+  },
+  "latency_ms": {
+    "average": 5370.9897146154235,
+    "p50": 4438.573400000223,
+    "maximum": 29606.635299999652
+  }
+}

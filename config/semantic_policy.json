@@ -1,0 +1,163 @@
+{
+  "semantic_policy_version": "v2",
+  "gate_order": [
+    "span",
+    "boundary",
+    "completeness",
+    "evidence",
+    "subject",
+    "relation",
+    "answer_type",
+    "ranking"
+  ],
+  "thresholds": {
+    "boundary": 0.20,
+    "answer_type": 0.50,
+    "evidence": 0.50,
+    "completeness": 0.50,
+    "ranking": 0.60
+  },
+  "validator_thresholds": {
+    "cause": {
+      "predicate_overlap": 0.66,
+      "evidence_pattern": 0.85,
+      "evidence_subject": 0.75,
+      "evidence_target": 0.55,
+      "subject_mismatch": 0.50,
+      "pattern_mismatch": 0.65
+    },
+    "subject": {
+      "token_overlap": 0.75
+    },
+    "boundary": {
+      "assessment_pass": 0.50
+    },
+    "location": {
+      "subject_coverage": 0.60,
+      "phrase_quality": 0.60,
+      "relation_evidence": 0.75,
+      "entity_relation": 0.72
+    }
+  },
+  "methods": {
+    "neural_span": {
+      "penalty": 1.0,
+      "min_answer_type_score": 0.50,
+      "answer_type_failure_reason": "ANSWER_TYPE_MISMATCH"
+    },
+    "phrase_fallback": {
+      "penalty": 1.0,
+      "min_answer_type_score": 0.50,
+      "answer_type_failure_reason": "ANSWER_TYPE_MISMATCH"
+    },
+    "sentence_fallback": {
+      "penalty": 0.60,
+      "min_generation_score": 0.42,
+      "min_answer_type_score": 0.75,
+      "answer_type_failure_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    }
+  },
+  "default_policy": {
+    "require_subject_match": true,
+    "require_relation_match": true,
+    "require_answer_type_match": true,
+    "require_evidence": true,
+    "require_completeness": true,
+    "min_subject_score": 0.50,
+    "min_relation_score": 0.50,
+    "allow_ranking_bypass": false
+  },
+  "policies": {
+    "GENERAL": {
+      "require_subject_match": false,
+      "require_relation_match": false
+    },
+    "GENERIC_LOCATION": {
+      "require_subject_match": false,
+      "require_relation_match": false
+    },
+    "CAUSE": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "BIRTH_TIME": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.90,
+      "allow_ranking_bypass": true
+    },
+    "DEATH_TIME": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.90,
+      "allow_ranking_bypass": true
+    },
+    "EVENT_TIME": {
+      "require_subject_match": false,
+      "require_relation_match": false,
+      "allow_ranking_bypass": true
+    },
+    "EVENT_LOCATION": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "OBJECT_LOCATION": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "BIRTH_LOCATION": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "DEATH_LOCATION": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "PURPOSE": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "CONTRAST": {
+      "require_subject_match": false,
+      "require_relation_match": true,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "DEFINITION": {
+      "require_subject_match": false,
+      "require_relation_match": true,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "IDENTITY": {
+      "require_subject_match": false,
+      "require_relation_match": true,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
+    "ATTRIBUTE": {
+      "require_subject_match": false,
+      "require_relation_match": false
+    }
+  }
+}

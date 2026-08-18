@@ -39,18 +39,27 @@ The local API is implemented in `backend/viqa_api.py` and serves:
 
 It reads `data/processed/docs.db`, chunks each document at sentence boundaries, and retrieves passage-level top-k results with TF-IDF or BM25. Every retrieved passage is sent to the configured extractive QA Reader before score-based reranking.
 
-The real API never fabricates mock answers or scores. It uses the local PhoBERT QA checkpoint when available and a transparent sentence-extraction fallback when the neural score is too low or the large checkpoint is not installed. Dense/Pyserini and Reader choices without a compatible local model/index return an explicit API error.
+The real API never fabricates mock answers or scores. It uses the local PhoBERT QA checkpoint when available. A transparent sentence-extraction fallback may propose a candidate, but it receives a ranking penalty and must pass answer-type and evidence gates. Dense/Pyserini and Reader choices without a compatible local model/index return an explicit API error.
 
-Pipeline settings are environment variables on the API process:
+The single checked-in production configuration is `config/qa_pipeline.json`.
+Environment variables may override it for controlled experiments:
 
 ```text
 QA_CHUNK_MAX_TOKENS=220
 QA_CHUNK_OVERLAP_SENTENCES=2
-QA_RETRIEVER_WEIGHT=0.30
-QA_READER_WEIGHT=0.70
-QA_ANSWER_THRESHOLD=0.30
-QA_READER_MAX_LENGTH=384
-QA_READER_STRIDE=128
+QA_RETRIEVER_WEIGHT=0.40
+QA_READER_WEIGHT=0.40
+QA_ANSWER_TYPE_WEIGHT=0.20
+QA_TOP_K=10
+QA_RETRIEVER_MIN_CANDIDATES=20
+QA_READER_SCORE_MARGIN_THRESHOLD=<validation-calibrated margin>
+QA_MIN_READER_SCORE=0.30
+QA_MIN_ANSWER_TYPE_SCORE=0.50
+QA_MIN_FALLBACK_ANSWER_TYPE_SCORE=0.75
+QA_MIN_RANKING_SCORE=0.55
+QA_FALLBACK_PENALTY=0.60
+QA_READER_MAX_LENGTH=256
+QA_READER_STRIDE=80
 QA_TOP_N_START=20
 QA_TOP_N_END=20
 QA_MAX_ANSWER_LENGTH=40
@@ -67,9 +76,46 @@ Retriever and QA evaluation commands:
 
 ```bash
 python evaluate_retriever.py path/to/eval.jsonl --method bm25 --k 1 3 5 10
-python evaluate_qa.py path/to/eval.jsonl --mode oracle
-python evaluate_qa.py path/to/eval.jsonl --mode end-to-end --retriever bm25 --top-k 5
+python -m reader.evaluate --model_path models/reader/vinai_phobert-base-v2
+python evaluate_qa.py --validation --mode oracle
+python evaluate_qa.py --validation --mode end-to-end --retriever bm25 --top-k 10
+python evaluate_reranking.py --subset-size 100 --top-k 10
 ```
+
+Production distinguishes four score concepts: normalized retrieval score,
+uncalibrated Reader score, candidate ranking score, and answer confidence.
+Retrieval and ranking scores are never shown as correctness percentages.
+`answer_confidence` remains `null` until a separate correctness estimator is
+calibrated on validation data.
+
+Reader EM/F1 and threshold selection use the complete 3,814-question labeled
+validation split. The 7,301-question test parquet has no usable gold answers and
+is never used for Reader EM/F1. The evaluator reports overall, answerable, and
+unanswerable metrics separately and writes threshold/error-analysis artifacts.
+
+Before training, verify all annotated spans:
+
+```bash
+python -m reader.validate_spans --splits train validation
+```
+
+Train the audited CE baseline (one run per LR/epoch combination):
+
+```bash
+python -m reader.train --lr 2e-5 --epochs 2 --max_seq_len 256 --doc_stride 80
+python -m reader.train --lr 2e-5 --epochs 3 --max_seq_len 256 --doc_stride 80
+python -m reader.train --lr 3e-5 --epochs 2 --max_seq_len 256 --doc_stride 80
+python -m reader.train --lr 3e-5 --epochs 3 --max_seq_len 256 --doc_stride 80
+```
+
+Each run selects checkpoints with decoded validation `answerable_f1`, uses
+standard start/end cross entropy, and calibrates the raw
+`best_span_score - CLS/null_score` margin, and writes artifacts under
+`results/reader/<run_name>/`. Add `--promote` only after a full validation run
+has completed successfully.
+
+Threshold selection prioritizes Reader quality while retaining no-answer
+behavior: `0.7 * answerable_f1 + 0.3 * unanswerable_accuracy`.
 
 The optional standalone retrieval package remains available for offline experiments:
 
@@ -120,9 +166,9 @@ POST ${VITE_API_BASE_URL}/api/ask
 - Retriever -> Reader -> Answer pipeline animation.
 - Mock QA service with simulated latency and top-k passages.
 - Local DrQA-style API backed by `data/processed/docs.db` for real retrieval over the processed corpus.
-- Answer panel with confidence, source metadata, passage cards, and highlighted evidence.
+- Answer panel with explicit ranking-signal semantics, source metadata, rejection reasons, and highlighted evidence.
 - Retriever comparison mode for TF-IDF, BM25, and Dense Retrieval.
-- `/evaluation` route with mock metrics, charts, reader comparison, and error analysis.
+- `/evaluation` route with clearly labeled Mock / Demo metrics; these values are not model benchmarks.
 - Settings panel persisted to localStorage.
 
 ## Avatar Model
@@ -139,7 +185,8 @@ Do not redistribute or upload the model file to a public repository unless the c
 
 ## Reader Model
 
-The lightweight PhoBERT QA configuration and tokenizer files are included at:
+The PhoBERT QA configuration and model-compatible tokenizer artifacts
+(`vocab.txt` and `bpe.codes`) are included at:
 
 ```text
 models/reader/vinai_phobert-base-v2/
@@ -152,6 +199,11 @@ models/reader/vinai_phobert-base-v2/model.safetensors
 ```
 
 Without the large checkpoint, the API still starts and uses its sentence-extraction fallback. The `/health` response reports which Reader models are available.
+
+Training, validation, and production all use the same path:
+raw Vietnamese text → PyVi exactly once → original PhoBERT BPE. The QA offset
+adapter maps BPE pieces back to the segmented context without using first-string
+search, so repeated answers remain tied to their annotated `answer_start`.
 
 ## Build
 

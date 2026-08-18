@@ -1,0 +1,66 @@
+[
+  {
+    "id": "CAUSE_VOLTAIRE_01",
+    "question": "Vì sao Voltaire bị khinh miệt?",
+    "expected_question_type": "GENERAL",
+    "expected_relation": "CAUSE",
+    "expected_subject": "Voltaire",
+    "expected_answer_contains": ["xuất thân thấp kém"],
+    "forbidden_answer_contains": ["nhu cầu lớn về bông vải tại châu Âu"],
+    "expected_has_answer": true
+  },
+  {
+    "id": "CAUSE_VOLTAIRE_02",
+    "question": "Nguyên nhân nào khiến Voltaire bị khinh miệt?",
+    "expected_question_type": "GENERAL",
+    "expected_relation": "CAUSE",
+    "expected_subject": "Voltaire",
+    "expected_answer_contains": ["xuất thân thấp kém"],
+    "forbidden_answer_contains": ["nhu cầu lớn về bông vải tại châu Âu"],
+    "expected_has_answer": true
+  },
+  {
+    "id": "CAUSE_SLAVERY_01",
+    "question": "Vì sao chủ nghĩa nô lệ phát triển mạnh tại các tiểu bang miền Nam?",
+    "expected_question_type": "GENERAL",
+    "expected_relation": "CAUSE",
+    "expected_subject": "chủ nghĩa nô lệ",
+    "expected_predicate": "phát triển mạnh",
+    "expected_answer_contains": ["nhu cầu lớn về bông vải tại châu Âu"],
+    "forbidden_answer_contains": [],
+    "expected_has_answer": true
+  },
+  {
+    "id": "CAUSE_MADAME_DU_BARRY_01",
+    "question": "Vì sao Madame du Barry bị khinh miệt?",
+    "expected_question_type": "GENERAL",
+    "expected_relation": "CAUSE",
+    "expected_subject": "Madame du Barry",
+    "expected_predicate": "bị khinh miệt",
+    "expected_answer_contains": [],
+    "forbidden_answer_contains": ["Triều đình bị chia rẽ", "khinh miệt bà"],
+    "expected_has_answer": false
+  },
+  {
+    "id": "TIME_PHAM_VAN_DONG_01",
+    "question": "Phạm Văn Đồng sinh năm nào?",
+    "expected_question_type": "TIME",
+    "expected_relation": "BIRTH_TIME",
+    "expected_subject": "Phạm Văn Đồng",
+    "expected_predicate": "sinh",
+    "expected_answer_contains": ["1906"],
+    "forbidden_answer_contains": ["1970"],
+    "expected_has_answer": true
+  },
+  {
+    "id": "CAUSE_ROOSEVELT_BOUNDARY_01",
+    "question": "Vì sao Roosevelt bị Hitler khinh thường?",
+    "expected_question_type": "GENERAL",
+    "expected_relation": "CAUSE",
+    "expected_subject": "Roosevelt",
+    "expected_answer_contains": ["lãnh tụ yếu thế"],
+    "forbidden_answer_contains": [],
+    "forbidden_answer_suffixes": ["hay", "và", "hoặc", "nhưng"],
+    "expected_has_answer": true
+  }
+]

@@ -1,0 +1,591 @@
+{
+  "dataset": "UIT-ViQuAD2.0 validation diagnostic LOCATION subset",
+  "subset_size": 40,
+  "seed": 42,
+  "top_k": 10,
+  "question_type_filter": "LOCATION",
+  "metrics": {
+    "overall": {
+      "count": 40,
+      "em": 45.0,
+      "f1": 45.0
+    },
+    "answerable": {
+      "count": 20,
+      "em": 0.0,
+      "f1": 0.0,
+      "predicted_empty": 17,
+      "predicted_empty_rate": 85.0
+    },
+    "unanswerable": {
+      "count": 20,
+      "accuracy": 90.0,
+      "em": 90.0
+    },
+    "predicted_no_answer": {
+      "count": 35,
+      "rate": 87.5
+    }
+  },
+  "ranking": {
+    "gold_answer_passage_available_top10": 13,
+    "gold_passage_selected": 0,
+    "wrong_passage_selected": 3,
+    "false_positive_answer_emitted": 2,
+    "false_negative_no_answer_emitted": 17,
+    "no_answer_correctly_emitted": 18
+  },
+  "location": {
+    "count": 40,
+    "correct": 18,
+    "wrong_location": 5,
+    "no_answer": 35,
+    "false_positive": 2,
+    "false_negative": 17,
+    "whole_sentence_accepted": 0,
+    "phrase_accepted": 2
+  },
+  "fallback": {
+    "fallback_candidates_total": 373,
+    "fallback_phrase_success": 7,
+    "fallback_whole_sentence": 366,
+    "fallback_rejected_type": 4,
+    "fallback_rejected_evidence": 0,
+    "fallback_rejected_ranking": 0,
+    "fallback_answered_correctly": 0,
+    "fallback_answered_incorrectly": 2,
+    "fallback_phrase_rate": 1.876675603217158,
+    "fallback_whole_sentence_rate": 98.12332439678285
+  },
+  "error_counts": {
+    "FALLBACK_PHRASE_NOT_EXTRACTED": 9,
+    "FALLBACK_TYPE_GATE_FALSE_NEGATIVE": 0,
+    "NEURAL_SPAN_WRONG_FALLBACK_CORRECT": 5,
+    "FALLBACK_WHOLE_SENTENCE_TOO_BROAD": 9,
+    "LOCATION_PROPER_NOUN_FALSE_POSITIVE": 0,
+    "LOCATION_RELATION_MISMATCH": 3,
+    "LOCATION_WHOLE_SENTENCE_TOO_BROAD": 3,
+    "LOCATION_PHRASE_NOT_EXTRACTED": 35,
+    "LOCATION_FALSE_NEGATIVE": 17
+  },
+  "error_analysis": [
+    {
+      "id": "0004-0007-0001",
+      "question": "Sau khi có Iran có được chiến thắng mới, họ đã bắt đầu việc kinh doanh vũ khí với quốc gia nào?",
+      "gold_answer": "Trung Quốc",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0007-0001",
+      "question": "Sau khi có Iran có được chiến thắng mới, họ đã bắt đầu việc kinh doanh vũ khí với quốc gia nào?",
+      "gold_answer": "Trung Quốc",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0072-0001",
+      "question": "Những nước nào trên thế giới có sự hiện diện của ẩm thực Paris?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0038-0001",
+      "question": "Trong Chiến tranh thế giới thứ hai, Canada là đồng minh của nước nào?",
+      "gold_answer": "Anh Quốc",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0038-0001",
+      "question": "Trong Chiến tranh thế giới thứ hai, Canada là đồng minh của nước nào?",
+      "gold_answer": "Anh Quốc",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0010-0001",
+      "question": "Nơi nào nằm trên kênh Seine nối liền bồn Villette và thượng lưu sông Saint-Martin?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0064-0006",
+      "question": "Bức tranh Mona Lisa nằm ở đâu?",
+      "gold_answer": "viện bảo tàng Louvre",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0064-0006",
+      "question": "Bức tranh Mona Lisa nằm ở đâu?",
+      "gold_answer": "viện bảo tàng Louvre",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0050-0003",
+      "question": "Tỉnh nào của Canada có thành phần dân cư là sắc mạnh hóa mạnh?",
+      "gold_answer": "",
+      "predicted_answer": "Québec",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0015-0003-0007",
+      "question": "Những nơi nào từ khỏang 5500-3500 TCN đã có các khu định cư nông nghiệp?",
+      "gold_answer": "Norovlin, Tamsagbulag, Bayanzag, và Rashaan Khad",
+      "predicted_answer": "những người định cư thuộc thời kỳ đồ đá mới đến đảo",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0001-0091-0005",
+      "question": "Hình ảnh sân khấu đổ xuất hiện ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0012-0005",
+      "question": "Cuộc cách mạng Pháp lần đầu tiên diễn ra ở đâu?",
+      "gold_answer": "Paris",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0012-0005",
+      "question": "Cuộc cách mạng Pháp lần đầu tiên diễn ra ở đâu?",
+      "gold_answer": "Paris",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0055-0005",
+      "question": "Điểm cuối của Axe lúc dài nhất là nơi nào?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0026-0003",
+      "question": "Nơi nào của Canada có khí hậu tốt nhất vào vào mùa đông?",
+      "gold_answer": "British Columbia Duyên hải",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0026-0003",
+      "question": "Nơi nào của Canada có khí hậu tốt nhất vào vào mùa đông?",
+      "gold_answer": "British Columbia Duyên hải",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0016-0003",
+      "question": "Capet đã chọn nơi nào để tập trung?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0043-0004",
+      "question": "Các quốc gia nào có số dân di cư đến Canada nhiều nhất?",
+      "gold_answer": "Nam Á",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0059-0005",
+      "question": "Nhà thờ tọa lạc ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0001-0005",
+      "question": "Cuộc chiến tranh Vùng Vịnh chủ yếu diễn ra ở những nơi nào?",
+      "gold_answer": "Iraq, Kuwait và những vùng giáp biên giới Ả Rập Xê Út",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0007-0006",
+      "question": "Rừng Paris nằm ở đâu của Vincennes?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0026-0008",
+      "question": "Sau khi thất thế trước liên minh, phi đội Iraq đã phải tẩu thóat đến nơi nào?",
+      "gold_answer": "Iran",
+      "predicted_answer": "Cung Emir",
+      "errors": [
+        "LOCATION_RELATION_MISMATCH",
+        "LOCATION_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": null
+    },
+    {
+      "id": "0004-0012-0008",
+      "question": "Cuộc chiến bất ngờ giữa Saddam Hussein và April Glaspie vào tháng 7 năm 1990 được tổ chức tại đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0009-0002-0002",
+      "question": "Mitterrand đã có khỏang thời gian học tập 11 năm tại đâu?",
+      "gold_answer": "collège Saint-Paul ở Angoulême",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0063-0005",
+      "question": "Các trường Đại học lớn nhất ở Paris thường tọa lạc ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0006-0001-0006",
+      "question": "Thịnh vượng chung Puerto Rico có vị trí địa lí ở đâu?",
+      "gold_answer": "phía đông bắc vùng biển Caribbean, phía đông nước Cộng hòa Dominicana và phía tây Quần đảo Virgin",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0006-0001-0006",
+      "question": "Thịnh vượng chung Puerto Rico có vị trí địa lí ở đâu?",
+      "gold_answer": "phía đông bắc vùng biển Caribbean, phía đông nước Cộng hòa Dominicana và phía tây Quần đảo Virgin",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0009-0035-0003",
+      "question": "Ngày 15 tháng 12 năm 2004, vụ việc được xét xử tại đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0008-0002-0002",
+      "question": "Hầu hết các lòai kiến còn tồn tại đến bây giờ sinh sống ở đâu?",
+      "gold_answer": "Dominica",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0014-0006-0005",
+      "question": "Địa vị cao cả của đế quốc thể hiện ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0005-0007",
+      "question": "Phong trào Intifada đầu tiên ở quốc gia nào?",
+      "gold_answer": "Palestine",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "ANSWER_TYPE_MISMATCH"
+    },
+    {
+      "id": "0004-0005-0007",
+      "question": "Phong trào Intifada đầu tiên ở quốc gia nào?",
+      "gold_answer": "Palestine",
+      "predicted_answer": "",
+      "errors": [
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "ANSWER_TYPE_MISMATCH"
+    },
+    {
+      "id": "0001-0051-0002",
+      "question": "Thành phố nào có số lượng khách và hàng hóa trung chuyển lớn thứ năm châu Âu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0004-0002",
+      "question": "Quốc gia nào có mật độ dân số đứng thứ tám trên thế giới?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0070-0003",
+      "question": "Quán cafe xuất hiện thứ hai ở Paris nằm ở đâu?",
+      "gold_answer": "quán Café Procope",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0070-0003",
+      "question": "Quán cafe xuất hiện thứ hai ở Paris nằm ở đâu?",
+      "gold_answer": "quán Café Procope",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0031-0005",
+      "question": "Nguồn dân không lao động sống ở đâu nhiều nhất tại Paris?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0019-0028-0005",
+      "question": "Những nơi nào thường bỏ phiếu cho Đảng Dân Chủ trong các cuộc bỏ phiếu?",
+      "gold_answer": "Austin, Dallas, Houston, và San Antonio",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0019-0028-0005",
+      "question": "Những nơi nào thường bỏ phiếu cho Đảng Dân Chủ trong các cuộc bỏ phiếu?",
+      "gold_answer": "Austin, Dallas, Houston, và San Antonio",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0026-0004",
+      "question": "Tàu điện ngầm thứ hai của Pháp nối liền những nơi nào?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0021-0004",
+      "question": "Để biện hộ cho sự can thiệp vào cuộc chiến, Mỹ đã viện cớ có mối quan hệ quan trọng với quốc gia nào?",
+      "gold_answer": "Ả Rập Xê Út",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0009-0005",
+      "question": "Ở Hầm mộ Paris, CaSO4.2H2O được khai thác nhiều ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "NO_VALID_SPAN"
+    },
+    {
+      "id": "0019-0028-0004",
+      "question": "Những nơi nào tại Texas thường bỏ phiếu cho người Cộng Hòa?",
+      "gold_answer": "các khu vực nông thôn và ngọai ô",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0019-0028-0004",
+      "question": "Những nơi nào tại Texas thường bỏ phiếu cho người Cộng Hòa?",
+      "gold_answer": "các khu vực nông thôn và ngọai ô",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0014-0006-0009",
+      "question": "Trước khi chết Hòang Đế và gia đình của ông có những tháng này sống xa hoa ở đâu?",
+      "gold_answer": "cung điện cổ tên là Hofburg",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0014-0005",
+      "question": "Hai quốc gia nào tham gia vào bàn đàm phán năm 1812?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0015-0008-0003",
+      "question": "Kinh đô của nhà Nguyên nay thuộc tỉnh nào của Trung Quốc?",
+      "gold_answer": "Bắc Kinh",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0020-0004",
+      "question": "Cung điện Paris nằm ở đâu?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    }
+  ],
+  "latency_ms": {
+    "average": 4658.626207499765,
+    "p50": 4403.573299990967,
+    "p95": 4934.052099997643
+  }
+}

@@ -1,0 +1,223 @@
+{
+  "dataset": "UIT-ViQuAD2.0 validation stratified subset",
+  "subset_size": 40,
+  "seed": 42,
+  "top_k": 10,
+  "question_type_filter": null,
+  "metrics": {
+    "overall": {
+      "count": 40,
+      "em": 32.5,
+      "f1": 35.99582660460597
+    },
+    "answerable": {
+      "count": 20,
+      "em": 0.0,
+      "f1": 6.991653209211952,
+      "predicted_empty": 9,
+      "predicted_empty_rate": 45.0
+    },
+    "unanswerable": {
+      "count": 20,
+      "accuracy": 65.0,
+      "em": 65.0
+    },
+    "predicted_no_answer": {
+      "count": 22,
+      "rate": 55.0
+    }
+  },
+  "ranking": {
+    "gold_answer_passage_available_top10": 17,
+    "gold_passage_selected": 9,
+    "wrong_passage_selected": 2,
+    "false_positive_answer_emitted": 7,
+    "false_negative_no_answer_emitted": 9,
+    "no_answer_correctly_emitted": 13
+  },
+  "location": {
+    "count": 6,
+    "correct": 3,
+    "wrong_location": 0,
+    "no_answer": 6,
+    "false_positive": 0,
+    "false_negative": 3,
+    "whole_sentence_accepted": 0,
+    "phrase_accepted": 0
+  },
+  "fallback": {
+    "fallback_candidates_total": 308,
+    "fallback_phrase_success": 39,
+    "fallback_whole_sentence": 269,
+    "fallback_rejected_type": 77,
+    "fallback_rejected_evidence": 0,
+    "fallback_rejected_ranking": 149,
+    "fallback_answered_correctly": 0,
+    "fallback_answered_incorrectly": 17,
+    "fallback_phrase_rate": 12.662337662337663,
+    "fallback_whole_sentence_rate": 87.33766233766234
+  },
+  "error_counts": {
+    "FALLBACK_PHRASE_NOT_EXTRACTED": 6,
+    "FALLBACK_TYPE_GATE_FALSE_NEGATIVE": 3,
+    "NEURAL_SPAN_WRONG_FALLBACK_CORRECT": 4,
+    "FALLBACK_WHOLE_SENTENCE_TOO_BROAD": 6,
+    "LOCATION_PROPER_NOUN_FALSE_POSITIVE": 0,
+    "LOCATION_RELATION_MISMATCH": 0,
+    "LOCATION_WHOLE_SENTENCE_TOO_BROAD": 0,
+    "LOCATION_PHRASE_NOT_EXTRACTED": 6,
+    "LOCATION_FALSE_NEGATIVE": 3
+  },
+  "error_analysis": [
+    {
+      "id": "0001-0090-0001",
+      "question": "Nội dung của \"An American in Paris\" là gì?",
+      "gold_answer": "một họa sĩ trẻ ở Paris, đã thành công rực rỡ, đạt giải Oscar cho phim hay nhất",
+      "predicted_answer": "",
+      "errors": [
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "NO_VALID_SPAN"
+    },
+    {
+      "id": "0001-0017-0005",
+      "question": "Vì sao vua Charles V cho xây dựng bức tường thành từcầu Pont Royal tới cửa ô Saint-Denis?",
+      "gold_answer": "nạn dịch hạch đen",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0002-0007-0002",
+      "question": "Đa số các quan chức Nouvelle-Calédonie được triển khai tại những nơi nào?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0003-0007",
+      "question": "Nước nào đã giúp Kuwait ngăn chặn ý định thâu tóm nước này của Iraq?",
+      "gold_answer": "Anh",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0003-0007",
+      "question": "Nước nào đã giúp Kuwait ngăn chặn ý định thâu tóm nước này của Iraq?",
+      "gold_answer": "Anh",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0009-0008-0002",
+      "question": "Từ năm nào trở đi Mitterrand trở thành thành viên của ORA?",
+      "gold_answer": "1943",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "ANSWER_TYPE_MISMATCH"
+    },
+    {
+      "id": "0004-0019-0007",
+      "question": "Những hạm đội tàu chiến nào được Hải quân Mỹ triệu tập?",
+      "gold_answer": "USS Dwight D. Eisenhower và USS Independence",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0003-0023-0007",
+      "question": "Canada tiếp giáp với các quốc gia nào bằng biên giới trên biển?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0021-0003",
+      "question": "Nhà thờ Sainte-Geneviève nằm ở đâu?",
+      "gold_answer": "Paris",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0001-0021-0003",
+      "question": "Nhà thờ Sainte-Geneviève nằm ở đâu?",
+      "gold_answer": "Paris",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0003-0044-0002",
+      "question": "Người di cư tới Canada chủ yêu tập trung sinh sông ở khu vực nào?",
+      "gold_answer": "Toronto, Montreal và Vancouver",
+      "predicted_answer": "",
+      "errors": [
+        "FALLBACK_PHRASE_NOT_EXTRACTED",
+        "FALLBACK_TYPE_GATE_FALSE_NEGATIVE",
+        "FALLBACK_WHOLE_SENTENCE_TOO_BROAD",
+        "NEURAL_SPAN_WRONG_FALLBACK_CORRECT"
+      ],
+      "rejection_reason": "INSUFFICIENT_FALLBACK_EVIDENCE"
+    },
+    {
+      "id": "0001-0072-0001",
+      "question": "Những nước nào trên thế giới có sự hiện diện của ẩm thực Paris?",
+      "gold_answer": "",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    },
+    {
+      "id": "0004-0021-0004",
+      "question": "Để biện hộ cho sự can thiệp vào cuộc chiến, Mỹ đã viện cớ có mối quan hệ quan trọng với quốc gia nào?",
+      "gold_answer": "Ả Rập Xê Út",
+      "predicted_answer": "",
+      "errors": [
+        "LOCATION_PHRASE_NOT_EXTRACTED",
+        "LOCATION_FALSE_NEGATIVE"
+      ],
+      "rejection_reason": "LOCATION_RELATION_MISMATCH"
+    }
+  ],
+  "latency_ms": {
+    "average": 13528.571232498507,
+    "p50": 13140.03320003394,
+    "p95": 14240.70780002512
+  }
+}

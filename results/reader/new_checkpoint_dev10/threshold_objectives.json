@@ -1,0 +1,44 @@
+{
+  "maximize_overall_f1": {
+    "threshold": -6.034909,
+    "overall_em": 20.0,
+    "overall_f1": 42.5,
+    "answerable_em": 0.0,
+    "answerable_f1": 28.125,
+    "unanswerable_accuracy": 100.0,
+    "predicted_no_answer_rate": 50.0,
+    "answerable_predicted_empty_rate": 37.5,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 37.5,
+    "balanced_score": 64.0625,
+    "reader_priority_score": 49.6875
+  },
+  "maximize_answerable_f1": {
+    "threshold": -11.65838,
+    "overall_em": 10.0,
+    "overall_f1": 40.0,
+    "answerable_em": 0.0,
+    "answerable_f1": 37.5,
+    "unanswerable_accuracy": 50.0,
+    "predicted_no_answer_rate": 20.0,
+    "answerable_predicted_empty_rate": 12.5,
+    "false_positive_rate": 50.0,
+    "false_negative_rate": 12.5,
+    "balanced_score": 43.75,
+    "reader_priority_score": 41.25
+  },
+  "reader_priority_0.7_answerable_f1_0.3_unanswerable_accuracy": {
+    "threshold": -6.034909,
+    "overall_em": 20.0,
+    "overall_f1": 42.5,
+    "answerable_em": 0.0,
+    "answerable_f1": 28.125,
+    "unanswerable_accuracy": 100.0,
+    "predicted_no_answer_rate": 50.0,
+    "answerable_predicted_empty_rate": 37.5,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 37.5,
+    "balanced_score": 64.0625,
+    "reader_priority_score": 49.6875
+  }
+}

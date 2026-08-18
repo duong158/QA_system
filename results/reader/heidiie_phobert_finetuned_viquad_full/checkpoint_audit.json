@@ -1,0 +1,46 @@
+{
+  "checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "source_repository": "heidiie/phobert_finetuned_viquad",
+  "base_model": "vinai/phobert-base-v2",
+  "architecture": "RobertaForQuestionAnswering",
+  "model_vocab_size": 64001,
+  "tokenizer_class": "PhobertTokenizer",
+  "tokenizer_vocab_size": 64001,
+  "tokenizer_model_match": true,
+  "qa_head": {
+    "present": true,
+    "weight_shape": [2, 768],
+    "bias_shape": [2],
+    "missing_keys": [],
+    "unexpected_keys": []
+  },
+  "verified_training_args": {
+    "num_train_epochs": 3.0,
+    "learning_rate": 0.00002,
+    "per_device_train_batch_size": 16,
+    "per_device_eval_batch_size": 16,
+    "gradient_accumulation_steps": 1,
+    "weight_decay": 0.01,
+    "lr_scheduler_type": "linear",
+    "warmup_steps": 0,
+    "fp16": true,
+    "seed": 42,
+    "evaluation_strategy": "epoch",
+    "save_steps": 500,
+    "load_best_model_at_end": false,
+    "metric_for_best_model": null
+  },
+  "not_recoverable_from_checkpoint_artifacts": {
+    "training_max_length": null,
+    "training_stride": null,
+    "custom_loss_or_default_loss": null,
+    "number_of_train_samples": null,
+    "number_of_validation_samples": null,
+    "checkpoint_selection_metric": null
+  },
+  "evaluation_window": {
+    "max_length": 256,
+    "stride": 80,
+    "note": "Evaluation configuration; the original training window is not encoded in the checkpoint."
+  }
+}

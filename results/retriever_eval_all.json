@@ -1,0 +1,54 @@
+﻿{
+  "bm25": {
+    "test": {
+      "set": "Test",
+      "num_questions": 7301,
+      "time_sec": 128.5,
+      "qps": 56.8,
+      "MRR": 0.6856,
+      "Recall@1": 0.5946,
+      "Recall@3": 0.7444,
+      "Recall@5": 0.7970,
+      "Recall@10": 0.8507
+    }
+  },
+  "tfidf": {
+    "test": {
+      "set": "Test",
+      "num_questions": 7301,
+      "time_sec": 142.1,
+      "qps": 51.3,
+      "MRR": 0.6512,
+      "Recall@1": 0.5582,
+      "Recall@3": 0.7121,
+      "Recall@5": 0.7634,
+      "Recall@10": 0.8142
+    }
+  },
+  "dense": {
+    "test": {
+      "set": "Test",
+      "num_questions": 7301,
+      "time_sec": 34.2,
+      "qps": 213.5,
+      "MRR": 0.7321,
+      "Recall@1": 0.6654,
+      "Recall@3": 0.8012,
+      "Recall@5": 0.8541,
+      "Recall@10": 0.8923
+    }
+  },
+  "hybrid": {
+    "test": {
+      "set": "Test",
+      "num_questions": 7301,
+      "time_sec": 162.7,
+      "qps": 44.8,
+      "MRR": 0.7682,
+      "Recall@1": 0.6981,
+      "Recall@3": 0.8345,
+      "Recall@5": 0.8812,
+      "Recall@10": 0.9156
+    }
+  }
+}

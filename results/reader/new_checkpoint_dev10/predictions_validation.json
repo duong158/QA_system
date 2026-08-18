@@ -1,0 +1,170 @@
+{
+  "dataset": "validation",
+  "checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "threshold_semantics": "return answer when best_span_score - null_score >= threshold",
+  "metrics": {
+    "overall": {
+      "count": 10,
+      "em": 20.0,
+      "f1": 42.5
+    },
+    "answerable": {
+      "count": 8,
+      "em": 0.0,
+      "f1": 28.125,
+      "predicted_empty": 3,
+      "predicted_empty_rate": 37.5
+    },
+    "unanswerable": {
+      "count": 2,
+      "accuracy": 100.0,
+      "em": 100.0
+    },
+    "predicted_no_answer": {
+      "count": 5,
+      "rate": 50.0
+    }
+  },
+  "predictions": [
+    {
+      "id": "0001-0001-0001",
+      "question": "Paris đạt được thành quả gì sau khỏang 4 thế kỷ tính từ ngày Cách mạng Pháp diễn ra?",
+      "gold_answer": "trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và giải trí",
+      "is_answerable": true,
+      "best_span_answer": ", thành phố trở thành một trong những trung tâm văn hóa của thế giới, thủ đô của nghệ thuật và",
+      "best_span_score": -2.9493608474731445,
+      "null_score": 10.171802520751953,
+      "no_answer_score": 13.121163368225098,
+      "score_margin": -13.121163368225098,
+      "confidence": 1.0,
+      "predicted_answer": "",
+      "prediction": ""
+    },
+    {
+      "id": "0001-0001-0002",
+      "question": "Vị trí địa lý của Pháp có gì đặc biệt?",
+      "gold_answer": "",
+      "is_answerable": false,
+      "best_span_answer": "ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông, và là trung tâm của một vùng nông nghiệp",
+      "best_span_score": -1.5605090856552124,
+      "null_score": 10.152969360351562,
+      "no_answer_score": 11.713478446006775,
+      "score_margin": -11.713478446006775,
+      "confidence": 1.0,
+      "predicted_answer": "",
+      "prediction": ""
+    },
+    {
+      "id": "0001-0001-0003",
+      "question": "Kinh tế xung quanh kinh đô ánh sáng mạnh về gì?",
+      "gold_answer": "giáo dục và nghệ thuật",
+      "is_answerable": true,
+      "best_span_answer": "vùng nông nghiệp",
+      "best_span_score": 6.88983154296875,
+      "null_score": 10.145915985107422,
+      "no_answer_score": 3.256084442138672,
+      "score_margin": -3.256084442138672,
+      "confidence": 1.0,
+      "predicted_answer": "vùng nông nghiệp",
+      "prediction": "vùng nông nghiệp"
+    },
+    {
+      "id": "0001-0001-0004",
+      "question": "Cuộc cách mạng Pháp diễn ra ở đâu?",
+      "gold_answer": "Paris",
+      "is_answerable": true,
+      "best_span_answer": ",",
+      "best_span_score": 3.488860607147217,
+      "null_score": 10.137810707092285,
+      "no_answer_score": 6.648950099945068,
+      "score_margin": -6.648950099945068,
+      "confidence": 1.0,
+      "predicted_answer": "",
+      "prediction": ""
+    },
+    {
+      "id": "0001-0001-0005",
+      "question": "Kinh đô ánh sáng nổi tiếng về lĩnh vực gì?",
+      "gold_answer": "nghệ thuật và giải trí",
+      "is_answerable": true,
+      "best_span_answer": "của nghệ thuật và",
+      "best_span_score": 8.036087989807129,
+      "null_score": 10.120182991027832,
+      "no_answer_score": 2.084095001220703,
+      "score_margin": -2.084095001220703,
+      "confidence": 1.0,
+      "predicted_answer": "của nghệ thuật và",
+      "prediction": "của nghệ thuật và"
+    },
+    {
+      "id": "0001-0001-0006",
+      "question": "Paris là một thành phố quan trọng của nước Pháp bắt đầu từ thời gian nào?",
+      "gold_answer": "thế kỷ 10",
+      "is_answerable": true,
+      "best_span_answer": "Vào thế kỷ",
+      "best_span_score": 5.75922966003418,
+      "null_score": 10.141780853271484,
+      "no_answer_score": 4.382551193237305,
+      "score_margin": -4.382551193237305,
+      "confidence": 1.0,
+      "predicted_answer": "Vào thế kỷ",
+      "prediction": "Vào thế kỷ"
+    },
+    {
+      "id": "0001-0001-0007",
+      "question": "Vị trí địa lý của Paris có gì đặc biệt?",
+      "gold_answer": "nằm ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông",
+      "is_answerable": true,
+      "best_span_answer": "ở điểm gặp nhau của các hành trình thương mại đường bộ và đường sông, và là trung tâm của một vùng nông nghiệp",
+      "best_span_score": -0.8699408769607544,
+      "null_score": 10.15480899810791,
+      "no_answer_score": 11.024749875068665,
+      "score_margin": -11.024749875068665,
+      "confidence": 1.0,
+      "predicted_answer": "",
+      "prediction": ""
+    },
+    {
+      "id": "0001-0002-0001",
+      "question": "Điều gì đã nói lên Paris là thành phố lý tưởng để khách du lịch?",
+      "gold_answer": "Kinh đô ánh sáng",
+      "is_answerable": true,
+      "best_span_answer": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "best_span_score": 7.385440349578857,
+      "null_score": 10.131656646728516,
+      "no_answer_score": 2.746216297149658,
+      "score_margin": -2.746216297149658,
+      "confidence": 1.0,
+      "predicted_answer": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "prediction": ". Sự nhộn nhịp, các công trình kiến trúc và không khí"
+    },
+    {
+      "id": "0001-0002-0002",
+      "question": "Người ta đến với Paris vì điều gì?",
+      "gold_answer": "Sự nhộn nhịp, các công trình kiến trúc và không khí nghệ sĩ",
+      "is_answerable": true,
+      "best_span_answer": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "best_span_score": 5.291274070739746,
+      "null_score": 10.153066635131836,
+      "no_answer_score": 4.86179256439209,
+      "score_margin": -4.86179256439209,
+      "confidence": 1.0,
+      "predicted_answer": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "prediction": ". Sự nhộn nhịp, các công trình kiến trúc và không khí"
+    },
+    {
+      "id": "0001-0002-0003",
+      "question": "Điều gì đã nói lên New York là thành phố lý tưởng để khách du lịch?",
+      "gold_answer": "",
+      "is_answerable": false,
+      "best_span_answer": ". Sự nhộn nhịp, các công trình kiến trúc và không khí",
+      "best_span_score": 3.932772159576416,
+      "null_score": 10.158653259277344,
+      "no_answer_score": 6.225881099700928,
+      "score_margin": -6.225881099700928,
+      "confidence": 1.0,
+      "predicted_answer": "",
+      "prediction": ""
+    }
+  ]
+}
