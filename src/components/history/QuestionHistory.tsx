@@ -1,11 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { History, RotateCcw, Trash2 } from 'lucide-react';
-import type { QaHistoryItem } from '@/store/appStore';
 
 interface QuestionHistoryProps {
   open: boolean;
   onClose: () => void;
-  items: QaHistoryItem[];
+  items: any[];
   onReuse: (question: string) => void;
   onClear: () => void;
 }

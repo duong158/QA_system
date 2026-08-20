@@ -1,13 +1,13 @@
 import { BarChart3, BrainCircuit, MessageSquarePlus, Trash2, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import type { QaHistoryItem } from '@/store/appStore';
+import type { ChatSession } from '@/types/chat';
 
 interface ChatSidebarProps {
   open: boolean;
-  items: QaHistoryItem[];
+  items: ChatSession[];
   onClose: () => void;
   onNewChat: () => void;
-  onReuse: (question: string) => void;
+  onSelectSession: (sessionId: string) => void;
   onClear: () => void;
 }
 
@@ -21,7 +21,7 @@ function groupLabel(timestamp: number): string {
   return 'Trước đó';
 }
 
-function SidebarContent({ items, onClose, onNewChat, onReuse, onClear }: Omit<ChatSidebarProps, 'open'>) {
+function SidebarContent({ items, onClose, onNewChat, onSelectSession, onClear }: Omit<ChatSidebarProps, 'open'>) {
   let previousGroup = '';
   return (
     <>
@@ -49,10 +49,10 @@ function SidebarContent({ items, onClose, onNewChat, onReuse, onClear }: Omit<Ch
               {showGroup ? <p className="px-2 pb-1 pt-4 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">{group}</p> : null}
               <button
                 type="button"
-                onClick={() => { onReuse(item.question); onClose(); }}
+                onClick={() => onSelectSession(item.id)}
                 className="group w-full rounded-xl px-2.5 py-2.5 text-left transition hover:bg-[var(--surface-muted)]"
               >
-                <span className="line-clamp-2 text-sm leading-5 text-[var(--text-primary)]">{item.question}</span>
+                <span className="line-clamp-2 text-sm leading-5 text-[var(--text-primary)]">{item.title}</span>
                 <span className="mt-1 block text-[11px] text-[var(--text-muted)]">
                   {new Date(item.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </span>

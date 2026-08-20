@@ -96,7 +96,9 @@ a { -webkit-tap-highlight-color: transparent; }
   .viqa-panel {
     @apply border shadow-sm;
     border-color: var(--border);
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 40%, transparent);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
   }
 
   .viqa-panel { @apply rounded-2xl; }
@@ -105,7 +107,9 @@ a { -webkit-tap-highlight-color: transparent; }
 
   .surface-card {
     border: 1px solid var(--border);
-    background: var(--surface);
+    background: color-mix(in srgb, var(--surface) 40%, transparent);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     box-shadow: var(--shadow-sm);
   }
 
@@ -173,4 +177,72 @@ a { -webkit-tap-highlight-color: transparent; }
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* --- Animated Background bga-06 --- */
+@property --bga-06-a {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 45deg;
+}
+.bga-06 {
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: block;
+  position: absolute;
+  overflow: hidden;
+  isolation: isolate;
+  --bga-06-a: 45deg;
+  --bga-06-w: 26px;
+  --bga-06-dur: 15s;
+  --bga-06-c1: var(--background);
+  --bga-06-c2: color-mix(in srgb, var(--primary) 6%, var(--background));
+  --bga-06-acc: var(--primary);
+  background: var(--bga-06-c1);
+}
+.bga-06__a, .bga-06__b {
+  position: absolute;
+  inset: -10%;
+  background-size: 200% 200%;
+}
+.bga-06__a {
+  background-image: repeating-linear-gradient(var(--bga-06-a), var(--bga-06-c1) 0 var(--bga-06-w),var(--bga-06-c2) var(--bga-06-w) calc(var(--bga-06-w) * 2));
+  animation: bga-06-slide var(--bga-06-dur) linear infinite;
+}
+.bga-06__b {
+  mix-blend-mode: multiply;
+  opacity: .4;
+  background-image: repeating-linear-gradient(var(--bga-06-a), color-mix(in oklab,var(--bga-06-acc) 40%,transparent) 0 calc(var(--bga-06-w) * 1.62), transparent calc(var(--bga-06-w) * 1.62) calc(var(--bga-06-w) * 3.24));
+  animation: bga-06-slide-r calc(var(--bga-06-dur) * 1.7) linear infinite;
+}
+.dark .bga-06__b {
+  mix-blend-mode: screen;
+}
+@keyframes bga-06-slide {
+  to {
+    background-position: calc(var(--bga-06-w) * 2.8284) 0;
+  }
+}
+@keyframes bga-06-slide-r {
+  to {
+    background-position: calc(var(--bga-06-w) * -4.5820) 0;
+  }
+}
+.bga-06__sheen {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: normal;
+  background: linear-gradient(var(--bga-06-a),transparent 35%,color-mix(in srgb,var(--bga-06-acc) 25%,transparent) 50%,transparent 65%);
+  background-size: 260% 260%;
+  animation: bga-06-sheen 11s ease-in-out infinite;
+}
+@keyframes bga-06-sheen {
+  0% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+  100% { background-position: 0% 0%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bga-06__a, .bga-06__b, .bga-06__sheen { animation: none; }
 }

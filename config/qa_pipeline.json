@@ -1,5 +1,5 @@
 {
-  "default_retriever": "bm25",
+  "default_retriever": "hybrid",
   "default_top_k": 10,
   "max_top_k": 20,
   "candidate_multiplier": 2,
@@ -10,9 +10,9 @@
   "answer_type_weight": 0.10,
   "relation_weight": 0.00,
   "multi_type_coverage_bonus": 0.10,
-  "reader_checkpoint": "models/reader/heidiie_phobert_finetuned_viquad",
+  "reader_checkpoint": "models/reader/xlm-roberta-large-viquad",
   "reader_score_margin_threshold": null,
-  "require_calibrated_reader_profile": true,
+  "require_calibrated_reader_profile": false,
   "minimum_reader_score": 0.30,
   "reader_fallback_threshold": 0.30,
   "reader_max_length": 256,

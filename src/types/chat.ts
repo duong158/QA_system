@@ -10,3 +10,11 @@ export interface ChatTurn {
   response?: QaResponse;
   error?: string;
 }
+
+export interface ChatSession {
+  id: string;
+  title: string;
+  turns: ChatTurn[];
+  createdAt: number;
+  updatedAt: number;
+}

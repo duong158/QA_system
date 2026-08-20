@@ -3,6 +3,7 @@ import { Sparkles } from 'lucide-react';
 import { AssistantMessage, ThinkingMessage } from '@/components/chat/AssistantMessage';
 import { ChatComposer } from '@/components/chat/ChatComposer';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
+import { SourceSidebar } from '@/components/answer/SourceSidebar';
 import { Header } from '@/components/layout/Header';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
@@ -12,7 +13,7 @@ import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useAppStore } from '@/store/appStore';
 import type { ChatTurn } from '@/types/chat';
-import type { FollowUpCandidate } from '@/types/qa';
+import type { FollowUpCandidate, QaResponse } from '@/types/qa';
 import { collapseRepeatedQuestion, mergeQuestionParts } from '@/utils/questionInput';
 
 const showDebugScores = import.meta.env.DEV || String(import.meta.env.VITE_QA_DEBUG ?? 'false').toLowerCase() === 'true';
@@ -24,17 +25,19 @@ function turnId(): string {
 }
 
 export function HomePage() {
-  const [turns, setTurns] = useState<ChatTurn[]>([]);
   const [avatarCollapsed, setAvatarCollapsed] = useState(false);
   const [mobileMariOpen, setMobileMariOpen] = useState(false);
   const [desktopAvatarVisible, setDesktopAvatarVisible] = useState(false);
+  const [activeSourceResponse, setActiveSourceResponse] = useState<QaResponse | null>(null);
   const conversationRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
   const requestInFlightRef = useRef(false);
 
   const draft = useAppStore((state) => state.draft);
   const answer = useAppStore((state) => state.answer);
-  const history = useAppStore((state) => state.history);
+  const sessions = useAppStore((state) => state.sessions);
+  const currentSessionId = useAppStore((state) => state.currentSessionId);
+  const turns = useMemo(() => sessions.find((s) => s.id === currentSessionId)?.turns || [], [sessions, currentSessionId]);
   const pipelineState = useAppStore((state) => state.pipelineState);
   const avatarState = useAppStore((state) => state.avatarState);
   const errorMessage = useAppStore((state) => state.errorMessage);
@@ -43,7 +46,11 @@ export function HomePage() {
   const setDraft = useAppStore((state) => state.setDraft);
   const setQuestion = useAppStore((state) => state.setQuestion);
   const setAnswer = useAppStore((state) => state.setAnswer);
-  const clearHistory = useAppStore((state) => state.clearHistory);
+  const clearSessions = useAppStore((state) => state.clearSessions);
+  const addTurn = useAppStore((state) => state.addTurn);
+  const updateTurn = useAppStore((state) => state.updateTurn);
+  const createNewSession = useAppStore((state) => state.createNewSession);
+  const switchSession = useAppStore((state) => state.switchSession);
   const toggleSettings = useAppStore((state) => state.toggleSettings);
   const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
   const toggleHistory = useAppStore((state) => state.toggleHistory);
@@ -94,14 +101,13 @@ export function HomePage() {
     const id = turnId();
     requestInFlightRef.current = true;
     shouldAutoScrollRef.current = true;
-    setTurns((current) => [...current, { id, question: normalizedQuestion, createdAt: Date.now(), status: 'pending' }]);
+    addTurn({ id, question: normalizedQuestion, createdAt: Date.now(), status: 'pending' });
     try {
       const result = await submitQuestion(normalizedQuestion);
-      setTurns((current) => current.map((turn) => turn.id === id
-        ? result.response
-          ? { ...turn, status: 'complete', response: result.response }
-          : { ...turn, status: 'error', error: 'Không thể nhận câu trả lời. Vui lòng kiểm tra kết nối và thử lại.' }
-        : turn));
+      updateTurn(id, result.response
+        ? { status: 'complete', response: result.response }
+        : { status: 'error', error: 'Không thể nhận câu trả lời. Vui lòng kiểm tra kết nối và thử lại.' }
+      );
     } finally {
       requestInFlightRef.current = false;
     }
@@ -129,7 +135,7 @@ export function HomePage() {
     setDraft('');
     setQuestion('');
     setAnswer(null);
-    setTurns([]);
+    createNewSession();
     speech.resetTranscript();
     socratic.resetSession();
     resetTransientState();
@@ -190,11 +196,11 @@ export function HomePage() {
       }`}>
         <ChatSidebar
           open={isHistoryOpen}
-          items={history}
+          items={sessions}
           onClose={() => setHistoryOpen(false)}
           onNewChat={startNewChat}
-          onReuse={(historyQuestion) => setDraft(historyQuestion)}
-          onClear={clearHistory}
+          onSelectSession={switchSession}
+          onClear={clearSessions}
         />
 
         <section className="surface-card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl" aria-label="Cuộc trò chuyện với Mari">
@@ -240,6 +246,7 @@ export function HomePage() {
                         onFollowUpSelect={askFollowUp}
                         onFollowUpSpeak={isCurrentResponse && synthesis.isSupported ? speakFollowUp : undefined}
                         onSpeakAnswer={speakText}
+                        onSourceClick={setActiveSourceResponse}
                         showDebug={showDebugScores}
                       />
                     ) : null}
@@ -295,6 +302,12 @@ export function HomePage() {
       ) : null}
 
       <SettingsPanel voices={synthesis.voices} onTestVoice={testVoice} />
+      
+      <SourceSidebar 
+        open={!!activeSourceResponse} 
+        onClose={() => setActiveSourceResponse(null)} 
+        response={activeSourceResponse} 
+      />
     </MainLayout>
   );
 }

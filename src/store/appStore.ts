@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import type { AvatarState } from '@/types/avatar';
 import type { PipelineState } from '@/types/pipeline';
 import type { QaResponse, ReaderType, RetrieverType } from '@/types/qa';
+import type { ChatSession, ChatTurn } from '@/types/chat';
 
 export interface VoiceSettings {
   enabled: boolean;
@@ -33,21 +34,12 @@ export interface RetrieverComparisonState {
   question: string;
 }
 
-export interface QaHistoryItem {
-  id: string;
-  question: string;
-  answer: string | null;
-  hasAnswer: boolean;
-  answerConfidence: number | null;
-  rankingScore: number | null;
-  createdAt: number;
-}
-
 export interface AppState {
   question: string;
   draft: string;
   answer: QaResponse | null;
-  history: QaHistoryItem[];
+  sessions: ChatSession[];
+  currentSessionId: string | null;
   pipelineState: PipelineState;
   avatarState: AvatarState;
   isSettingsOpen: boolean;
@@ -63,8 +55,15 @@ export interface AppState {
   setQuestion: (question: string) => void;
   setDraft: (draft: string) => void;
   setAnswer: (answer: QaResponse | null) => void;
-  addHistoryItem: (response: QaResponse) => void;
-  clearHistory: () => void;
+  
+  // Session Actions
+  createNewSession: () => void;
+  switchSession: (sessionId: string) => void;
+  deleteSession: (sessionId: string) => void;
+  clearSessions: () => void;
+  addTurn: (turn: ChatTurn) => void;
+  updateTurn: (turnId: string, updates: Partial<ChatTurn>) => void;
+
   setPipelineState: (state: PipelineState) => void;
   setAvatarState: (state: AvatarState) => void;
   setSettingsOpen: (open: boolean) => void;
@@ -109,7 +108,8 @@ export const useAppStore = create<AppState>()(
       question: '',
       draft: '',
       answer: null,
-      history: [],
+      sessions: [],
+      currentSessionId: null,
       pipelineState: 'idle',
       avatarState: 'idle',
       isSettingsOpen: false,
@@ -128,26 +128,67 @@ export const useAppStore = create<AppState>()(
       setQuestion: (question) => set({ question }),
       setDraft: (draft) => set({ draft }),
       setAnswer: (answer) => set({ answer }),
-      addHistoryItem: (response) =>
-        set((state) => {
-          const hasAnswer = response.has_answer ?? Boolean(response.answer);
-
-          return {
-            history: [
-              {
-                id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-                question: response.question,
-                answer: response.answer,
-                hasAnswer,
-                answerConfidence: response.answer_confidence ?? null,
-                rankingScore: response.scores?.ranking ?? null,
-                createdAt: Date.now(),
-              },
-              ...state.history,
-            ].slice(0, 20),
+      
+      createNewSession: () => set(() => ({ currentSessionId: null })),
+      switchSession: (sessionId) => set({ currentSessionId: sessionId, isHistoryOpen: false }),
+      deleteSession: (sessionId) => set((state) => {
+        const nextSessions = state.sessions.filter(s => s.id !== sessionId);
+        return {
+          sessions: nextSessions,
+          currentSessionId: state.currentSessionId === sessionId ? null : state.currentSessionId,
+        };
+      }),
+      clearSessions: () => set({ sessions: [], currentSessionId: null }),
+      addTurn: (turn) => set((state) => {
+        if (!state.currentSessionId) {
+          const newSession: ChatSession = {
+            id: `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            title: turn.question,
+            turns: [turn],
+            createdAt: Date.now(),
+            updatedAt: Date.now()
           };
-        }),
-      clearHistory: () => set({ history: [] }),
+          return {
+            sessions: [newSession, ...state.sessions].slice(0, 50),
+            currentSessionId: newSession.id
+          };
+        }
+
+        const nextSessions = state.sessions.map(s => {
+          if (s.id === state.currentSessionId) {
+            return {
+              ...s,
+              turns: [...s.turns, turn],
+              updatedAt: Date.now()
+            };
+          }
+          return s;
+        });
+        
+        const activeIndex = nextSessions.findIndex(s => s.id === state.currentSessionId);
+        if (activeIndex > 0) {
+          const activeSession = nextSessions.splice(activeIndex, 1)[0];
+          nextSessions.unshift(activeSession);
+        }
+
+        return { sessions: nextSessions };
+      }),
+      updateTurn: (turnId, updates) => set((state) => {
+        if (!state.currentSessionId) return state;
+        return {
+          sessions: state.sessions.map(s => {
+            if (s.id === state.currentSessionId) {
+              return {
+                ...s,
+                turns: s.turns.map(t => t.id === turnId ? { ...t, ...updates } : t),
+                updatedAt: Date.now()
+              };
+            }
+            return s;
+          })
+        };
+      }),
+
       setPipelineState: (pipelineState) => set({ pipelineState }),
       setAvatarState: (avatarState) => set({ avatarState }),
       setSettingsOpen: (isSettingsOpen) => set({ isSettingsOpen }),
@@ -196,17 +237,28 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'viqa-nexus-settings',
-      version: 6,
-      partialize: (state) => ({ settings: state.settings }),
-      migrate: (persistedState) => {
+      version: 7,
+      partialize: (state) => ({ 
+        settings: state.settings,
+        sessions: state.sessions,
+        currentSessionId: state.currentSessionId
+      }),
+      migrate: (persistedState: any) => {
         const state = persistedState as Partial<AppState> | undefined;
         const settings = state?.settings;
+        
         if (!settings) {
-          return persistedState;
+          return {
+            ...persistedState,
+            sessions: state?.sessions || [],
+            currentSessionId: state?.currentSessionId || null
+          } as Partial<AppState>;
         }
 
         return {
           ...state,
+          sessions: state?.sessions || [],
+          currentSessionId: state?.currentSessionId || null,
           settings: {
             ...defaultSettings,
             ...settings,

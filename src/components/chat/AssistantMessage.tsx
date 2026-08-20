@@ -13,6 +13,7 @@ interface AssistantMessageProps {
   onFollowUpSelect?: (followUp: FollowUpCandidate) => void;
   onFollowUpSpeak?: (followUp: FollowUpCandidate) => void;
   onSpeakAnswer: (text: string) => void;
+  onSourceClick: (response: QaResponse) => void;
   showDebug?: boolean;
 }
 
@@ -23,50 +24,25 @@ function selectedPassage(response: QaResponse): PassageResult | null {
     ?? null;
 }
 
-function SourceDisclosure({ response, showDebug }: { response: QaResponse; showDebug: boolean }) {
+function SourceButton({ response, onSourceClick }: { response: QaResponse; onSourceClick: (response: QaResponse) => void }) {
   const selected = selectedPassage(response);
-  if (!selected && !response.source) return null;
+  if (!selected && !response.source && !response.passages?.length) return null;
   const sourceTitle = response.answer_source?.title || response.source?.title || selected?.title || 'Tài liệu nguồn';
   const page = response.answer_source?.page ?? response.source?.page ?? selected?.page;
 
   return (
-    <details className="group mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)]">
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-[var(--text-secondary)] marker:hidden">
-        <Database className="h-4 w-4 text-indigo-500" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Nguồn</span>
-          <span className="block truncate text-sm font-medium text-[var(--text-primary)]">{sourceTitle}{page ? ` · Trang ${page}` : ''}</span>
-        </span>
-        <ChevronDown className="h-4 w-4 transition-transform group-open:rotate-180" />
-      </summary>
-      <div className="border-t border-[var(--border)] px-3 py-3">
-        <p className="whitespace-pre-wrap text-sm leading-6 text-[var(--text-secondary)]">
-          {selected?.text || 'Không có nội dung trích dẫn để hiển thị.'}
-        </p>
-        {showDebug && selected ? (
-          <div className="mt-3 flex flex-wrap gap-2 text-[11px] text-[var(--text-muted)]">
-            <span>{selected.document_id}</span>
-            <span>{selected.passage_id}</span>
-            <span title="Tín hiệu xếp hạng ứng viên, không phải xác suất đúng.">
-              Ranking signal: {selected.ranking_score?.toFixed(3) ?? '--'}
-            </span>
-          </div>
-        ) : null}
-        {(response.passages?.length ?? 0) > 1 ? (
-          <details className="mt-3 border-t border-[var(--border)] pt-2 text-xs text-[var(--text-secondary)]">
-            <summary className="cursor-pointer">Xem thêm {response.passages.length - 1} nguồn liên quan</summary>
-            <ul className="mt-2 grid gap-2">
-              {response.passages.filter((item) => item.passage_id !== selected?.passage_id).slice(0, 4).map((item) => (
-                <li key={item.passage_id} className="rounded-lg bg-[var(--surface-muted)] px-3 py-2">
-                  <span className="font-medium text-[var(--text-primary)]">{item.title}</span>
-                  <span className="mt-1 line-clamp-2 leading-5">{item.text}</span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        ) : null}
-      </div>
-    </details>
+    <button
+      type="button"
+      onClick={() => onSourceClick(response)}
+      className="group mt-3 flex w-full items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] px-3 py-2.5 text-left transition hover:bg-[var(--surface-muted)]"
+    >
+      <Database className="h-4 w-4 shrink-0 text-viqa-cyan" />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-semibold uppercase tracking-wide text-[var(--text-muted)]">Nguồn</span>
+        <span className="block truncate text-sm font-medium text-[var(--text-primary)]">{sourceTitle}{page ? ` · Trang ${page}` : ''}</span>
+      </span>
+      <span className="text-xs text-[var(--text-muted)] transition group-hover:text-viqa-cyan">Xem chi tiết</span>
+    </button>
   );
 }
 
@@ -95,7 +71,7 @@ export function ThinkingMessage() {
   return (
     <div className="flex max-w-[88%] items-start gap-2.5" role="status" aria-live="polite">
       <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-indigo-50 text-indigo-600"><Bot className="h-4 w-4" /></span>
-      <div className="rounded-2xl rounded-tl-md border border-[var(--border)] bg-[var(--surface-subtle)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+      <div className="rounded-2xl rounded-tl-md viqa-glass px-4 py-3 text-sm text-[var(--text-secondary)]">
         <span>Mari đang suy nghĩ</span>
         <span className="ml-2 inline-flex gap-1" aria-hidden="true">
           <span className="typing-dot h-1.5 w-1.5 rounded-full bg-indigo-400" />
@@ -115,6 +91,7 @@ export function AssistantMessage({
   onFollowUpSelect,
   onFollowUpSpeak,
   onSpeakAnswer,
+  onSourceClick,
   showDebug = false,
 }: AssistantMessageProps) {
   const [copied, setCopied] = useState(false);
@@ -133,9 +110,9 @@ export function AssistantMessage({
         <Bot className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="rounded-2xl rounded-tl-md border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm sm:px-5 sm:py-4">
+        <div className="rounded-2xl rounded-tl-md viqa-glass px-4 py-3 shadow-sm sm:px-5 sm:py-4">
           <p className={`whitespace-pre-wrap text-[15px] leading-7 ${hasAnswer ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>{answerText}</p>
-          <SourceDisclosure response={response} showDebug={showDebug} />
+          <SourceButton response={response} onSourceClick={onSourceClick} />
 
           <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-[var(--border)] pt-2">
             <button type="button" onClick={() => onSpeakAnswer(answerText)} className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs text-[var(--text-secondary)] hover:bg-[var(--surface-muted)]" aria-label="Đọc câu trả lời">
