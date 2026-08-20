@@ -2,8 +2,11 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Clock3, Cpu, Database, MessageSquareText, ChevronDown, ChevronUp, LoaderCircle } from 'lucide-react';
 import type { PipelineState } from '@/types/pipeline';
-import type { PassageResult, QaResponse } from '@/types/qa';
+import type { FollowUpCandidate, PassageResult, QaResponse } from '@/types/qa';
+import type { SocraticLoadState } from '@/hooks/useSocraticFollowups';
 import { formatLatency } from '@/utils/formatScore';
+import { FollowUpInsights } from '@/components/socratic/FollowUpInsights';
+import { SocraticToggle } from '@/components/socratic/SocraticToggle';
 import { SourceCard } from './SourceCard';
 import { PassageCard } from './PassageCard';
 
@@ -13,9 +16,31 @@ interface AnswerPanelProps {
   state: PipelineState;
   compareMode: boolean;
   onViewSource?: (passage: PassageResult) => void;
+  socraticEnabled: boolean;
+  onSocraticEnabledChange: (enabled: boolean) => void;
+  followUps: FollowUpCandidate[];
+  followUpsState: SocraticLoadState;
+  followUpsLatencyMs?: number | null;
+  onFollowUpSelect: (followUp: FollowUpCandidate) => void;
+  onFollowUpSpeak?: (followUp: FollowUpCandidate) => void;
+  showSocraticDebug?: boolean;
 }
 
-export function AnswerPanel({ response, submittedQuestion, state, compareMode, onViewSource }: AnswerPanelProps) {
+export function AnswerPanel({
+  response,
+  submittedQuestion,
+  state,
+  compareMode,
+  onViewSource,
+  socraticEnabled,
+  onSocraticEnabledChange,
+  followUps,
+  followUpsState,
+  followUpsLatencyMs,
+  onFollowUpSelect,
+  onFollowUpSpeak,
+  showSocraticDebug = false,
+}: AnswerPanelProps) {
   const [isPassagesCollapsed, setIsPassagesCollapsed] = useState(false);
   const hasAnswer = response?.has_answer ?? Boolean(response?.answer);
   const noAnswerWithRetrievedPassage = Boolean(response && !hasAnswer && response.passages?.length);
@@ -75,6 +100,19 @@ export function AnswerPanel({ response, submittedQuestion, state, compareMode, o
 
       {response?.answer_source ? <SourceCard source={response.answer_source} onScrollToPassage={handleScrollToPassage} /> : null}
 
+      <SocraticToggle enabled={socraticEnabled} onChange={onSocraticEnabledChange} />
+
+      {socraticEnabled && response && hasAnswer ? (
+        <FollowUpInsights
+          followUps={followUps}
+          loadState={followUpsState}
+          latencyMs={followUpsLatencyMs}
+          onSelect={onFollowUpSelect}
+          onSpeak={onFollowUpSpeak}
+          showDebug={showSocraticDebug}
+        />
+      ) : null}
+
       {noAnswerWithRetrievedPassage ? (
         <div className="rounded-lg border border-amber-400/20 bg-amber-400/10 p-4 text-sm leading-6 text-amber-50">
           <p className="font-medium">No answer debug</p>
@@ -99,7 +137,7 @@ export function AnswerPanel({ response, submittedQuestion, state, compareMode, o
         {response?.fallback_method ? <span>Fallback method: {response.fallback_method}</span> : null}
         {(Array.isArray(response?.question_type) ? response.question_type.includes('LOCATION') : response?.question_type === 'LOCATION') ? (
           <span>
-            Relation: {response.relation_type ?? '--'} ({response.relation_score?.toFixed(2) ?? '0.00'})
+            Relation: {response?.relation_type ?? '--'} ({response?.relation_score?.toFixed(2) ?? '0.00'})
           </span>
         ) : null}
         <span>Reader score: {response?.scores?.reader?.toFixed(3) ?? '--'}</span>

@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Eraser, Send, Square } from 'lucide-react';
 import { VoiceButton } from './VoiceButton';
 import { VoiceWaveform } from './VoiceWaveform';
+import { mergeQuestionParts } from '@/utils/questionInput';
 
 interface QuestionInputProps {
   value: string;
@@ -10,6 +11,7 @@ interface QuestionInputProps {
   listening: boolean;
   speechSupported: boolean;
   audioActive: boolean;
+  submitting: boolean;
   onChange: (value: string) => void;
   onSubmit: () => void;
   onClear: () => void;
@@ -24,13 +26,33 @@ export function QuestionInput({
   listening,
   speechSupported,
   audioActive,
+  submitting,
   onChange,
   onSubmit,
   onClear,
   onVoiceToggle,
   onStopSpeaking,
 }: QuestionInputProps) {
-  const displayValue = transcript || interimTranscript ? `${value}${value ? ' ' : ''}${transcript}${interimTranscript}`.trim() : value;
+  const hasSpeechInput = Boolean(transcript.trim() || interimTranscript.trim());
+  // Preserve the draft verbatim while typing. mergeQuestionParts intentionally
+  // trims speech fragments, which would otherwise remove a newly typed space.
+  const displayValue = hasSpeechInput
+    ? mergeQuestionParts(value, transcript, interimTranscript)
+    : value;
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (
+      event.key !== 'Enter'
+      || event.shiftKey
+      || event.nativeEvent.isComposing
+    ) {
+      return;
+    }
+    event.preventDefault();
+    if (!submitting && displayValue.trim()) {
+      onSubmit();
+    }
+  };
 
   return (
     <motion.section
@@ -46,6 +68,7 @@ export function QuestionInput({
             <textarea
               value={displayValue}
               onChange={(event) => onChange(event.target.value)}
+              onKeyDown={handleKeyDown}
               rows={1}
               placeholder="Hỏi Mari về tài liệu..."
               aria-label="Ô nhập câu hỏi"
@@ -76,11 +99,12 @@ export function QuestionInput({
           <button
             type="button"
             onClick={onSubmit}
+            disabled={submitting}
             aria-label="Send question"
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-sky-300/20 bg-viqa-cyan px-4 font-semibold text-slate-950 transition hover:bg-sky-300"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border border-sky-300/20 bg-viqa-cyan px-4 font-semibold text-slate-950 transition hover:bg-sky-300 disabled:cursor-wait disabled:opacity-55"
           >
             <Send className="h-4 w-4" />
-            <span>Gửi</span>
+            <span>{submitting ? 'Đang xử lý' : 'Gửi'}</span>
           </button>
         </div>
       </div>

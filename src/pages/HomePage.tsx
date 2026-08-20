@@ -10,10 +10,12 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { PipelineFlow } from '@/components/pipeline/PipelineFlow';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import { useQaPipeline } from '@/hooks/useQaPipeline';
+import { useSocraticFollowups } from '@/hooks/useSocraticFollowups';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useAppStore } from '@/store/appStore';
-import type { PassageResult, RetrieverComparisonRow } from '@/types/qa';
+import type { FollowUpCandidate, PassageResult, RetrieverComparisonRow } from '@/types/qa';
+import { mergeQuestionParts } from '@/utils/questionInput';
 
 const showDebugScores = import.meta.env.DEV || String(import.meta.env.VITE_QA_DEBUG ?? 'false').toLowerCase() === 'true';
 
@@ -39,14 +41,16 @@ export function HomePage() {
   const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
   const toggleHistory = useAppStore((state) => state.toggleHistory);
   const updateVoiceSettings = useAppStore((state) => state.updateVoiceSettings);
+  const updateSettings = useAppStore((state) => state.updateSettings);
   const resetTransientState = useAppStore((state) => state.resetTransientState);
   const setStatusMessage = useAppStore((state) => state.setStatusMessage);
   const { submitQuestion, stopAll, stop } = useQaPipeline();
   const speech = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
+  const socratic = useSocraticFollowups(answer, settings.socraticEnabled);
 
   const composedQuestion = useMemo(
-    () => `${draft} ${speech.transcript} ${speech.interimTranscript}`.replace(/\s+/g, ' ').trim(),
+    () => mergeQuestionParts(draft, speech.transcript, speech.interimTranscript),
     [draft, speech.interimTranscript, speech.transcript],
   );
   const displayedAvatarState = speech.isListening
@@ -64,6 +68,16 @@ export function HomePage() {
     speech.resetTranscript();
   };
 
+  const changeDraft = (nextDraft: string) => {
+    // Once the user edits the composed speech text, it becomes the canonical
+    // draft. Clear speech fragments so they are not appended again on render.
+    if (speech.transcript || speech.interimTranscript) {
+      speech.stopListening();
+      speech.resetTranscript();
+    }
+    setDraft(nextDraft);
+  };
+
   const clear = () => {
     setDraft('');
     setQuestion('');
@@ -71,6 +85,7 @@ export function HomePage() {
     setAnswer(null);
     setComparisonRows([]);
     setSelectedSource(null);
+    socratic.resetSession();
     resetTransientState();
   };
 
@@ -86,7 +101,30 @@ export function HomePage() {
     stopAll();
     setComparisonRows([]);
     setSelectedSource(null);
+    socratic.resetSession();
     resetTransientState();
+  };
+
+  const askFollowUp = async (followUp: FollowUpCandidate) => {
+    socratic.markSelected(followUp);
+    speech.stopListening();
+    speech.resetTranscript();
+    setDraft(followUp.question);
+    const result = await submitQuestion(followUp.question);
+    if (result.compare) {
+      setComparisonRows(result.compare);
+    }
+    setDraft('');
+  };
+
+  const speakFollowUp = (followUp: FollowUpCandidate) => {
+    synthesis.speak({
+      text: followUp.question,
+      voiceName: settings.voice.voiceName,
+      rate: settings.voice.rate,
+      pitch: settings.voice.pitch,
+      volume: settings.voice.volume,
+    });
   };
 
   const reuseHistoryQuestion = (historyQuestion: string) => {
@@ -156,6 +194,14 @@ export function HomePage() {
               state={pipelineState}
               compareMode={comparisonEnabled}
               onViewSource={viewSource}
+              socraticEnabled={settings.socraticEnabled}
+              onSocraticEnabledChange={(enabled) => updateSettings({ socraticEnabled: enabled })}
+              followUps={socratic.followUps}
+              followUpsState={socratic.loadState}
+              followUpsLatencyMs={socratic.latencyMs}
+              onFollowUpSelect={askFollowUp}
+              onFollowUpSpeak={synthesis.isSupported ? speakFollowUp : undefined}
+              showSocraticDebug={showDebugScores}
             />
             <PipelineFlow state={speech.isListening ? 'listening' : pipelineState} />
           </div>
@@ -169,7 +215,8 @@ export function HomePage() {
         listening={speech.isListening}
         speechSupported={speech.isSupported}
         audioActive={pipelineState === 'speaking' || synthesis.speaking}
-        onChange={setDraft}
+        submitting={['retrieving', 'reading', 'extracting'].includes(pipelineState)}
+        onChange={changeDraft}
         onSubmit={submit}
         onClear={clear}
         onVoiceToggle={toggleVoiceInput}

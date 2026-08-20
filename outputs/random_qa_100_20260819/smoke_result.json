@@ -1,0 +1,73 @@
+{
+  "dataset": "outputs\\random_qa_100_20260819\\validation_sample_100_seed_20260819.jsonl",
+  "mode": "end-to-end",
+  "checkpoint": "D:\\GitHub\\QA_system\\models\\reader\\heidiie_phobert_finetuned_viquad",
+  "retriever": "bm25",
+  "top_k": 10,
+  "metrics": {
+    "overall": {
+      "count": 1,
+      "em": 0.0,
+      "f1": 50.0
+    },
+    "answerable": {
+      "count": 1,
+      "em": 0.0,
+      "f1": 50.0,
+      "predicted_empty": 0,
+      "predicted_empty_rate": 0.0
+    },
+    "unanswerable": {
+      "count": 0,
+      "accuracy": 0.0,
+      "em": 0.0
+    },
+    "predicted_no_answer": {
+      "count": 0,
+      "rate": 0.0
+    },
+    "latency_ms": {
+      "average": 19298.906299998634,
+      "p50": 19298.906299998634,
+      "p95": 19298.906299998634
+    },
+    "reader_methods": {
+      "neural_span": {
+        "count": 1,
+        "rate": 100.0
+      }
+    },
+    "retrieval_hit_rate": 100.0,
+    "retrieval_hit_evaluated": 1,
+    "ranking": {
+      "gold_answer_passage_available_top10": 1,
+      "gold_passage_selected": 1,
+      "wrong_passage_selected": 0,
+      "high_score_wrong_answer": 0,
+      "high_score_wrong_answer_rate": 0.0
+    },
+    "question_type_counts": {
+      "PERSON": 1
+    }
+  },
+  "predictions": [
+    {
+      "id": "0009-0029-0005",
+      "question": "Mitterrand muốn duy trì quyền lực của Paris tại lục địa nào?",
+      "gold_answer": "châu Phi",
+      "predicted_answer": "tại châu",
+      "is_answerable": true,
+      "reader_score": 0.620961,
+      "answer_confidence": null,
+      "ranking_score": 0.742577,
+      "answer_type_score": 0.7,
+      "question_type": "PERSON",
+      "best_span_score": 9.87079,
+      "no_answer_score": 0.14622899999999994,
+      "score_margin": -0.146229,
+      "reader_method": "neural_span",
+      "retrieval_hit": true,
+      "latency_ms": 19298.906299998634
+    }
+  ]
+}

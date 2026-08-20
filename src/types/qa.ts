@@ -93,6 +93,12 @@ export interface QaResponse {
   fallback_method?: string | null;
   relation_type?: string | null;
   relation_score?: number;
+  question_relation?: string | null;
+  semantic_relation?: string | null;
+  question_subject?: string | null;
+  question_target?: string | null;
+  question_predicate?: string | null;
+  question_modifier?: string | null;
   lexical_evidence?: boolean;
   relation_evidence?: boolean;
   selected_passage_id?: string | null;
@@ -137,6 +143,38 @@ export interface QaResponse {
     ranking_score_formula?: string;
     score_semantics?: string;
   };
+}
+
+export interface FollowUpCandidate {
+  question: string;
+  subject: string | null;
+  relation: string | null;
+  type: QuestionType | string | null;
+  source_passage_id: string | null;
+  answerability_score: number;
+  novelty_score: number;
+  relevance_score: number;
+  ranking_score: number;
+}
+
+export interface SocraticFollowUpsRequest {
+  question: string;
+  answer: string;
+  selected_passage_id: string | null;
+  retrieved_passage_ids: string[];
+  question_type?: QuestionType[];
+  relation?: string | null;
+  subject?: string | null;
+  visited_relations: string[];
+  asked_questions: string[];
+  limit: number;
+}
+
+export interface SocraticFollowUpsResponse {
+  followups: FollowUpCandidate[];
+  processing_time_ms: number;
+  grounding: string;
+  probe: string | null;
 }
 
 export interface RetrieverComparisonRow {

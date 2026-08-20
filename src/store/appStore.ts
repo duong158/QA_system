@@ -23,6 +23,7 @@ export interface QaSettings {
   retriever: RetrieverType;
   reader: ReaderType;
   topK: number;
+  socraticEnabled: boolean;
   voice: VoiceSettings;
   display: DisplaySettings;
 }
@@ -87,6 +88,7 @@ const defaultSettings: QaSettings = {
   retriever: 'bm25',
   reader: 'phobert',
   topK: 10,
+  socraticEnabled: false,
   voice: {
     enabled: true,
     rate: 0.92,
@@ -194,7 +196,7 @@ export const useAppStore = create<AppState>()(
     }),
     {
       name: 'viqa-nexus-settings',
-      version: 5,
+      version: 6,
       partialize: (state) => ({ settings: state.settings }),
       migrate: (persistedState) => {
         const state = persistedState as Partial<AppState> | undefined;

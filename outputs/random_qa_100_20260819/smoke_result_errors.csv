@@ -1,0 +1,2 @@
+﻿question_id,question,gold_answer,predicted_answer,has_gold_answer,predicted_no_answer,em,f1,reader_confidence,no_answer_score,best_span_score,score_margin,error_type,reader_method,retrieval_hit,latency_ms
+0009-0029-0005,Mitterrand muốn duy trì quyền lực của Paris tại lục địa nào?,châu Phi,tại châu,True,False,0,0.5,,0.14622899999999994,9.87079,-0.146229,PARTIAL_SPAN,neural_span,True,19298.906299998634

@@ -1,0 +1,16 @@
+{
+  "enabled": true,
+  "max_followups": 3,
+  "min_answerability_score": 0.62,
+  "avoid_same_relation": true,
+  "allow_bm25_probe": true,
+  "probe_top_k": 5,
+  "max_context_passages": 12,
+  "duplicate_similarity_threshold": 0.72,
+  "one_hop_only": true,
+  "ranking_weights": {
+    "answerability": 0.5,
+    "relevance": 0.3,
+    "novelty": 0.2
+  }
+}

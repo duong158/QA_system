@@ -1,0 +1,61 @@
+{
+  "dataset": "data/processed/viquad_val_clean.parquet",
+  "sample_size": 1,
+  "seed": 20260819,
+  "mode": "end-to-end",
+  "retriever": "hybrid",
+  "dense_model": "keepitreal/vietnamese-sbert",
+  "reader": "xlmr",
+  "checkpoint": "D:\\GitHub\\QA_system\\models\\reader\\xlm-roberta-large-viquad",
+  "top_k": 10,
+  "hybrid_dense_verified": true,
+  "metrics": {
+    "overall": {
+      "count": 1,
+      "em": 100.0,
+      "f1": 100.0
+    },
+    "answerable": {
+      "count": 1,
+      "em": 100.0,
+      "f1": 100.0,
+      "predicted_empty": 0,
+      "predicted_empty_rate": 0.0
+    },
+    "unanswerable": {
+      "count": 0,
+      "accuracy": 0.0,
+      "em": 0.0
+    },
+    "predicted_no_answer": {
+      "count": 0,
+      "rate": 0.0
+    },
+    "latency_ms": {
+      "average": 23033.766400003165,
+      "p50": 23033.766400003165,
+      "max": 23033.766400003165
+    }
+  },
+  "predictions": [
+    {
+      "id": "0009-0029-0005",
+      "question": "Mitterrand muốn duy trì quyền lực của Paris tại lục địa nào?",
+      "gold_answer": "châu Phi",
+      "predicted_answer": "châu Phi",
+      "is_answerable": true,
+      "exact_match": 1,
+      "f1": 1.0,
+      "reader_score": 0.761677,
+      "ranking_score": 0.852006,
+      "answer_type_score": 0.95,
+      "question_type": "PERSON",
+      "reader_method": "neural_span",
+      "retrieval_hit": true,
+      "latency_ms": 23033.766400003165,
+      "retriever": "hybrid",
+      "reader": "xlmr",
+      "checkpoint": "D:\\GitHub\\QA_system\\models\\reader\\xlm-roberta-large-viquad"
+    }
+  ]
+}

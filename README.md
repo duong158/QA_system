@@ -35,6 +35,7 @@ The local API is implemented in `backend/viqa_api.py` and serves:
 
 - `GET /health`
 - `POST /api/ask`
+- `POST /api/socratic/followups`
 - `POST /api/compare`
 
 It reads `data/processed/docs.db`, chunks each document at sentence boundaries, and retrieves passage-level top-k results with TF-IDF or BM25. Every retrieved passage is sent to the configured extractive QA Reader before score-based reranking.
@@ -71,6 +72,36 @@ For example, enable technical pipeline logs in PowerShell with:
 ```powershell
 $env:QA_DEBUG="true"; npm run api
 ```
+
+## Socratic Tutoring Mode (V1)
+
+The optional tutoring layer runs only after `/api/ask` has returned. The UI renders the
+answer and source first, then calls `POST /api/socratic/followups` when **Chế độ Gia sư**
+is enabled. The preference defaults to off and is persisted in browser `localStorage`.
+
+The generator in `backend/socratic.py` uses the current question/answer semantics plus
+the selected and retrieved passage IDs. Passage text is always resolved again from the
+server-side corpus index. It detects relation evidence, rejects the current/visited
+relation, removes accent-insensitive near-duplicates, applies a one-hop subject guard,
+validates answerability from passage evidence, and ranks the remaining candidates by
+answerability, relevance, and novelty. A BM25-only probe can validate weak candidates
+from lower-relevance retrieved passages; it never invokes the Reader or the internet.
+
+Configuration lives in `config/socratic.json`. The endpoint returns at most three
+suggestions, each with its evidence `source_passage_id`. Failure of this optional endpoint
+does not affect `/api/ask` or remove an already-rendered answer. Click a suggestion to
+submit it directly through the existing QA pipeline, or use its speaker control / the
+existing Vietnamese speech input.
+
+Run the focused tests and the 20-case corpus diagnostic with:
+
+```bash
+python -m unittest discover -s tests -p "test_socratic*.py" -v
+python evaluate_socratic.py
+```
+
+V2 may add learner-answer evaluation, hints, mastery state, and curriculum planning;
+none of those behaviors are part of V1.
 
 Retriever and QA evaluation commands:
 

@@ -4,6 +4,7 @@ import { useAppStore } from '@/store/appStore';
 import type { AskQuestionRequest, QaResponse } from '@/types/qa';
 import type { PipelineState } from '@/types/pipeline';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
+import { collapseRepeatedQuestion } from '@/utils/questionInput';
 
 export interface SubmitQuestionResult {
   response?: QaResponse;
@@ -26,6 +27,7 @@ export function useQaPipeline() {
   const { speak, stop, isSupported } = useSpeechSynthesis();
   const timersRef = useRef<number[]>([]);
   const currentRunRef = useRef(0);
+  const requestControllerRef = useRef<AbortController | null>(null);
 
   const clearTimers = () => {
     timersRef.current.forEach((timer) => window.clearTimeout(timer));
@@ -33,6 +35,8 @@ export function useQaPipeline() {
   };
 
   const stopAll = () => {
+    requestControllerRef.current?.abort();
+    requestControllerRef.current = null;
     clearTimers();
     stop();
     setSpeaking(false);
@@ -42,12 +46,15 @@ export function useQaPipeline() {
   };
 
   const submitQuestion = async (question: string): Promise<SubmitQuestionResult> => {
-    const normalizedQuestion = question.trim();
+    const normalizedQuestion = collapseRepeatedQuestion(question);
     if (!normalizedQuestion) {
       return {};
     }
 
     clearTimers();
+    requestControllerRef.current?.abort();
+    const requestController = new AbortController();
+    requestControllerRef.current = requestController;
     currentRunRef.current += 1;
     const runId = currentRunRef.current;
     setErrorMessage(null);
@@ -90,13 +97,15 @@ export function useQaPipeline() {
 
     try {
       const [response, compare] = await Promise.all([
-        askQuestion(request),
+        askQuestion(request, requestController.signal),
         isComparisonOpen ? compareRetrievers(normalizedQuestion) : Promise.resolve(undefined),
       ]);
 
       if (currentRunRef.current !== runId) {
         return {};
       }
+
+      requestControllerRef.current = null;
 
       setAnswer(response);
       addHistoryItem(response);
@@ -157,6 +166,7 @@ export function useQaPipeline() {
       if (currentRunRef.current !== runId) {
         return {};
       }
+      requestControllerRef.current = null;
       const message = error instanceof Error ? error.message : 'Unknown error';
       setErrorMessage(message);
       setStatusMessage('ERROR');

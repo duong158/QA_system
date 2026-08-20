@@ -21,6 +21,13 @@ sys.path.insert(0, str(ROOT))
 
 from backend.chunking import Passage, chunk_document, split_sentences
 from backend.config import load_pipeline_config
+try:
+    from backend.socratic import SOCRATIC_CONFIG, generate_followup_response
+    SOCRATIC_IMPORT_ERROR: str | None = None
+except Exception as error:  # Optional post-answer layer must never prevent QA startup.
+    SOCRATIC_CONFIG = None
+    generate_followup_response = None
+    SOCRATIC_IMPORT_ERROR = str(error)
 from reader.config import DEFAULT_MAX_ANSWER_LENGTH_BY_TYPE
 from reader.candidates import AnswerCandidate
 from reader.candidate_validation import (
@@ -876,6 +883,57 @@ _READERS = READERS
 def get_readers():
     return READERS
 DENSE_SCORER = DenseScorer(DENSE_MODEL_NAME)
+
+
+def _serialize_socratic_passage(passage: IndexedPassage) -> dict[str, Any]:
+    metadata = passage.metadata
+    return {
+        "document_id": metadata.document_id,
+        "passage_id": metadata.passage_id,
+        "title": metadata.title,
+        "text": metadata.text,
+        "page": metadata.page,
+        "paragraph_id": metadata.paragraph_id,
+        "sentence_start": metadata.sentence_start,
+        "sentence_end": metadata.sentence_end,
+    }
+
+
+SOCRATIC_PASSAGES_BY_ID = {
+    passage.metadata.passage_id: _serialize_socratic_passage(passage)
+    for passage in INDEX.passages
+}
+
+
+def _lookup_socratic_passage(passage_id: str) -> dict[str, Any] | None:
+    return SOCRATIC_PASSAGES_BY_ID.get(str(passage_id or ""))
+
+
+def _probe_socratic_passages(question: str, top_k: int) -> list[dict[str, Any]]:
+    return [
+        {
+            **_serialize_socratic_passage(hit.passage),
+            "retrieval_score": hit.retrieval_score_normalized,
+            "retrieval_score_raw": hit.retrieval_score_raw,
+        }
+        for hit in INDEX.retrieve(question, "bm25", top_k)
+    ]
+
+
+def socratic_followups(payload: dict[str, Any]) -> dict[str, Any]:
+    if SOCRATIC_CONFIG is None or generate_followup_response is None:
+        return {
+            "followups": [],
+            "processing_time_ms": 0,
+            "grounding": "unavailable",
+            "probe": None,
+            "error": f"Socratic module unavailable: {SOCRATIC_IMPORT_ERROR or 'unknown error'}",
+        }
+    return generate_followup_response(
+        payload,
+        passage_lookup=_lookup_socratic_passage,
+        probe=_probe_socratic_passages if SOCRATIC_CONFIG.allow_bm25_probe else None,
+    )
 
 
 def _empty_response(question: str, retriever: str, reader: str, elapsed: int) -> dict[str, Any]:
@@ -1777,6 +1835,14 @@ class Handler(BaseHTTPRequestHandler):
                     "unsupported_retrievers": UNIMPLEMENTED_RETRIEVERS,
                     "supported_readers": sorted(SUPPORTED_READERS),
                     "unsupported_readers": UNIMPLEMENTED_READERS,
+                    "socratic": {
+                        "enabled": bool(SOCRATIC_CONFIG and SOCRATIC_CONFIG.enabled),
+                        "max_followups": SOCRATIC_CONFIG.max_followups if SOCRATIC_CONFIG else 0,
+                        "answerability_probe": (
+                            "bm25" if SOCRATIC_CONFIG and SOCRATIC_CONFIG.allow_bm25_probe else None
+                        ),
+                        "error": SOCRATIC_IMPORT_ERROR,
+                    },
                     "config": {
                         "chunk_max_tokens": CHUNK_MAX_TOKENS,
                         "chunk_overlap_sentences": CHUNK_OVERLAP_SENTENCES,
@@ -1909,6 +1975,18 @@ class Handler(BaseHTTPRequestHandler):
             path = urlparse(self.path).path
             if path == "/api/ask":
                 self._send_json(ask_question(payload))
+                return
+            if path == "/api/socratic/followups":
+                try:
+                    self._send_json(socratic_followups(payload))
+                except ValueError as error:
+                    self._send_json({"followups": [], "error": str(error)}, status=400)
+                except Exception as error:
+                    traceback.print_exc()
+                    self._send_json(
+                        {"followups": [], "error": f"Socratic follow-up generation failed: {error}"},
+                        status=500,
+                    )
                 return
             if path == "/api/compare":
                 self._send_json(compare_retrievers(payload))

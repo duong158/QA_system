@@ -1,0 +1,166 @@
+{
+  "name": "socratic_diagnostic_v1",
+  "purpose": "Corpus-grounded V1 diagnostic. Entity examples are evaluation data only and are never imported by production code.",
+  "cases": [
+    {
+      "id": "cause_person_direct",
+      "question": "Vì sao Voltaire bị khinh miệt?",
+      "answer": "xuất thân thấp kém",
+      "subject": "Voltaire",
+      "relation": "CAUSE",
+      "selected_passage_id": "doc_01436_P0001"
+    },
+    {
+      "id": "cause_person_paraphrase",
+      "question": "Nguyên nhân nào khiến Voltaire bị khinh miệt?",
+      "answer": "xuất thân thấp kém",
+      "subject": "Voltaire",
+      "relation": "CAUSE",
+      "selected_passage_id": "doc_01436_P0001"
+    },
+    {
+      "id": "cause_social_system",
+      "question": "Vì sao chủ nghĩa nô lệ phát triển mạnh tại các tiểu bang miền Nam?",
+      "answer": "nhu cầu lớn về bông vải tại châu Âu",
+      "subject": "chủ nghĩa nô lệ",
+      "relation": "CAUSE",
+      "selected_passage_id": "doc_02551_P0001"
+    },
+    {
+      "id": "cause_political_figure",
+      "question": "Vì sao Roosevelt bị Hitler khinh thường?",
+      "answer": "vì cho rằng ông là một lãnh tụ yếu thế, hay dao động",
+      "subject": "Roosevelt",
+      "relation": "CAUSE",
+      "selected_passage_id": "doc_04579_P0005"
+    },
+    {
+      "id": "no_answer_cause",
+      "question": "Vì sao Madame du Barry bị khinh miệt?",
+      "answer": null,
+      "subject": "Madame du Barry",
+      "relation": "CAUSE",
+      "selected_passage_id": null
+    },
+    {
+      "id": "person_definition",
+      "question": "Phạm Văn Đồng là ai?",
+      "answer": "Thủ tướng đầu tiên của nước Cộng hòa Xã hội chủ nghĩa Việt Nam từ năm 1976",
+      "subject": "Phạm Văn Đồng",
+      "relation": "DEFINITION",
+      "selected_passage_id": "doc_00001_P0001"
+    },
+    {
+      "id": "person_birth_time",
+      "question": "Phạm Văn Đồng sinh năm nào?",
+      "answer": "tháng 3 năm 1906",
+      "subject": "Phạm Văn Đồng",
+      "relation": "BIRTH_TIME",
+      "selected_passage_id": "doc_00001_P0001"
+    },
+    {
+      "id": "event_location",
+      "question": "Cách mạng Pháp diễn ra ở đâu?",
+      "answer": "Paris",
+      "subject": "Cách mạng Pháp",
+      "relation": "EVENT_LOCATION",
+      "selected_passage_id": "doc_04102_P0001"
+    },
+    {
+      "id": "delegation_purpose",
+      "question": "Đoàn sứ giả được gửi đến chỗ Ilkhan Abaga với mục đích gì?",
+      "answer": "giúp đánh lạc hướng lực lượng của Baibars",
+      "subject": "Đoàn sứ giả",
+      "relation": "PURPOSE",
+      "selected_passage_id": "doc_00059_P0001"
+    },
+    {
+      "id": "no_answer_false_premise",
+      "question": "Phạm Văn Đồng sinh ra trên Sao Hỏa vào năm nào?",
+      "answer": null,
+      "subject": "Phạm Văn Đồng",
+      "relation": "BIRTH_TIME",
+      "selected_passage_id": null
+    },
+    {
+      "id": "city_time",
+      "question": "Paris trở thành thành phố quan trọng của Pháp từ thế kỷ nào?",
+      "answer": "Vào thế kỷ 10",
+      "subject": "Paris",
+      "relation": "EVENT_TIME",
+      "selected_passage_id": "doc_04102_P0001"
+    },
+    {
+      "id": "landmark_entity",
+      "question": "Công trình nào nằm trên đỉnh Montmartre?",
+      "answer": "nhà thờ Saint-Pierre",
+      "subject": "Montmartre",
+      "relation": "ENTITY",
+      "selected_passage_id": "doc_04107_P0001"
+    },
+    {
+      "id": "software_comparison",
+      "question": "Các bậc phụ huynh cần biết rõ sự khác biệt nào để lựa chọn phần mềm giáo dục cho trẻ?",
+      "answer": "sự khác biệt giữa chức năng học thực sự và phần mềm thiên về mặt giáo dục",
+      "subject": "phần mềm giáo dục",
+      "relation": "CONTRAST",
+      "selected_passage_id": "doc_00031_P0001"
+    },
+    {
+      "id": "person_alias",
+      "question": "Tên gọi nào được Phạm Văn Đồng sử dụng khi làm Phó chủ nhiệm cơ quan Biện sự xứ tại Quế Lâm?",
+      "answer": "Lâm Bá Kiệt",
+      "subject": "Phạm Văn Đồng",
+      "relation": "IDENTITY",
+      "selected_passage_id": "doc_00001_P0001"
+    },
+    {
+      "id": "person_role",
+      "question": "Phạm Văn Đồng từng giữ chức vụ gì?",
+      "answer": "Thủ tướng",
+      "subject": "Phạm Văn Đồng",
+      "relation": "ROLE",
+      "selected_passage_id": "doc_00001_P0001"
+    },
+    {
+      "id": "person_death_time",
+      "question": "Phạm Văn Đồng qua đời vào thời gian nào?",
+      "answer": "29 tháng 4 năm 2000",
+      "subject": "Phạm Văn Đồng",
+      "relation": "DEATH_TIME",
+      "selected_passage_id": "doc_00001_P0001"
+    },
+    {
+      "id": "city_definition",
+      "question": "Paris là gì?",
+      "answer": "thủ đô của Pháp",
+      "subject": "Paris",
+      "relation": "DEFINITION",
+      "selected_passage_id": "doc_04102_P0001"
+    },
+    {
+      "id": "event_definition",
+      "question": "Cách mạng Pháp là gì?",
+      "answer": "một sự kiện lịch sử",
+      "subject": "Cách mạng Pháp",
+      "relation": "DEFINITION",
+      "selected_passage_id": "doc_04102_P0001"
+    },
+    {
+      "id": "landmark_location",
+      "question": "Montmartre nằm ở đâu?",
+      "answer": "Paris",
+      "subject": "Montmartre",
+      "relation": "OBJECT_LOCATION",
+      "selected_passage_id": "doc_04107_P0001"
+    },
+    {
+      "id": "delegation_event",
+      "question": "Đoàn sứ giả tham gia hoạt động nào?",
+      "answer": "được gửi đến chỗ Ilkhan Abaga",
+      "subject": "Đoàn sứ giả",
+      "relation": "EVENT",
+      "selected_passage_id": "doc_00059_P0001"
+    }
+  ]
+}

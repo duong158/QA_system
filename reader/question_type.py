@@ -4,6 +4,7 @@ import re
 import unicodedata
 from dataclasses import dataclass
 from enum import Enum
+from functools import lru_cache
 
 
 class QuestionType(str, Enum):
@@ -109,13 +110,32 @@ def _get_classifier():
     return _classifier_pipeline
 
 
-def detect_question_type(question: str) -> list[QuestionType]:
-    """Detect the expected answer categories using zero-shot ML pipeline."""
+@lru_cache(maxsize=512)
+def _detect_question_type_cached(question: str) -> tuple[QuestionType, ...]:
+    """Detect answer categories once per unique question.
+
+    Explicit Vietnamese interrogatives are deterministic and should not pay the
+    cost of a zero-shot model. The classifier remains a fallback for genuinely
+    ambiguous wording.
+    """
 
     normalized = _normalized(question)
-    # Maintain structural CAUSE check since it relies heavily on question structure
     if _matches_any(normalized, CAUSE_QUESTION_PATTERNS):
-        return [QuestionType.GENERAL]
+        return (QuestionType.GENERAL,)
+
+    fast_patterns = (
+        (QuestionType.TIME, TIME_QUESTION_PATTERNS),
+        (QuestionType.PERSON, PERSON_QUESTION_PATTERNS),
+        (QuestionType.LOCATION, LOCATION_QUESTION_PATTERNS),
+        (QuestionType.DEFINITION, DEFINITION_QUESTION_PATTERNS),
+    )
+    fast_types = tuple(
+        question_type
+        for question_type, patterns in fast_patterns
+        if _matches_any(normalized, patterns)
+    )
+    if fast_types:
+        return fast_types
 
     classifier = _get_classifier()
     
@@ -148,7 +168,13 @@ def detect_question_type(question: str) -> list[QuestionType]:
         # Fallback to GENERAL if nothing crosses threshold
         types.append(QuestionType.GENERAL)
         
-    return types
+    return tuple(types)
+
+
+def detect_question_type(question: str) -> list[QuestionType]:
+    """Return a mutable compatibility copy of the cached classification."""
+
+    return list(_detect_question_type_cached(str(question or "").strip()))
 
 
 ROMAN = r"(?:xxi|xx|xix|xviii|xvii|xvi|xv|xiv|xiii|xii|xi|ix|viii|vii|vi|iv|iii|ii|i)"
