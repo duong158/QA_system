@@ -1,5 +1,5 @@
 export type RetrieverType = 'tfidf' | 'bm25' | 'dense' | 'pyserini' | 'hybrid';
-export type ReaderType = 'mock' | 'phobert' | 'vibert' | 'xlmr';
+export type ReaderType = 'mock' | 'phobert' | 'vibert' | 'xlmr' | 'llm' | 'llm_chat';
 
 export interface AskQuestionRequest {
   question: string;
@@ -32,6 +32,7 @@ export interface PassageResult {
   retrieval_score: number;
   retrieval_score_raw?: number;
   retrieval_score_normalized?: number;
+  retriever_score?: number;
   question_type?: QuestionType[];
   reader_method?: string;
   reader_answer?: string | null;

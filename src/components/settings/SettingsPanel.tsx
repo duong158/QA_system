@@ -21,6 +21,8 @@ const readerOptions: Array<{ value: ReaderType; label: string; implemented: bool
   { value: 'phobert', label: 'PhoBERT QA', implemented: true },
   { value: 'vibert', label: 'viBERT QA', implemented: false },
   { value: 'xlmr', label: 'XLM-R QA', implemented: true },
+  { value: 'llm', label: 'Local LLM (LFM2.5)', implemented: true },
+  { value: 'llm_chat', label: 'Local LLM (Chat Không Context)', implemented: true },
 ];
 
 const topKOptions = [1, 3, 5, 10];

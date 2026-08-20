@@ -94,7 +94,7 @@ UNIMPLEMENTED_RETRIEVERS = {
 DENSE_MODEL_NAME = os.getenv("QA_DENSE_MODEL", "keepitreal/vietnamese-sbert")
 RRF_K = int(os.getenv("QA_RRF_K", "60"))
 
-SUPPORTED_READERS = {"phobert", "xlmr"}
+SUPPORTED_READERS = {"phobert", "xlmr", "llm", "llm_chat"}
 UNIMPLEMENTED_READERS = {
     "mock": "Mock Reader is forbidden in the real API.",
     "vibert": "viBERT QA is not implemented: no viBERT QA checkpoint is available under models/reader.",
@@ -895,6 +895,17 @@ class ReaderManager:
 
     def get(self, reader_name: str):
         validate_reader(reader_name)
+        if reader_name == "llm":
+            if reader_name not in self.predictors:
+                with self._load_lock:
+                    if reader_name not in self.predictors:
+                        try:
+                            from backend.llm_reader import LocalLLMReader
+                            self.predictors[reader_name] = LocalLLMReader()
+                        except Exception as error:
+                            raise PipelineError(f"Failed to load LLM reader: {error}") from error
+            return self.predictors[reader_name]
+
         folder = self.MODEL_FOLDERS.get(reader_name)
         if reader_name not in self.predictors:
             with self._load_lock:
@@ -1428,6 +1439,67 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
 
     candidate_count = PIPELINE_CONFIG.candidate_count(top_k)
     hits = INDEX.retrieve(question, retriever, candidate_count)
+
+    if reader_name in ["llm", "llm_chat"]:
+        readers = get_readers()
+        predictor = readers.get("llm") # Map both to llm predictor
+        if reader_name == "llm_chat" or not hits:
+            llm_result = predictor.predict_direct(question)
+            answer_source = None
+            passages_out = []
+        else:
+            if hits[0].retrieval_score_normalized < PIPELINE_CONFIG.reader_fallback_threshold:
+                llm_result = predictor.predict_direct(question)
+                answer_source = None
+            else:
+                contexts = [hit.passage.metadata.text for hit in hits[:5]]
+                llm_result = predictor.predict_rag(question, contexts)
+                answer_source = {
+                    "document_id": hits[0].passage.metadata.document_id,
+                    "passage_id": hits[0].passage.metadata.passage_id,
+                    "title": hits[0].passage.metadata.title,
+                    "paragraph_id": hits[0].passage.metadata.paragraph_id,
+                    "sentence_start": hits[0].passage.metadata.sentence_start,
+                    "sentence_end": hits[0].passage.metadata.sentence_end,
+                    "page": hits[0].passage.metadata.page,
+                }
+            
+            passages_out = []
+            for rank, hit in enumerate(hits, start=1):
+                is_selected = (rank == 1 and llm_result["method"] == "llm_rag")
+                passages_out.append({
+                    "rank": rank,
+                    "document_id": hit.passage.metadata.document_id,
+                    "passage_id": hit.passage.metadata.passage_id,
+                    "title": hit.passage.metadata.title,
+                    "text": hit.passage.metadata.text,
+                    "retrieval_score": round(hit.retrieval_score_normalized, 6),
+                    "retrieval_score_normalized": round(hit.retrieval_score_normalized, 6),
+                    "retriever_score": round(getattr(hit, 'retriever_score', hit.retrieval_score_normalized), 6),
+                    "ranking_score": round(hit.retrieval_score_normalized, 6),
+                    "reader_score": round(llm_result.get("score", 1.0), 6) if is_selected else 0.0,
+                    "selection_status": "SELECTED" if is_selected else "REJECTED",
+                })
+                
+        elapsed = int((time.perf_counter() - started) * 1000)
+        return {
+            "question": question,
+            "answer": llm_result["text"],
+            "reader_method": llm_result["method"],
+            "display_answer": llm_result["text"],
+            "has_answer": True,
+            "confidence": 1.0,
+            "answer_confidence": 1.0,
+            "retriever": retriever,
+            "reader": reader_name,
+            "processing_time_ms": elapsed,
+            "answer_source": answer_source,
+            "source": answer_source,
+            "top_retrieved_passage": passages_out[0] if passages_out else None,
+            "passages": passages_out,
+            "question_type": [qt.value for qt in question_types],
+        }
+
     if not hits:
         return _empty_response(
             question,
@@ -2234,25 +2306,17 @@ def main() -> None:
     if PRELOAD_READER:
         print("Preloading reader model before accepting requests...")
         readers = get_readers()
-        predictor = readers.get("phobert")
-        warmup_context = "Việt Nam là một quốc gia ở Đông Nam Á."
-        predict_many = getattr(predictor, "predict_many", None)
-        if callable(predict_many):
-            predict_many(
-                "Việt Nam là gì?",
-                [warmup_context] * min(8, RETRIEVER_MIN_CANDIDATES),
-                max_seq_len=PIPELINE_CONFIG.reader_max_length,
-                doc_stride=PIPELINE_CONFIG.reader_stride,
-                no_answer_threshold=READER_SCORE_MARGIN_THRESHOLD,
-            )
-        else:
-            predictor.predict(
-                "Việt Nam là gì?",
-                warmup_context,
-                max_seq_len=PIPELINE_CONFIG.reader_max_length,
-                doc_stride=PIPELINE_CONFIG.reader_stride,
-                no_answer_threshold=READER_SCORE_MARGIN_THRESHOLD,
-            )
+        
+        # FIX: Preload LLM in the main thread to prevent bitsandbytes deadlock in background threads
+        try:
+            print("Loading LLM into VRAM...")
+            readers.get("llm")
+            print("LLM model is ready!")
+        except Exception as e:
+            print(f"Skipping LLM preload (it may not be installed): {e}")
+
+        # Tạm tắt PhoBERT để tiết kiệm tối đa VRAM cho LLM (RTX 3050 4GB)
+        # predictor = readers.get("phobert")
         print("Reader model is ready")
     print(f"Serving http://localhost:{PORT}")
     server.serve_forever()

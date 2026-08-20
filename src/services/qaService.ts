@@ -9,7 +9,7 @@ import type {
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 const QA_ERROR_MESSAGE = 'Không thể xử lý câu hỏi do hệ thống QA gặp lỗi.';
 const QA_TIMEOUT_MESSAGE = 'Hệ thống QA xử lý quá lâu. Vui lòng thử lại sau khi Reader đã nạp xong.';
-const QA_REQUEST_TIMEOUT_MS = 60_000;
+const QA_REQUEST_TIMEOUT_MS = 180_000;
 
 async function readApiError(response: Response): Promise<string> {
   const errorBody = await response.json().catch(() => null) as { error?: string } | null;

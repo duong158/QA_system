@@ -50,7 +50,10 @@ function SourceItem({ item, isSelected, answer }: { item: PassageResult; isSelec
               <div><span className="font-medium text-[var(--text-secondary)]">Reader Score:</span> <br/>{item.reader_score?.toFixed(4)}</div>
             )}
             {item.retrieval_score_normalized !== undefined && (
-              <div><span className="font-medium text-[var(--text-secondary)]">Retrieval Score:</span> <br/>{item.retrieval_score_normalized?.toFixed(4)}</div>
+              <div><span className="font-medium text-[var(--text-secondary)]">Retrieval Score (Norm):</span> <br/>{item.retrieval_score_normalized?.toFixed(4)}</div>
+            )}
+            {item.retriever_score !== undefined && (
+              <div><span className="font-medium text-[var(--text-secondary)]">Retriever Score:</span> <br/>{item.retriever_score?.toFixed(4)}</div>
             )}
           </div>
         </div>
