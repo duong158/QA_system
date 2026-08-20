@@ -143,6 +143,11 @@ export interface QaResponse {
     ranking_score_formula?: string;
     score_semantics?: string;
   };
+  system_version?: {
+    reader: string;
+    corpus: string;
+    semantic_policy: string;
+  };
 }
 
 export interface FollowUpCandidate {

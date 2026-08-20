@@ -4,6 +4,9 @@
 # GitHub has a 100MB hard limit per file.
 data/indexes/tfidf_index_meta.pkl
 data/indexes/
+data/feedback/*.db
+data/feedback/*.db-shm
+data/feedback/*.db-wal
 *.faiss
 *.npz
 *.bin

@@ -7,6 +7,7 @@ import type { SocraticLoadState } from '@/hooks/useSocraticFollowups';
 import { formatLatency } from '@/utils/formatScore';
 import { FollowUpInsights } from '@/components/socratic/FollowUpInsights';
 import { SocraticToggle } from '@/components/socratic/SocraticToggle';
+import { AnswerFeedback } from '@/components/feedback/AnswerFeedback';
 import { SourceCard } from './SourceCard';
 import { PassageCard } from './PassageCard';
 
@@ -99,6 +100,8 @@ export function AnswerPanel({
       </div>
 
       {response?.answer_source ? <SourceCard source={response.answer_source} onScrollToPassage={handleScrollToPassage} /> : null}
+
+      {response ? <AnswerFeedback response={response} /> : null}
 
       <SocraticToggle enabled={socraticEnabled} onChange={onSocraticEnabledChange} />
 

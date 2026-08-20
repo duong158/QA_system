@@ -14,13 +14,23 @@ from dataclasses import dataclass
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from backend.chunking import Passage, chunk_document, split_sentences
 from backend.config import load_pipeline_config
+from backend.source_titles import derive_source_title
+try:
+    from backend.feedback import FeedbackStore, FeedbackValidationError
+    from backend.feedback_analytics import build_feedback_analytics
+    FEEDBACK_IMPORT_ERROR: str | None = None
+except Exception as error:  # Feedback is an optional post-answer subsystem.
+    FeedbackStore = None
+    FeedbackValidationError = ValueError
+    build_feedback_analytics = None
+    FEEDBACK_IMPORT_ERROR = str(error)
 try:
     from backend.socratic import SOCRATIC_CONFIG, generate_followup_response
     SOCRATIC_IMPORT_ERROR: str | None = None
@@ -52,6 +62,7 @@ from reader.span_boundaries import assess_span_boundary
 
 PIPELINE_CONFIG = load_pipeline_config()
 DOCS_DB = ROOT / "data" / "processed" / "docs.db"
+FEEDBACK_DB = Path(os.getenv("QA_FEEDBACK_DB", ROOT / "data" / "feedback" / "feedback.db"))
 HOST = os.getenv("QA_HOST", "0.0.0.0")
 PORT = int(os.getenv("QA_PORT", "8000"))
 CHUNK_MAX_TOKENS = PIPELINE_CONFIG.chunk_max_tokens
@@ -645,24 +656,53 @@ class PassageIndex:
         }
 
     @staticmethod
-    def _guess_title(document_id: str, text: str) -> str:
-        sentences = split_sentences(text)
-        words = (sentences[0] if sentences else text).split()
-        return " ".join(words[:8]) if words else document_id
+    def _guess_title(
+        document_id: str,
+        text: str,
+        document_title: str | None = None,
+        heading: str | None = None,
+    ) -> str:
+        return derive_source_title(
+            document_id,
+            text,
+            document_title=document_title,
+            heading=heading,
+        )
 
     def _load_passages(self, db_path: Path) -> list[IndexedPassage]:
         connection = sqlite3.connect(str(db_path))
         try:
-            rows = connection.execute("SELECT id, text FROM documents").fetchall()
+            columns = {
+                str(row[1]).lower(): str(row[1])
+                for row in connection.execute("PRAGMA table_info(documents)").fetchall()
+            }
+            title_column = columns.get("document_title") or columns.get("title")
+            heading_column = columns.get("heading")
+            select_columns = ["id", "text"]
+            if title_column:
+                select_columns.append(f'"{title_column}"')
+            if heading_column and heading_column != title_column:
+                select_columns.append(f'"{heading_column}"')
+            rows = connection.execute(f"SELECT {', '.join(select_columns)} FROM documents").fetchall()
         finally:
             connection.close()
 
         indexed: list[IndexedPassage] = []
-        for document_id, raw_text in rows:
+        for row in rows:
+            document_id, raw_text = row[:2]
+            offset = 2
+            document_title = row[offset] if title_column else None
+            offset += 1 if title_column else 0
+            heading = row[offset] if heading_column and heading_column != title_column else None
             text = str(raw_text or "").strip()
             if not text:
                 continue
-            title = self._guess_title(str(document_id), text)
+            title = self._guess_title(
+                str(document_id),
+                text,
+                document_title=str(document_title) if document_title else None,
+                heading=str(heading) if heading else None,
+            )
             for passage in chunk_document(
                 str(document_id),
                 text,
@@ -904,9 +944,84 @@ SOCRATIC_PASSAGES_BY_ID = {
     for passage in INDEX.passages
 }
 
+SYSTEM_VERSION = {
+    "reader": os.getenv("QA_READER_VERSION", PIPELINE_CONFIG.reader_checkpoint.name),
+    "corpus": os.getenv("QA_CORPUS_VERSION", "uitviquad-corpus-v1"),
+    "semantic_policy": os.getenv("QA_SEMANTIC_POLICY_VERSION", SEMANTIC_POLICIES.version),
+}
+
+try:
+    FEEDBACK_STORE = FeedbackStore(FEEDBACK_DB) if FeedbackStore is not None else None
+except Exception as error:  # A feedback storage failure must not stop QA startup.
+    FEEDBACK_STORE = None
+    FEEDBACK_IMPORT_ERROR = str(error)
+
 
 def _lookup_socratic_passage(passage_id: str) -> dict[str, Any] | None:
     return SOCRATIC_PASSAGES_BY_ID.get(str(passage_id or ""))
+
+
+def _feedback_store():
+    if FEEDBACK_STORE is None:
+        raise PipelineError(
+            f"Feedback subsystem unavailable: {FEEDBACK_IMPORT_ERROR or 'unknown error'}"
+        )
+    return FEEDBACK_STORE
+
+
+def submit_feedback(payload: dict[str, Any]) -> dict[str, Any]:
+    return _feedback_store().submit_feedback(
+        payload,
+        passage_lookup=_lookup_socratic_passage,
+        system_version=SYSTEM_VERSION,
+    )
+
+
+def list_feedback_for_review(status: str | None = "PENDING", limit: int = 200) -> dict[str, Any]:
+    records = _feedback_store().list_feedback(status=status, limit=limit)
+    enriched = []
+    for record in records:
+        passage_id = record.get("corrected_passage_id") or record.get("selected_passage_id")
+        enriched.append(
+            {
+                **record,
+                "source_passage": _lookup_socratic_passage(str(passage_id or "")),
+            }
+        )
+    return {"feedback": enriched, "count": len(enriched)}
+
+
+def review_feedback(feedback_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return _feedback_store().review_feedback(
+        feedback_id,
+        str(payload.get("decision") or payload.get("status") or ""),
+        payload.get("review_note"),
+    )
+
+
+def feedback_analytics() -> dict[str, Any]:
+    if build_feedback_analytics is None:
+        raise PipelineError(
+            f"Feedback analytics unavailable: {FEEDBACK_IMPORT_ERROR or 'unknown error'}"
+        )
+    return build_feedback_analytics(_feedback_store().list_feedback(limit=1_000))
+
+
+def submit_document(payload: dict[str, Any]) -> dict[str, Any]:
+    return _feedback_store().submit_document(payload)
+
+
+def list_document_submissions(status: str | None = None, limit: int = 200) -> dict[str, Any]:
+    records = _feedback_store().list_documents(status=status, limit=limit)
+    return {"submissions": records, "count": len(records)}
+
+
+def review_document(submission_id: str, payload: dict[str, Any]) -> dict[str, Any]:
+    return _feedback_store().review_document(
+        submission_id,
+        str(payload.get("decision") or payload.get("status") or ""),
+        payload.get("review_note"),
+    )
 
 
 def _probe_socratic_passages(question: str, top_k: int) -> list[dict[str, Any]]:
@@ -968,6 +1083,7 @@ def _empty_response(question: str, retriever: str, reader: str, elapsed: int) ->
         },
         "answer_span": None,
         "passages": [],
+        "system_version": SYSTEM_VERSION,
     }
 
 
@@ -1746,6 +1862,7 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "ranking_score_formula": "retriever_weight*retrieval_score + reader_weight*(reader_score*fallback_penalty*(0.5+0.5*boundary_score)*(0.5+0.5*completeness_score)) + answer_type_weight*answer_type_score + relation_weight*relation_score",
             "score_semantics": "All displayed scores are ranking signals, not correctness probabilities.",
         },
+        "system_version": SYSTEM_VERSION,
     }
     if QA_DEBUG:
         _log_debug(response)
@@ -1821,7 +1938,9 @@ class Handler(BaseHTTPRequestHandler):
         self._send_json({"ok": True})
 
     def do_GET(self) -> None:
-        path = urlparse(self.path).path
+        parsed_url = urlparse(self.path)
+        path = parsed_url.path
+        query = parse_qs(parsed_url.query)
         if path == "/health":
             self._send_json(
                 {
@@ -1843,6 +1962,14 @@ class Handler(BaseHTTPRequestHandler):
                         ),
                         "error": SOCRATIC_IMPORT_ERROR,
                     },
+                    "feedback": {
+                        "enabled": FEEDBACK_STORE is not None,
+                        "storage": "sqlite" if FEEDBACK_STORE is not None else None,
+                        "database": "data/feedback/feedback.db",
+                        "runtime_learning": False,
+                        "error": FEEDBACK_IMPORT_ERROR,
+                    },
+                    "system_version": SYSTEM_VERSION,
                     "config": {
                         "chunk_max_tokens": CHUNK_MAX_TOKENS,
                         "chunk_overlap_sentences": CHUNK_OVERLAP_SENTENCES,
@@ -1867,6 +1994,36 @@ class Handler(BaseHTTPRequestHandler):
                     },
                 }
             )
+            return
+        elif path == "/api/feedback/analytics":
+            try:
+                payload = feedback_analytics()
+                requested_group = str(query.get("group_by", [""])[0]).strip()
+                if requested_group:
+                    payload["requested_group_by"] = requested_group
+                self._send_json(payload)
+            except PipelineError as error:
+                self._send_json({"error": str(error)}, status=503)
+            return
+        elif path == "/api/feedback/review":
+            try:
+                status = str(query.get("status", ["PENDING"])[0]).strip() or None
+                limit = int(query.get("limit", ["200"])[0])
+                self._send_json(list_feedback_for_review(status=status, limit=limit))
+            except ValueError as error:
+                self._send_json({"error": str(error)}, status=400)
+            except PipelineError as error:
+                self._send_json({"error": str(error)}, status=503)
+            return
+        elif path == "/api/documents/submissions":
+            try:
+                status = str(query.get("status", [""])[0]).strip() or None
+                limit = int(query.get("limit", ["200"])[0])
+                self._send_json(list_document_submissions(status=status, limit=limit))
+            except ValueError as error:
+                self._send_json({"error": str(error)}, status=400)
+            except PipelineError as error:
+                self._send_json({"error": str(error)}, status=503)
             return
         elif path == "/api/evaluation":
             self._send_evaluation_data()
@@ -1975,6 +2132,38 @@ class Handler(BaseHTTPRequestHandler):
             path = urlparse(self.path).path
             if path == "/api/ask":
                 self._send_json(ask_question(payload))
+                return
+            if path == "/api/feedback":
+                record = submit_feedback(payload)
+                self._send_json(
+                    {
+                        "feedback": record,
+                        "message": "Cảm ơn bạn. Phản hồi đã được ghi nhận để xem xét cải thiện hệ thống.",
+                        "runtime_model_updated": False,
+                    },
+                    status=201,
+                )
+                return
+            feedback_review_match = re.fullmatch(r"/api/feedback/([^/]+)/review", path)
+            if feedback_review_match:
+                self._send_json(review_feedback(feedback_review_match.group(1), payload))
+                return
+            if path == "/api/documents/submissions":
+                record = submit_document(payload)
+                self._send_json(
+                    {
+                        "submission": record,
+                        "message": "Tài liệu đang chờ xác minh trước khi được đưa vào kho tri thức.",
+                        "production_corpus_updated": False,
+                    },
+                    status=201,
+                )
+                return
+            document_review_match = re.fullmatch(
+                r"/api/documents/submissions/([^/]+)/review", path
+            )
+            if document_review_match:
+                self._send_json(review_document(document_review_match.group(1), payload))
                 return
             if path == "/api/socratic/followups":
                 try:

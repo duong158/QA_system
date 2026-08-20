@@ -64,7 +64,7 @@ export function EvaluationPage() {
         onToggleHistory={toggleHistory}
       />
 
-      <main className="mt-4 flex-1 overflow-y-auto pr-2 grid gap-4 pb-4">
+      <main className="admin-page mt-4 grid flex-1 gap-4 overflow-y-auto pb-4 pr-2">
         <section className="viqa-panel rounded-[30px] p-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>

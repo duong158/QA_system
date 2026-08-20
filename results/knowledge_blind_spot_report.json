@@ -1,0 +1,29 @@
+{
+  "total_feedback": 0,
+  "approved": 0,
+  "rejected": 0,
+  "reviewed": 0,
+  "pending": 0,
+  "positive": 0,
+  "negative": 0,
+  "real_feedback": 0,
+  "synthetic_feedback": 0,
+  "gap_distribution": [],
+  "failure_by_relation": [],
+  "failure_by_question_type": [],
+  "top_rejection_reasons": [],
+  "heatmap": {
+    "dimensions": [
+      "question_type",
+      "semantic_relation"
+    ],
+    "question_types": [],
+    "relations": [],
+    "cells": []
+  },
+  "methodology": {
+    "failure_definition": "all feedback except CORRECT",
+    "blind_spot_score": "failure_rate * ln(1 + sample_count)",
+    "synthetic_is_separated": true
+  }
+}

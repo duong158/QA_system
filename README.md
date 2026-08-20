@@ -103,6 +103,84 @@ python evaluate_socratic.py
 V2 may add learner-answer evaluation, hints, mastery state, and curriculum planning;
 none of those behaviors are part of V1.
 
+## Human-in-the-loop Feedback
+
+Self-Evolving Knowledge Loop V1 is an independent post-answer layer. After a normal
+QA response, users can mark it correct, report an incorrect answer, select a corrected
+span directly from a retrieved corpus passage, or state that an answer should not have
+been returned. A no-answer response can likewise be confirmed or corrected with a
+source-backed span. The backend resolves every submitted passage ID from the production
+corpus and checks that `passage[start:end]` matches the correction before storing it.
+Free-text notes are reviewer context, never approved answer spans.
+
+Feedback is stored in `data/feedback/feedback.db` (SQLite, WAL mode). Records use the
+lifecycle `PENDING -> REVIEWED/APPROVED/REJECTED`, carry Reader/corpus/semantic-policy
+versions, aggregate accidental duplicates, and flag conflicting corrections for the
+same normalized question and passage. No browser fingerprint, IP address, microphone
+audio, or unrelated client metadata is stored.
+
+Endpoints:
+
+```text
+POST /api/feedback
+GET  /api/feedback/review?status=PENDING
+POST /api/feedback/{feedback_id}/review
+GET  /api/feedback/analytics
+POST /api/documents/submissions
+GET  /api/documents/submissions
+POST /api/documents/submissions/{submission_id}/review
+```
+
+The review endpoints are intended for local/demo administration in V1 and do not yet
+provide production authentication or role-based authorization.
+
+## Knowledge Blind-spot Analytics
+
+Open `/knowledge-blind-spots` to see total feedback, correct/incorrect and no-answer
+complaint rates, pending review, failure breakdowns by relation and question type, gap
+classification, rejection reasons, daily trends, and a Question Type x Relation heatmap.
+Synthetic records remain explicitly separated from real feedback.
+
+Failure classification is evidence-conservative:
+
+- `CORPUS_GAP`: metadata explicitly establishes that no supporting corpus passage exists.
+- `RETRIEVAL_GAP`: a verified correction passage exists but was absent from the original retrieved set.
+- `READER_SEMANTIC_GAP`: the verified correction passage was retrieved, or an answer from a selected passage was reported semantically invalid.
+- `UNKNOWN_GAP`: the submitted metadata is insufficient for one of the classifications above.
+
+Rows are ranked by `failure_rate * ln(1 + sample_count)`, so a single failure with one
+sample does not automatically dominate a larger recurring blind spot.
+
+## Feedback Review and Approved Data Export
+
+Plain-text document contributions enter `PENDING_REVIEW`. Approval only marks an
+accepted future corpus candidate: it does not chunk, index, or mutate the production
+corpus. The dashboard provides feedback and document review actions plus source viewing.
+
+Export only approved, corpus-validated span corrections with:
+
+```bash
+python export_feedback_dataset.py
+python evaluate_feedback_loop.py
+```
+
+The export target is `results/approved_feedback_dataset.jsonl`; the evaluation script
+writes `results/knowledge_blind_spot_report.json` and `.csv`.
+
+Architecture:
+
+```text
+QA Pipeline -> Answer -> User Feedback -> SQLite Feedback Store
+    -> Failure Analyzer -> Blind-spot Map -> Human Review
+    -> Approved Improvement Data -> Future Offline Training / Corpus Update
+```
+
+The QA pipeline never reads `feedback.db` to answer a question. Model weights are not
+updated automatically at runtime. The future workflow is: approved feedback -> dataset
+versioning -> offline training -> benchmark validation -> human approval -> checkpoint
+deployment. Automatic fine-tuning, online reinforcement learning, automatic deployment,
+and automatic production-corpus mutation are intentionally outside V1.
+
 Retriever and QA evaluation commands:
 
 ```bash

@@ -45,16 +45,16 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 420, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 120, damping: 20 }}
-          className="fixed right-0 top-0 z-40 h-full w-full max-w-[420px] border-l border-white/10 bg-[rgba(4,7,17,0.96)] p-4 shadow-2xl shadow-black/40 backdrop-blur-2xl"
+          className="settings-drawer fixed right-0 top-0 z-40 h-full w-full max-w-[420px] border-l border-[var(--border)] bg-[var(--surface)] p-4 shadow-2xl shadow-slate-900/15"
         >
-          <div className="flex h-full flex-col gap-4 overflow-y-auto rounded-[28px] border border-white/10 bg-white/5 p-4">
+          <div className="flex h-full flex-col gap-4 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs uppercase tracking-[0.35em] text-slate-500">Settings</p>
-                <h2 className="mt-1 font-display text-lg tracking-[0.18em] text-white">SYSTEM CONTROL</h2>
+                <h2 className="mt-1 text-lg font-semibold text-[var(--text-primary)]">Cài đặt hệ thống</h2>
               </div>
-              <button type="button" onClick={() => setSettingsOpen(false)} className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-slate-300">
-                Close
+              <button type="button" onClick={() => setSettingsOpen(false)} className="rounded-full border border-[var(--border)] bg-[var(--surface-muted)] px-3 py-1 text-xs text-[var(--text-secondary)]">
+                Đóng
               </button>
             </div>
 

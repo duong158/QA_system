@@ -11,6 +11,7 @@ import { AudioVisualizer } from './AudioVisualizer';
 
 interface AvatarSceneProps {
   state: AvatarState;
+  compact?: boolean;
 }
 
 const avatarCameraPosition: [number, number, number] = [0, 0.64, 1.95];
@@ -35,56 +36,58 @@ function AvatarCameraRig() {
 function statusLabel(state: AvatarState) {
   switch (state) {
     case 'listening':
-      return 'Listening';
+      return 'Đang lắng nghe';
     case 'typing':
-      return 'Formulating question';
+      return 'Sẵn sàng nhận câu hỏi';
     case 'retrieving':
-      return 'Searching knowledge base';
+      return 'Đang tìm trong tài liệu';
     case 'reading':
-      return 'Analyzing passages';
+      return 'Đang đọc nguồn';
     case 'thinking':
-      return 'Extracting answer';
+      return 'Mari đang suy nghĩ';
     case 'speaking':
-      return 'Speaking';
+      return 'Đang đọc câu trả lời';
     case 'no-answer':
-      return 'No answer';
+      return 'Chưa tìm thấy câu trả lời';
     case 'error':
-      return 'System error';
+      return 'Có lỗi kết nối';
     default:
-      return 'Ready';
+      return 'Sẵn sàng';
   }
 }
 
-export function AvatarScene({ state }: AvatarSceneProps) {
+export function AvatarScene({ state, compact = false }: AvatarSceneProps) {
   const amplitude = useAudioAnalyzer(state === 'listening' || state === 'speaking' || state === 'thinking' || state === 'retrieving');
 
   return (
     <motion.section
       initial={{ opacity: 0, x: -18 }}
       animate={{ opacity: 1, x: 0 }}
-      className="viqa-panel relative min-h-[320px] overflow-hidden rounded-2xl sm:min-h-[500px] xl:min-h-[620px]"
+      className={`surface-card relative overflow-hidden rounded-2xl bg-gradient-to-b from-indigo-50 via-white to-slate-50 ${
+        compact ? 'h-[clamp(420px,56vh,500px)] min-h-[420px]' : 'min-h-[320px] sm:min-h-[500px] xl:min-h-[620px]'
+      }`}
     >
-      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-5 py-4 text-xs text-slate-400">
-        <span className="rounded-full border border-slate-400/15 bg-slate-900/35 px-2.5 py-1 capitalize backdrop-blur-md">{state}</span>
-        <span className="font-medium text-slate-300">Mari assistant</span>
+      <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between px-4 py-4 text-xs text-slate-500">
+        <span className="rounded-full border border-slate-200 bg-white/80 px-2.5 py-1 capitalize shadow-sm backdrop-blur-md">{state}</span>
+        <span className="font-medium text-slate-600">Mari</span>
       </div>
 
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(56,189,248,0.09),transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,rgba(99,102,241,0.10),transparent_52%)]" />
 
       <Canvas dpr={[1, 1.5]} camera={{ position: avatarCameraPosition, fov: 29 }} gl={{ antialias: true, alpha: true }} className="absolute inset-0">
         <Suspense fallback={null}>
           <AvatarCameraRig />
           <AvatarEnvironment />
-          <ParticleField state={state} />
+          {!compact ? <ParticleField state={state} /> : null}
           <AnimeAvatar state={state} audioLevel={amplitude} />
-          <HologramRing state={state} />
+          {!compact ? <HologramRing state={state} /> : null}
         </Suspense>
       </Canvas>
 
-      <AudioVisualizer amplitude={amplitude} />
+      {!compact ? <AudioVisualizer amplitude={amplitude} /> : null}
 
-      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/55 to-transparent px-6 pb-5 pt-16 text-center">
-        <p className="font-display text-sm font-medium text-slate-100">{statusLabel(state)}</p>
+      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-white via-white/70 to-transparent px-6 pb-5 pt-16 text-center">
+        <p className="text-sm font-medium text-slate-700">{statusLabel(state)}</p>
       </div>
     </motion.section>
   );

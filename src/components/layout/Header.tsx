@@ -1,5 +1,5 @@
-import { Link, useLocation } from 'react-router-dom';
-import { AudioLines, Settings2, BarChart3, Bot, History } from 'lucide-react';
+import { AudioLines, Bot, History, Settings2, Smile } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { SystemStatus } from './SystemStatus';
 
 interface HeaderProps {
@@ -7,64 +7,96 @@ interface HeaderProps {
   onToggleSettings: () => void;
   onToggleHistory: () => void;
   audioEnabled: boolean;
+  onToggleMari?: () => void;
+  socraticEnabled?: boolean;
+  onSocraticEnabledChange?: (enabled: boolean) => void;
 }
 
-export function Header({ onToggleAudio, onToggleSettings, onToggleHistory, audioEnabled }: HeaderProps) {
+export function Header({
+  onToggleAudio,
+  onToggleSettings,
+  onToggleHistory,
+  audioEnabled,
+  onToggleMari,
+  socraticEnabled = false,
+  onSocraticEnabledChange,
+}: HeaderProps) {
   const location = useLocation();
+  const isChat = location.pathname === '/';
 
   return (
-    <header className="relative z-20 flex items-center justify-between gap-3 rounded-2xl border border-viqa-border bg-slate-800/75 px-4 py-3 shadow-glow backdrop-blur-xl lg:px-5">
-      <div className="flex items-center gap-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-viqa-cyan/25 bg-viqa-cyan/10">
-          <Bot className="h-6 w-6 text-viqa-cyan" />
+    <header className="surface-card relative z-30 flex h-[60px] shrink-0 items-center justify-between gap-3 rounded-2xl px-3 sm:px-4">
+      <div className="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          onClick={onToggleHistory}
+          aria-label="Mở lịch sử hội thoại"
+          className="soft-icon-button h-10 w-10 lg:hidden"
+        >
+          <History className="h-5 w-5" />
+        </button>
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-soft)] text-[var(--primary)]">
+          <Bot className="h-5 w-5" />
         </div>
-        <div>
-          <p className="font-display text-base font-semibold text-slate-100">VIQA Nexus</p>
-          <p className="hidden text-xs text-slate-400 sm:block">Vietnamese Intelligent Question Answering</p>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-[var(--text-primary)] sm:text-base">VIQA Tutor</p>
+          <p className="hidden truncate text-xs text-[var(--text-secondary)] sm:block">Học cùng Mari từ tài liệu của bạn</p>
         </div>
       </div>
 
-      <div className="hidden items-center gap-3 md:flex">
+      <div className="hidden items-center md:flex">
         <SystemStatus />
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex shrink-0 items-center gap-2">
+        {isChat && onToggleMari ? (
+          <button
+            type="button"
+            onClick={onToggleMari}
+            aria-label="Hiện Mari 3D"
+            className="soft-icon-button h-10 w-10 text-indigo-600 min-[1200px]:hidden"
+          >
+            <Smile className="h-5 w-5" />
+          </button>
+        ) : null}
+        {isChat && onSocraticEnabledChange ? (
+          <label className="hidden cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] px-2.5 py-2 text-xs font-medium text-[var(--text-secondary)] sm:flex">
+            <span>Gia sư</span>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={socraticEnabled}
+              aria-label="Bật hoặc tắt chế độ Gia sư Socratic"
+              onClick={() => onSocraticEnabledChange(!socraticEnabled)}
+              className={`relative h-6 w-11 shrink-0 rounded-full p-0.5 transition-colors ${
+                socraticEnabled ? 'bg-[var(--socratic)]' : 'bg-slate-300'
+              }`}
+            >
+              <span
+                className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
+                  socraticEnabled ? 'translate-x-[18px]' : 'translate-x-0'
+                }`}
+              />
+            </button>
+          </label>
+        ) : null}
         <button
           type="button"
           onClick={onToggleAudio}
-          aria-label={audioEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
-          className={`inline-flex h-11 w-11 items-center justify-center rounded-xl border transition ${
-            audioEnabled
-              ? 'border-viqa-cyan/30 bg-viqa-cyan/15 text-viqa-cyan'
-              : 'border-slate-400/15 bg-slate-700/45 text-slate-300 hover:border-slate-300/25'
-          }`}
+          aria-label={audioEnabled ? 'Tắt đọc câu trả lời' : 'Bật đọc câu trả lời'}
+          aria-pressed={audioEnabled}
+          className={`soft-icon-button h-10 w-10 ${audioEnabled ? '!border-indigo-200 !bg-indigo-50 !text-indigo-600' : ''}`}
         >
           <AudioLines className="h-5 w-5" />
         </button>
         <button
           type="button"
-          onClick={onToggleHistory}
-          aria-label="Mở lịch sử"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-400/15 bg-slate-700/45 text-slate-200 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
-        >
-          <History className="h-5 w-5" />
-        </button>
-        <button
-          type="button"
           onClick={onToggleSettings}
           aria-label="Mở cài đặt"
-          className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-400/15 bg-slate-700/45 text-slate-200 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
+          className="soft-icon-button h-10 w-10"
         >
           <Settings2 className="h-5 w-5" />
         </button>
-        <Link
-          to={location.pathname === '/evaluation' ? '/' : '/evaluation'}
-          aria-label={location.pathname === '/evaluation' ? 'Về trang hỏi đáp' : 'Mở trang evaluation'}
-          className="inline-flex h-11 items-center gap-2 rounded-xl border border-viqa-gold/25 bg-viqa-gold/10 px-3 text-sm text-viqa-gold transition hover:bg-viqa-gold/15"
-        >
-          <BarChart3 className="h-4 w-4" />
-          <span className="hidden sm:inline">Evaluation</span>
-        </Link>
       </div>
     </header>
   );

@@ -1,28 +1,37 @@
-import { useMemo, useState } from 'react';
-import { FileText, GitCompareArrows, RotateCcw, X } from 'lucide-react';
-import { AvatarScene } from '@/components/avatar/AvatarScene';
-import { AnswerPanel } from '@/components/answer/AnswerPanel';
-import { RetrieverComparison } from '@/components/compare/RetrieverComparison';
-import { QuestionInput } from '@/components/input/QuestionInput';
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Sparkles } from 'lucide-react';
+import { AssistantMessage, ThinkingMessage } from '@/components/chat/AssistantMessage';
+import { ChatComposer } from '@/components/chat/ChatComposer';
+import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { Header } from '@/components/layout/Header';
-import { QuestionHistory } from '@/components/history/QuestionHistory';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { PipelineFlow } from '@/components/pipeline/PipelineFlow';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import { useQaPipeline } from '@/hooks/useQaPipeline';
 import { useSocraticFollowups } from '@/hooks/useSocraticFollowups';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 import { useAppStore } from '@/store/appStore';
-import type { FollowUpCandidate, PassageResult, RetrieverComparisonRow } from '@/types/qa';
-import { mergeQuestionParts } from '@/utils/questionInput';
+import type { ChatTurn } from '@/types/chat';
+import type { FollowUpCandidate } from '@/types/qa';
+import { collapseRepeatedQuestion, mergeQuestionParts } from '@/utils/questionInput';
 
 const showDebugScores = import.meta.env.DEV || String(import.meta.env.VITE_QA_DEBUG ?? 'false').toLowerCase() === 'true';
+const MariPanel = lazy(() => import('@/components/avatar/MariPanel').then((module) => ({ default: module.MariPanel })));
+const MariSheet = lazy(() => import('@/components/avatar/MariPanel').then((module) => ({ default: module.MariSheet })));
+
+function turnId(): string {
+  return `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 export function HomePage() {
-  const [comparisonRows, setComparisonRows] = useState<RetrieverComparisonRow[]>([]);
-  const [selectedSource, setSelectedSource] = useState<PassageResult | null>(null);
-  const question = useAppStore((state) => state.question);
+  const [turns, setTurns] = useState<ChatTurn[]>([]);
+  const [avatarCollapsed, setAvatarCollapsed] = useState(false);
+  const [mobileMariOpen, setMobileMariOpen] = useState(false);
+  const [desktopAvatarVisible, setDesktopAvatarVisible] = useState(false);
+  const conversationRef = useRef<HTMLDivElement>(null);
+  const shouldAutoScrollRef = useRef(true);
+  const requestInFlightRef = useRef(false);
+
   const draft = useAppStore((state) => state.draft);
   const answer = useAppStore((state) => state.answer);
   const history = useAppStore((state) => state.history);
@@ -30,20 +39,18 @@ export function HomePage() {
   const avatarState = useAppStore((state) => state.avatarState);
   const errorMessage = useAppStore((state) => state.errorMessage);
   const settings = useAppStore((state) => state.settings);
-  const comparisonEnabled = useAppStore((state) => state.isComparisonOpen);
   const isHistoryOpen = useAppStore((state) => state.isHistoryOpen);
-  const setQuestion = useAppStore((state) => state.setQuestion);
   const setDraft = useAppStore((state) => state.setDraft);
+  const setQuestion = useAppStore((state) => state.setQuestion);
   const setAnswer = useAppStore((state) => state.setAnswer);
   const clearHistory = useAppStore((state) => state.clearHistory);
-  const setComparisonOpen = useAppStore((state) => state.setComparisonOpen);
   const toggleSettings = useAppStore((state) => state.toggleSettings);
   const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
   const toggleHistory = useAppStore((state) => state.toggleHistory);
   const updateVoiceSettings = useAppStore((state) => state.updateVoiceSettings);
   const updateSettings = useAppStore((state) => state.updateSettings);
   const resetTransientState = useAppStore((state) => state.resetTransientState);
-  const setStatusMessage = useAppStore((state) => state.setStatusMessage);
+
   const { submitQuestion, stopAll, stop } = useQaPipeline();
   const speech = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
@@ -53,24 +60,63 @@ export function HomePage() {
     () => mergeQuestionParts(draft, speech.transcript, speech.interimTranscript),
     [draft, speech.interimTranscript, speech.transcript],
   );
+  const isProcessing = ['retrieving', 'reading', 'extracting'].includes(pipelineState);
   const displayedAvatarState = speech.isListening
     ? 'listening'
+    : synthesis.speaking
+      ? 'speaking'
     : composedQuestion && avatarState === 'idle'
       ? 'typing'
       : avatarState;
 
-  const submit = async () => {
-    const result = await submitQuestion(composedQuestion);
-    if (result.compare) {
-      setComparisonRows(result.compare);
+  useEffect(() => {
+    const media = window.matchMedia('(min-width: 1200px)');
+    const syncAvatarVisibility = () => {
+      setDesktopAvatarVisible(media.matches);
+      if (media.matches) setMobileMariOpen(false);
+    };
+    syncAvatarVisibility();
+    media.addEventListener('change', syncAvatarVisibility);
+    return () => media.removeEventListener('change', syncAvatarVisibility);
+  }, []);
+
+  useEffect(() => {
+    const viewport = conversationRef.current;
+    if (!viewport || !shouldAutoScrollRef.current) return;
+    const frame = window.requestAnimationFrame(() => viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' }));
+    return () => window.cancelAnimationFrame(frame);
+  }, [turns, socratic.followUps, socratic.loadState]);
+
+  const submitConversationQuestion = async (rawQuestion: string) => {
+    const normalizedQuestion = collapseRepeatedQuestion(rawQuestion);
+    if (!normalizedQuestion || isProcessing || requestInFlightRef.current) return;
+
+    const id = turnId();
+    requestInFlightRef.current = true;
+    shouldAutoScrollRef.current = true;
+    setTurns((current) => [...current, { id, question: normalizedQuestion, createdAt: Date.now(), status: 'pending' }]);
+    try {
+      const result = await submitQuestion(normalizedQuestion);
+      setTurns((current) => current.map((turn) => turn.id === id
+        ? result.response
+          ? { ...turn, status: 'complete', response: result.response }
+          : { ...turn, status: 'error', error: 'Không thể nhận câu trả lời. Vui lòng kiểm tra kết nối và thử lại.' }
+        : turn));
+    } finally {
+      requestInFlightRef.current = false;
     }
+  };
+
+  const submit = async () => {
+    const nextQuestion = composedQuestion;
+    if (!nextQuestion.trim() || isProcessing) return;
     setDraft('');
+    speech.stopListening();
     speech.resetTranscript();
+    await submitConversationQuestion(nextQuestion);
   };
 
   const changeDraft = (nextDraft: string) => {
-    // Once the user edits the composed speech text, it becomes the canonical
-    // draft. Clear speech fragments so they are not appended again on render.
     if (speech.transcript || speech.interimTranscript) {
       speech.stopListening();
       speech.resetTranscript();
@@ -78,48 +124,36 @@ export function HomePage() {
     setDraft(nextDraft);
   };
 
-  const clear = () => {
+  const startNewChat = () => {
+    stopAll();
     setDraft('');
     setQuestion('');
-    speech.resetTranscript();
     setAnswer(null);
-    setComparisonRows([]);
-    setSelectedSource(null);
+    setTurns([]);
+    speech.resetTranscript();
     socratic.resetSession();
     resetTransientState();
+    setHistoryOpen(false);
   };
 
   const toggleVoiceInput = () => {
-    if (speech.isListening) {
-      speech.stopListening();
-      return;
-    }
-    speech.startListening();
-  };
-
-  const reset = () => {
-    stopAll();
-    setComparisonRows([]);
-    setSelectedSource(null);
-    socratic.resetSession();
-    resetTransientState();
+    if (speech.isListening) speech.stopListening();
+    else speech.startListening();
   };
 
   const askFollowUp = async (followUp: FollowUpCandidate) => {
     socratic.markSelected(followUp);
     speech.stopListening();
     speech.resetTranscript();
-    setDraft(followUp.question);
-    const result = await submitQuestion(followUp.question);
-    if (result.compare) {
-      setComparisonRows(result.compare);
-    }
     setDraft('');
+    // This is the conversational equivalent of submitQuestion(followUp.question):
+    // it creates the visible user turn before invoking the same QA pipeline.
+    await submitConversationQuestion(followUp.question);
   };
 
-  const speakFollowUp = (followUp: FollowUpCandidate) => {
+  const speakText = (text: string) => {
     synthesis.speak({
-      text: followUp.question,
+      text,
       voiceName: settings.voice.voiceName,
       rate: settings.voice.rate,
       pitch: settings.voice.pitch,
@@ -127,24 +161,14 @@ export function HomePage() {
     });
   };
 
-  const reuseHistoryQuestion = (historyQuestion: string) => {
-    setDraft(historyQuestion);
-    speech.resetTranscript();
-  };
+  const speakFollowUp = (followUp: FollowUpCandidate) => speakText(followUp.question);
 
-  const testVoice = () => {
-    synthesis.speak({
-      text: 'Xin chào, tôi là Mari. Tôi có thể giúp bạn tìm câu trả lời trong tập tài liệu.',
-      voiceName: settings.voice.voiceName,
-      rate: settings.voice.rate,
-      pitch: settings.voice.pitch,
-      volume: settings.voice.volume,
-    });
-  };
+  const testVoice = () => speakText('Xin chào, tôi là Mari. Tôi có thể giúp bạn học từ tập tài liệu này.');
 
-  const viewSource = (passage: PassageResult) => {
-    setSelectedSource(passage);
-    setStatusMessage(`SOURCE ${passage.passage_id} | PAGE ${passage.page ?? '--'}`);
+  const onConversationScroll = () => {
+    const viewport = conversationRef.current;
+    if (!viewport) return;
+    shouldAutoScrollRef.current = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 140;
   };
 
   return (
@@ -154,162 +178,123 @@ export function HomePage() {
         onToggleAudio={() => updateVoiceSettings({ enabled: !settings.voice.enabled })}
         onToggleSettings={toggleSettings}
         onToggleHistory={toggleHistory}
+        onToggleMari={() => setMobileMariOpen(true)}
+        socraticEnabled={settings.socraticEnabled}
+        onSocraticEnabledChange={(enabled) => updateSettings({ socraticEnabled: enabled })}
       />
 
-      <main className="mt-4 grid min-h-0 flex-1 gap-4 xl:grid-cols-[minmax(0,0.92fr)_minmax(500px,1.08fr)]">
-        <div className="flex min-w-0 flex-col gap-4 overflow-y-auto pb-4 pr-1">
-          <AvatarScene state={displayedAvatarState} />
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setComparisonOpen(!comparisonEnabled)}
-              className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm font-medium transition ${
-                comparisonEnabled
-                  ? 'border-viqa-cyan/35 bg-viqa-cyan/15 text-viqa-cyan'
-                  : 'border-white/10 bg-white/5 text-slate-200 hover:border-viqa-cyan/25'
-              }`}
-            >
-              <GitCompareArrows className="h-4 w-4" />
-              Compare retrievers
-            </button>
-            <button
-              type="button"
-              onClick={reset}
-              className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200 transition hover:border-white/20"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </button>
-            {errorMessage ? <span className="text-sm text-viqa-error">{errorMessage}</span> : null}
-            {speech.error ? <span className="text-sm text-viqa-warning">{speech.error}</span> : null}
-          </div>
-          {comparisonEnabled && comparisonRows.length ? <RetrieverComparison rows={comparisonRows} /> : null}
-        </div>
+      <main className={`mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[248px_minmax(0,1fr)] ${
+        avatarCollapsed
+          ? 'min-[1200px]:grid-cols-[248px_minmax(0,1fr)]'
+          : 'min-[1200px]:grid-cols-[248px_minmax(0,1fr)_272px]'
+      }`}>
+        <ChatSidebar
+          open={isHistoryOpen}
+          items={history}
+          onClose={() => setHistoryOpen(false)}
+          onNewChat={startNewChat}
+          onReuse={(historyQuestion) => setDraft(historyQuestion)}
+          onClear={clearHistory}
+        />
 
-        <div className="flex min-w-0 flex-col gap-4 overflow-y-auto pb-4 pr-1">
-          <div className="flex shrink-0 flex-col gap-4">
-            <AnswerPanel
-              response={answer}
-              submittedQuestion={question}
-              state={pipelineState}
-              compareMode={comparisonEnabled}
-              onViewSource={viewSource}
-              socraticEnabled={settings.socraticEnabled}
-              onSocraticEnabledChange={(enabled) => updateSettings({ socraticEnabled: enabled })}
-              followUps={socratic.followUps}
-              followUpsState={socratic.loadState}
-              followUpsLatencyMs={socratic.latencyMs}
-              onFollowUpSelect={askFollowUp}
-              onFollowUpSpeak={synthesis.isSupported ? speakFollowUp : undefined}
-              showSocraticDebug={showDebugScores}
-            />
-            <PipelineFlow state={speech.isListening ? 'listening' : pipelineState} />
+        <section className="surface-card flex min-h-0 min-w-0 flex-col overflow-hidden rounded-2xl" aria-label="Cuộc trò chuyện với Mari">
+          <div
+            ref={conversationRef}
+            onScroll={onConversationScroll}
+            className="chat-scroll min-h-0 flex-1 overflow-y-auto px-3 py-5 sm:px-6 sm:py-7"
+            role="log"
+            aria-live="polite"
+          >
+            <div className="mx-auto flex w-full max-w-[860px] flex-col gap-5">
+              {!turns.length ? (
+                <div className="mx-auto flex max-w-lg flex-col items-center px-4 py-10 text-center sm:py-16">
+                  <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--primary-soft)] text-[var(--primary)]">
+                    <Sparkles className="h-6 w-6" />
+                  </span>
+                  <h1 className="mt-5 text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">Bạn muốn khám phá điều gì?</h1>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
+                    Hỏi một câu về tài liệu. Mari sẽ trả lời, dẫn nguồn và gợi mở từng bước khi bật chế độ Gia sư.
+                  </p>
+                </div>
+              ) : null}
+
+              {turns.map((turn) => {
+                const isCurrentResponse = Boolean(turn.response && answer === turn.response);
+                return (
+                  <div key={turn.id} className="grid gap-3">
+                    <div className="flex justify-end">
+                      <div className="max-w-[78%] rounded-2xl rounded-tr-md bg-[var(--primary)] px-4 py-3 text-[15px] leading-6 text-white shadow-sm sm:max-w-[72%]">
+                        {turn.question}
+                      </div>
+                    </div>
+                    {turn.status === 'pending' ? <ThinkingMessage /> : null}
+                    {turn.status === 'error' ? (
+                      <div className="ml-10 max-w-[82%] rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{turn.error}</div>
+                    ) : null}
+                    {turn.response ? (
+                      <AssistantMessage
+                        response={turn.response}
+                        followUps={isCurrentResponse ? socratic.followUps : []}
+                        followUpsState={isCurrentResponse ? socratic.loadState : 'idle'}
+                        followUpsLatencyMs={isCurrentResponse ? socratic.latencyMs : null}
+                        onFollowUpSelect={askFollowUp}
+                        onFollowUpSpeak={isCurrentResponse && synthesis.isSupported ? speakFollowUp : undefined}
+                        onSpeakAnswer={speakText}
+                        showDebug={showDebugScores}
+                      />
+                    ) : null}
+                  </div>
+                );
+              })}
+
+              {errorMessage && !turns.some((turn) => turn.status === 'error') ? (
+                <p className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{errorMessage}</p>
+              ) : null}
+              {speech.error ? <p className="text-center text-xs text-amber-700">{speech.error}</p> : null}
+            </div>
           </div>
-        </div>
+
+          <ChatComposer
+            value={draft}
+            transcript={speech.transcript}
+            interimTranscript={speech.interimTranscript}
+            listening={speech.isListening}
+            speechSupported={speech.isSupported}
+            audioActive={pipelineState === 'speaking' || synthesis.speaking}
+            submitting={isProcessing}
+            socraticEnabled={settings.socraticEnabled}
+            onSocraticEnabledChange={(enabled) => updateSettings({ socraticEnabled: enabled })}
+            onChange={changeDraft}
+            onSubmit={submit}
+            onVoiceToggle={toggleVoiceInput}
+            onStopSpeaking={stop}
+          />
+        </section>
+
+        {desktopAvatarVisible ? (
+          <Suspense fallback={<aside className="hidden min-h-0 animate-pulse rounded-2xl bg-[var(--surface-muted)] min-[1200px]:block" aria-label="Đang tải Mari" />}>
+            <MariPanel
+              state={displayedAvatarState}
+              collapsed={avatarCollapsed}
+              socraticEnabled={settings.socraticEnabled}
+              onCollapsedChange={setAvatarCollapsed}
+            />
+          </Suspense>
+        ) : null}
       </main>
 
-      <QuestionInput
-        value={draft}
-        transcript={speech.transcript}
-        interimTranscript={speech.interimTranscript}
-        listening={speech.isListening}
-        speechSupported={speech.isSupported}
-        audioActive={pipelineState === 'speaking' || synthesis.speaking}
-        submitting={['retrieving', 'reading', 'extracting'].includes(pipelineState)}
-        onChange={changeDraft}
-        onSubmit={submit}
-        onClear={clear}
-        onVoiceToggle={toggleVoiceInput}
-        onStopSpeaking={stop}
-      />
-      <SettingsPanel voices={synthesis.voices} onTestVoice={testVoice} />
-      <QuestionHistory 
-        open={isHistoryOpen}
-        onClose={() => setHistoryOpen(false)}
-        items={history} 
-        onReuse={(q) => { reuseHistoryQuestion(q); setHistoryOpen(false); }} 
-        onClear={clearHistory} 
-      />
-      {selectedSource ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/75 px-4 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <section className="viqa-panel max-h-[82vh] w-full max-w-2xl overflow-y-auto p-5">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <div className="flex items-center gap-2 text-sm font-medium text-slate-400">
-                  <FileText className="h-4 w-4 text-viqa-gold" />
-                  Source passage
-                </div>
-                <h2 className="mt-2 text-xl font-semibold text-white">{selectedSource.title}</h2>
-              </div>
-              <button
-                type="button"
-                onClick={() => setSelectedSource(null)}
-                aria-label="Close source passage"
-                className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-slate-200 transition hover:border-viqa-cyan/30 hover:text-viqa-cyan"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-300">
-              <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">{selectedSource.document_id}</span>
-              <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">{selectedSource.passage_id}</span>
-              <span className="rounded-full border border-viqa-cyan/20 bg-viqa-cyan/10 px-3 py-1.5 text-viqa-cyan">
-                Retrieval score {(selectedSource.retrieval_score_normalized ?? selectedSource.retrieval_score).toFixed(3)}
-              </span>
-              {typeof selectedSource.reader_score === 'number' ? (
-                <span className="rounded-full border border-viqa-violet/20 bg-viqa-violet/10 px-3 py-1.5 text-viqa-violet">
-                  Reader score {selectedSource.reader_score.toFixed(3)}
-                </span>
-              ) : null}
-              {typeof selectedSource.answer_type_score === 'number' ? (
-                <span className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5">
-                  Answer-type score {selectedSource.answer_type_score.toFixed(3)}
-                </span>
-              ) : null}
-              {typeof selectedSource.ranking_score === 'number' ? (
-                <span
-                  className="rounded-full border border-slate-400/15 bg-slate-700/40 px-3 py-1.5"
-                  title="Candidate ranking signal; not a correctness probability."
-                >
-                  Ranking score {selectedSource.ranking_score.toFixed(3)}
-                </span>
-              ) : null}
-            </div>
-
-            <p className="mt-5 rounded-lg border border-slate-400/15 bg-[#172033] p-4 text-sm leading-7 text-slate-200">
-              {selectedSource.text}
-            </p>
-
-            {showDebugScores ? (
-              <div className="mt-5 border-t border-slate-400/15 pt-4 text-xs leading-6 text-slate-400">
-                <p>Retriever raw: {selectedSource.retrieval_score_raw?.toFixed(4) ?? '--'}</p>
-                <p>Retriever normalized: {selectedSource.retrieval_score_normalized?.toFixed(4) ?? '--'}</p>
-                <p>Original retrieval rank: {selectedSource.retrieval_rank ?? '--'}</p>
-                <p>Question type: {Array.isArray(selectedSource.question_type) ? selectedSource.question_type.join(', ') : (selectedSource.question_type ?? '--')}</p>
-                <p>Reader method: {selectedSource.reader_method ?? 'neural_span'}</p>
-                <p>Reader candidate: {selectedSource.reader_answer || 'No span'}</p>
-                <p>Neural score: {selectedSource.neural_reader_score?.toFixed(4) ?? '--'}</p>
-                <p>Fallback score: {selectedSource.fallback_score?.toFixed(4) ?? '--'}</p>
-                <p>Reader margin: {selectedSource.reader_score_margin?.toFixed(4) ?? '--'}</p>
-                <p>Answer-type score: {selectedSource.answer_type_score?.toFixed(4) ?? '--'} ({selectedSource.answer_type_reason ?? '--'})</p>
-                {(Array.isArray(selectedSource.question_type) ? selectedSource.question_type.includes('LOCATION') : selectedSource.question_type === 'LOCATION') ? (
-                  <>
-                    <p>Relation: {selectedSource.relation_type ?? '--'} ({selectedSource.relation_score?.toFixed(4) ?? '0.0000'})</p>
-                    <p>Location phrase quality: {selectedSource.phrase_quality?.toFixed(4) ?? '--'}</p>
-                    <p>Lexical evidence: {selectedSource.lexical_evidence ? 'yes' : 'no'}</p>
-                    <p>Relation evidence: {selectedSource.relation_evidence ? 'yes' : 'no'}</p>
-                  </>
-                ) : null}
-                <p>Evidence supported: {selectedSource.evidence_supported ? 'yes' : 'no'}</p>
-                <p>Ranking score: {selectedSource.ranking_score?.toFixed(4) ?? '--'}</p>
-                <p>Status: {selectedSource.selection_status ?? 'REJECTED'}</p>
-                {selectedSource.rejection_reason ? <p>Rejected: {selectedSource.rejection_reason} — {selectedSource.rejection_detail}</p> : null}
-              </div>
-            ) : null}
-          </section>
-        </div>
+      {!desktopAvatarVisible && mobileMariOpen ? (
+        <Suspense fallback={<div className="fixed inset-x-3 bottom-3 z-50 h-56 animate-pulse rounded-2xl bg-[var(--surface-muted)]" aria-label="Đang tải Mari" />}>
+          <MariSheet
+            open={mobileMariOpen}
+            state={displayedAvatarState}
+            socraticEnabled={settings.socraticEnabled}
+            onClose={() => setMobileMariOpen(false)}
+          />
+        </Suspense>
       ) : null}
+
+      <SettingsPanel voices={synthesis.voices} onTestVoice={testVoice} />
     </MainLayout>
   );
 }

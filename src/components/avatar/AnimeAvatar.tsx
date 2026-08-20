@@ -279,9 +279,9 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
   if (loadState === 'error') {
     return (
       <Html center>
-        <div className="w-72 rounded-lg border border-viqa-error/30 bg-slate-900/80 px-5 py-4 text-center text-sm leading-6 text-slate-100 shadow-glow backdrop-blur-xl">
-          <p className="font-semibold text-viqa-error">Không thể tải Mari Avatar.</p>
-          <p className="mt-2 text-slate-300">Vui lòng đặt file mari.vrm vào public/models/.</p>
+        <div className="w-64 rounded-xl border border-rose-200 bg-white/90 px-5 py-4 text-center text-sm leading-6 text-slate-700 shadow-sm backdrop-blur-xl">
+          <p className="font-semibold text-rose-700">Không thể tải avatar Mari.</p>
+          <p className="mt-1 text-xs text-slate-500">Chat vẫn hoạt động bình thường.</p>
         </div>
       </Html>
     );
@@ -290,8 +290,8 @@ export function AnimeAvatar({ state, audioLevel }: AnimeAvatarProps) {
   if (loadState === 'loading') {
     return (
       <Html center>
-        <div className="rounded-full border border-viqa-cyan/25 bg-slate-900/70 px-5 py-3 text-xs text-viqa-cyan backdrop-blur-xl">
-          Loading Mari
+        <div className="rounded-full border border-indigo-200 bg-white/90 px-5 py-3 text-xs font-medium text-indigo-700 shadow-sm backdrop-blur-xl">
+          Đang tải Mari...
         </div>
       </Html>
     );
