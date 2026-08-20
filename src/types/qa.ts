@@ -170,6 +170,9 @@ export interface SocraticFollowUpsRequest {
   question_type?: QuestionType[];
   relation?: string | null;
   subject?: string | null;
+  target?: string | null;
+  predicate?: string | null;
+  modifier?: string | null;
   visited_relations: string[];
   asked_questions: string[];
   limit: number;
@@ -180,6 +183,12 @@ export interface SocraticFollowUpsResponse {
   processing_time_ms: number;
   grounding: string;
   probe: string | null;
+  debug?: {
+    status: 'NO_SEMANTIC_OPPORTUNITY' | 'OPPORTUNITIES_FOUND_BUT_ALL_REJECTED' | 'FOLLOWUPS_GENERATED' | string;
+    candidate_generation: Record<string, number>;
+    rejection_distribution: Record<string, number>;
+    candidates: Array<Record<string, unknown>>;
+  };
 }
 
 export interface RetrieverComparisonRow {

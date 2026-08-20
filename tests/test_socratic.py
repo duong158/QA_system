@@ -76,7 +76,7 @@ class SocraticGeneratorTests(unittest.TestCase):
         )
         self.assertEqual(followups, [])
 
-    def test_probe_can_reject_tier_one_candidate(self):
+    def test_tier_one_candidate_does_not_depend_on_probe(self):
         source = passage("DOC_P0001", "Nguyễn Văn An sinh năm 1945.")
         config = replace(NO_PROBE_CONFIG, allow_bm25_probe=True)
         followups = generate_followups(
@@ -88,7 +88,222 @@ class SocraticGeneratorTests(unittest.TestCase):
             probe=lambda _question, _top_k: [],
             config=config,
         )
+        self.assertEqual([item.relation for item in followups], ["BIRTH_TIME"])
+
+    def test_relation_rich_passage_discovers_time_cause_and_purpose(self):
+        source = passage(
+            "DOC_P0001",
+            "Sự kiện X diễn ra tại Y vào năm 1950 do Z và nhằm mục đích Q.",
+        )
+        followups = generate_followups(
+            "Sự kiện X diễn ra ở đâu?",
+            "Tại Y.",
+            {"subject": "Sự kiện X", "relation": "EVENT_LOCATION"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertEqual(
+            {item.relation for item in followups},
+            {"EVENT_TIME", "CAUSE", "PURPOSE"},
+        )
+
+    def test_relation_sparse_passage_correctly_returns_no_followup(self):
+        source = passage("DOC_P0001", "Sự kiện X diễn ra tại Y.")
+        followups = generate_followups(
+            "Sự kiện X diễn ra ở đâu?",
+            "Tại Y.",
+            {"subject": "Sự kiện X", "relation": "EVENT_LOCATION"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
         self.assertEqual(followups, [])
+
+    def test_previous_sentence_coreference_discovers_birth_time(self):
+        source = passage(
+            "DOC_P0001",
+            "Nguyễn Văn A là một nhà khoa học. Ông sinh năm 1920.",
+        )
+        followups = generate_followups(
+            "Nguyễn Văn A là ai?",
+            "Một nhà khoa học.",
+            {"subject": "Nguyễn Văn A", "relation": "IDENTITY"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertIn("BIRTH_TIME", {item.relation for item in followups})
+
+    def test_retrieved_passage_can_supply_opportunity_missing_from_selected(self):
+        selected = passage("DOC_P0001", "Nguyễn Văn A là một nhà khoa học.")
+        retrieved = passage("DOC_P0002", "Nguyễn Văn A sinh năm 1920.", 0.55)
+        followups = generate_followups(
+            "Nguyễn Văn A là ai?",
+            "Một nhà khoa học.",
+            {"subject": "Nguyễn Văn A", "relation": "IDENTITY"},
+            selected,
+            [retrieved],
+            config=NO_PROBE_CONFIG,
+        )
+        birth = next(item for item in followups if item.relation == "BIRTH_TIME")
+        self.assertEqual(birth.source_passage_id, "DOC_P0002")
+
+    def test_relation_marker_must_bind_to_the_subject(self):
+        source = passage(
+            "DOC_P0001",
+            "Chủ nghĩa nô lệ được nhắc đến trong cuộc tranh luận. "
+            "Các lực lượng đối lập đến Kansas để biểu quyết và thành lập một tổ chức mới.",
+        )
+        followups = generate_followups(
+            "Chủ nghĩa nô lệ là gì?",
+            "Một chế độ xã hội.",
+            {"subject": "Chủ nghĩa nô lệ", "relation": "IDENTITY"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertEqual(followups, [])
+
+    def test_place_is_not_treated_as_person_or_role(self):
+        source = passage(
+            "DOC_P0001",
+            "Trong thế kỷ 18, Paris là nguồn cảm hứng cho các nhà văn và là nơi sản sinh "
+            "những tư tưởng mới.",
+        )
+        followups = generate_followups(
+            "Paris trở thành trung tâm từ thế kỷ nào?",
+            "Thế kỷ 18.",
+            {"subject": "Paris", "relation": "EVENT_TIME"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertFalse({"BIRTH_TIME", "BIRTH_LOCATION", "ROLE"} & {item.relation for item in followups})
+
+    def test_church_does_not_fold_into_poet_role(self):
+        source = passage(
+            "DOC_P0001",
+            "Đồi Montmartre có độ cao 131 mét, đỉnh là vị trí nhà thờ Saint-Pierre.",
+        )
+        followups = generate_followups(
+            "Montmartre nằm ở đâu?",
+            "Paris.",
+            {"subject": "Montmartre", "relation": "OBJECT_LOCATION"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertNotIn("ROLE", {item.relation for item in followups})
+
+    def test_adverb_triet_de_is_not_a_purpose_marker(self):
+        source = passage("DOC_P0001", "Paris có những thay đổi triệt để.")
+        followups = generate_followups(
+            "Paris là gì?",
+            "Một thành phố.",
+            {"subject": "Paris", "relation": "IDENTITY"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertNotIn("PURPOSE", {item.relation for item in followups})
+
+    def test_bm25_tier_two_can_rescue_low_topic_candidate(self):
+        source = passage("DOC_P0002", "Nguyễn Văn A sinh năm 1920.", 0.05)
+        strict = replace(
+            NO_PROBE_CONFIG,
+            allow_bm25_probe=True,
+            min_topic_relevance=0.95,
+            max_bm25_probes=1,
+        )
+        followups = generate_followups(
+            "Nguyễn Văn A là ai?",
+            "Một nhà khoa học.",
+            {"subject": "Nguyễn Văn A", "relation": "IDENTITY"},
+            None,
+            [source],
+            probe=lambda _question, _top_k: [source],
+            config=strict,
+        )
+        self.assertEqual([item.relation for item in followups], ["BIRTH_TIME"])
+
+    def test_bm25_probe_attempts_are_capped(self):
+        source = passage(
+            "DOC_P0002",
+            "Nguyễn Văn A sinh năm 1920. Nguyễn Văn A giữ chức giáo sư. "
+            "Nguyễn Văn A tham gia thành lập một trường học.",
+            0.01,
+        )
+        probe_questions: list[str] = []
+        strict = replace(
+            NO_PROBE_CONFIG,
+            allow_bm25_probe=True,
+            min_topic_relevance=0.99,
+            max_bm25_probes=2,
+        )
+
+        def probe(question: str, _top_k: int) -> list[dict]:
+            probe_questions.append(question)
+            return []
+
+        generate_followups(
+            "Nguyễn Văn A là ai?",
+            "Một nhà giáo.",
+            {"subject": "Nguyễn Văn A", "relation": "IDENTITY"},
+            None,
+            [source],
+            probe=probe,
+            config=strict,
+        )
+        self.assertLessEqual(len(probe_questions), 2)
+
+    def test_debug_distinguishes_no_opportunity_from_all_rejected(self):
+        sparse = passage("DOC_P0001", "Sự kiện X diễn ra tại Y.")
+        corpus = {"DOC_P0001": sparse}
+        response = generate_followup_response(
+            {
+                "question": "Sự kiện X diễn ra ở đâu?",
+                "answer": "Tại Y.",
+                "subject": "Sự kiện X",
+                "relation": "EVENT_LOCATION",
+                "selected_passage_id": "DOC_P0001",
+                "retrieved_passage_ids": [],
+                "debug": True,
+            },
+            passage_lookup=corpus.get,
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertEqual(response["debug"]["status"], "OPPORTUNITIES_FOUND_BUT_ALL_REJECTED")
+        self.assertEqual(response["debug"]["rejection_distribution"]["SAME_RELATION"], 1)
+        trace = response["debug"]["candidates"][0]
+        for field in (
+            "question",
+            "relation",
+            "subject",
+            "source_passage_id",
+            "generated_by",
+            "evidence_sentence",
+            "subject_match",
+            "topic_relevance_score",
+            "rejection_reason",
+        ):
+            self.assertIn(field, trace)
+
+        no_fact = passage("DOC_P0002", "Sự kiện X được nhắc đến trong tài liệu.")
+        response = generate_followup_response(
+            {
+                "question": "Sự kiện X là gì?",
+                "answer": "Một sự kiện.",
+                "subject": "Sự kiện X",
+                "relation": "IDENTITY",
+                "selected_passage_id": "DOC_P0002",
+                "retrieved_passage_ids": [],
+                "debug": True,
+            },
+            passage_lookup={"DOC_P0002": no_fact}.get,
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertEqual(response["debug"]["status"], "NO_SEMANTIC_OPPORTUNITY")
 
     def test_maximum_count_and_source_trace(self):
         source = passage(

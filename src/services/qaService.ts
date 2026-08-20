@@ -109,5 +109,6 @@ export async function fetchSocraticFollowups(
     processing_time_ms: data.processing_time_ms ?? 0,
     grounding: data.grounding ?? 'selected_and_retrieved_corpus_passages',
     probe: data.probe ?? null,
+    debug: data.debug,
   };
 }

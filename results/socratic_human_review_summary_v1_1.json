@@ -1,0 +1,16 @@
+{
+  "review_source": "results/socratic_human_review_v1_1.json",
+  "reviewed_samples": 34,
+  "review_method": "Manual review of every exported follow-up against its evidence_sentence after predicate-binding fixes.",
+  "verdicts": {
+    "USEFUL_AND_ANSWERABLE": 34,
+    "REDUNDANT_WITH_CURRENT_QUESTION": 0,
+    "OFF_TOPIC": 0,
+    "UNANSWERABLE_FROM_EVIDENCE": 0
+  },
+  "quality_notes": [
+    "All accepted questions have an explicit supporting evidence sentence from selected or retrieved corpus passages.",
+    "Two broader but grounded exploration prompts (Roosevelt consequence and Montmartre film-tourism purpose) were retained because their subject, predicate and answer are all explicit in the cited sentence.",
+    "Previously observed false positives from accent folding and unbound relation markers were removed before this review."
+  ]
+}

@@ -49,6 +49,7 @@ LOCATION_QUESTION_PATTERNS = (
     r"\bdia diem nao\b",
     r"\bdia danh nao\b",
     r"\bkhu vuc nao\b",
+    r"\b(?:con )?song nao\b",
     r"\b(?:thanh pho|tinh|quoc gia|nuoc) nao\b",
 )
 NUMBER_QUESTION_PATTERNS = (
@@ -105,7 +106,8 @@ def _get_classifier():
         _classifier_pipeline = pipeline(
             "zero-shot-classification", 
             model="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli",
-            device=device
+            device=device,
+            local_files_only=True,
         )
     return _classifier_pipeline
 

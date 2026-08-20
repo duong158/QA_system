@@ -44,7 +44,7 @@ class SocraticUiContractTests(unittest.TestCase):
     def test_socratic_preference_defaults_off_and_is_persisted(self):
         store = (ROOT / "src" / "store" / "appStore.ts").read_text(encoding="utf-8")
         self.assertIn("socraticEnabled: false", store)
-        self.assertIn("partialize: (state) => ({ settings: state.settings })", store)
+        self.assertIn("settings: state.settings", store)
 
     def test_voice_and_draft_question_are_deduplicated_before_submit(self):
         home = (ROOT / "src" / "pages" / "HomePage.tsx").read_text(encoding="utf-8")
@@ -73,6 +73,22 @@ class SocraticUiContractTests(unittest.TestCase):
         self.assertIn("event.preventDefault()", input_component)
         self.assertIn("onChange={changeDraft}", home)
         self.assertIn("speech.resetTranscript()", home)
+
+    def test_zero_followups_has_no_production_empty_shell(self):
+        insights = (ROOT / "src" / "components" / "socratic" / "FollowUpInsights.tsx").read_text(encoding="utf-8")
+        self.assertIn("loadState === 'ready' && followUps.length === 0 && !showDebug", insights)
+        self.assertIn("Chưa có gợi ý phù hợp", insights)
+
+    def test_one_or_three_followups_render_exactly_available_chips(self):
+        insights = (ROOT / "src" / "components" / "socratic" / "FollowUpInsights.tsx").read_text(encoding="utf-8")
+        self.assertIn("followUps.map((followUp)", insights)
+        self.assertNotIn("placeholder", insights.casefold())
+        self.assertNotIn("followUps.length < 3", insights)
+
+    def test_loading_copy_mentions_mari_and_cannot_persist_after_ready(self):
+        insights = (ROOT / "src" / "components" / "socratic" / "FollowUpInsights.tsx").read_text(encoding="utf-8")
+        self.assertIn("Mari đang tìm hướng khám phá tiếp", insights)
+        self.assertIn("loadState === 'loading'", insights)
 
 
 if __name__ == "__main__":

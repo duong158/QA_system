@@ -4,6 +4,7 @@ import json
 import math
 import os
 import re
+import socket
 import sqlite3
 import sys
 import threading
@@ -2210,8 +2211,26 @@ class Handler(BaseHTTPRequestHandler):
         print(f"[VIQA API] {self.address_string()} - {format % args}")
 
 
+class ViqaHTTPServer(ThreadingHTTPServer):
+    """Prevent multiple Windows processes from silently sharing the API port."""
+
+    allow_reuse_address = os.name != "nt"
+
+    def server_bind(self) -> None:
+        if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+            self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+        super().server_bind()
+
+
 def main() -> None:
     print(f"VIQA API indexed {len(INDEX.passages)} sentence-aware passages from {DOCS_DB}")
+    try:
+        server = ViqaHTTPServer((HOST, PORT), Handler)
+    except OSError as error:
+        raise SystemExit(
+            f"Cannot start VIQA API on {HOST}:{PORT}: the port is already in use. "
+            "Stop the existing backend before starting another one."
+        ) from error
     if PRELOAD_READER:
         print("Preloading reader model before accepting requests...")
         readers = get_readers()
@@ -2236,7 +2255,7 @@ def main() -> None:
             )
         print("Reader model is ready")
     print(f"Serving http://localhost:{PORT}")
-    ThreadingHTTPServer((HOST, PORT), Handler).serve_forever()
+    server.serve_forever()
 
 
 if __name__ == "__main__":

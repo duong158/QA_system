@@ -205,6 +205,7 @@ def _strip_interrogative_tail(body: str, relation: str) -> str:
         ),
         "OBJECT_LOCATION": (
             r"\s+(?:o dau|tai dau|noi nao|dia diem nao)\s*[?!.]*$",
+            r"\s+nam\s+ben\s+bo\s+(?:con\s+)?song\s+nao\s*[?!.]*$",
         ),
     }
     end = len(body)

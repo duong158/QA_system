@@ -32,6 +32,10 @@ class QuestionTypeLatencyTests(unittest.TestCase):
         ):
             self.assertIn(QuestionType.TIME, detect_question_type("Nhân vật sinh năm nào?"))
             self.assertIn(QuestionType.LOCATION, detect_question_type("Sự kiện diễn ra ở đâu?"))
+            self.assertEqual(
+                detect_question_type("Paris nằm bên bờ con sông nào?"),
+                [QuestionType.LOCATION],
+            )
 
     def test_ambiguous_question_classification_is_cached(self):
         calls = []

@@ -1,0 +1,15 @@
+{
+  "source": "socratic_diagnostic_v1 before V1.1 refactor; selected passage only",
+  "total_cases": 20,
+  "cases_with_followup": 11,
+  "cases_without_followup": 9,
+  "coverage_rate": 0.55,
+  "total_candidates_accepted": 18,
+  "avg_followups_per_answer": 0.9,
+  "answerability_proxy": 1.0,
+  "useful_proxy": 0.9444,
+  "duplicate_rate": 0.0,
+  "off_topic_rate": 0.0556,
+  "overall_average_latency_ms": 0.75,
+  "note": "Legacy proxy included one later-audited false-positive death marker; retained unchanged for reproducible before/after comparison."
+}

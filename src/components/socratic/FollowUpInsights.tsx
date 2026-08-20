@@ -14,6 +14,7 @@ interface FollowUpInsightsProps {
 
 export function FollowUpInsights({ followUps, loadState, latencyMs, onSelect, onSpeak, showDebug = false }: FollowUpInsightsProps) {
   if (loadState === 'idle' || loadState === 'error') return null;
+  if (loadState === 'ready' && followUps.length === 0 && !showDebug) return null;
 
   return (
     <section aria-live="polite">
@@ -24,7 +25,7 @@ export function FollowUpInsights({ followUps, loadState, latencyMs, onSelect, on
       </div>
       {loadState === 'loading' ? (
         <div className="flex items-center gap-2 py-1 text-sm text-[var(--text-secondary)]" role="status">
-          <LoaderCircle className="h-4 w-4 animate-spin text-violet-500" /> Đang tạo câu hỏi gợi mở...
+          <LoaderCircle className="h-4 w-4 animate-spin text-violet-500" /> Mari đang tìm hướng khám phá tiếp...
         </div>
       ) : followUps.length ? (
         <div className="flex flex-wrap gap-2">

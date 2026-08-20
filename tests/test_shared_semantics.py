@@ -35,6 +35,12 @@ class SharedQuestionSemanticsTests(unittest.TestCase):
         self.assertEqual({item.subject for item in parsed}, {"Phạm Văn Đồng"})
         self.assertEqual({item.predicate for item in parsed}, {"sinh"})
 
+    def test_river_question_is_object_location_with_clean_subject(self):
+        semantics = parse_question_semantics("Paris nằm bên bờ con sông nào?")
+        self.assertEqual(semantics.question_type, ["LOCATION"])
+        self.assertEqual(semantics.relation, "OBJECT_LOCATION")
+        self.assertEqual(semantics.subject, "Paris")
+
 
 class SharedSubjectAndRelationTests(unittest.TestCase):
     def test_subject_consistency_rejects_unrelated_time_passage(self):
