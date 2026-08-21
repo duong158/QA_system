@@ -16,9 +16,15 @@ async function readApiError(response: Response): Promise<string> {
   return errorBody?.error || QA_ERROR_MESSAGE;
 }
 
+function capitalizeFirstLetter(str: string | null): string | null {
+  if (!str) return str;
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
 function normalizeQaResponse(data: QaResponse): QaResponse {
   return {
     ...data,
+    answer: capitalizeFirstLetter(data.answer),
     confidence: data.confidence ?? null,
     answer_confidence: data.answer_confidence ?? null,
     has_answer: data.has_answer ?? Boolean(data.answer),

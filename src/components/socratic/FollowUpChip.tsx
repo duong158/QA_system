@@ -20,7 +20,7 @@ export function FollowUpChip({ followUp, onSelect, onSpeak, showDebug = false }:
           <Volume2 className="h-3.5 w-3.5" />
         </button>
       ) : null}
-      {showDebug ? <span className="sr-only">Relation {followUp.relation ?? '--'}, ranking {followUp.ranking_score.toFixed(2)}</span> : null}
+      {showDebug ? <span className="sr-only">Relation {followUp.relation ?? '--'}, ranking {followUp.ranking_score?.toFixed(2) ?? '--'}</span> : null}
     </div>
   );
 }

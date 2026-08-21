@@ -59,7 +59,7 @@ from reader.relation_validator import relation_validation_details, validate_cand
 from reader.rejection_reasons import REJECTION_DEBUG_PRIORITY, REJECTION_MESSAGES
 from reader.semantic_policy import SEMANTIC_POLICIES
 from reader.span_boundaries import assess_span_boundary
-
+from backend.related_questions import get_bm25_index
 
 PIPELINE_CONFIG = load_pipeline_config()
 DOCS_DB = ROOT / "data" / "processed" / "docs.db"
@@ -1160,20 +1160,22 @@ def _validate_socratic_answerability(question: str, passage_id: str) -> dict[str
 
 
 def socratic_followups(payload: dict[str, Any]) -> dict[str, Any]:
-    if SOCRATIC_CONFIG is None or generate_followup_response is None:
-        return {
-            "followups": [],
-            "processing_time_ms": 0,
-            "grounding": "unavailable",
-            "probe": None,
-            "error": f"Socratic module unavailable: {SOCRATIC_IMPORT_ERROR or 'unknown error'}",
-        }
-    return generate_followup_response(
-        payload,
-        passage_lookup=_lookup_socratic_passage,
-        probe=_probe_socratic_passages if SOCRATIC_CONFIG.allow_bm25_probe else None,
-        answerability_validator=_validate_socratic_answerability,
-    )
+    question = payload.get("question", "")
+    
+    import time
+    start = time.perf_counter()
+    
+    asked_questions = payload.get("asked_questions", [])
+    
+    bm25 = get_bm25_index()
+    followups = bm25.get_related_questions(question, asked_questions)
+    
+    return {
+        "followups": followups,
+        "processing_time_ms": int((time.perf_counter() - start) * 1000),
+        "grounding": "bm25_train_val_test",
+        "probe": None,
+    }
 
 
 def _empty_response(question: str, retriever: str, reader: str, elapsed: int) -> dict[str, Any]:

@@ -60,6 +60,7 @@ export function HomePage() {
   const { submitQuestion, stopAll, stop } = useQaPipeline();
   const speech = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
+  const question = useAppStore((state) => state.question);
   const socratic = useSocraticFollowups(answer);
 
   const composedQuestion = useMemo(
