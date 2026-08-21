@@ -8,11 +8,12 @@ ROOT = Path(__file__).resolve().parents[1]
 class SocraticUiContractTests(unittest.TestCase):
     def test_followups_run_automatically_after_answer(self):
         hook = (ROOT / "src" / "hooks" / "useSocraticFollowups.ts").read_text(encoding="utf-8")
-        guard = hook.index("if (!response || !hasAnswer || !response.answer)")
+        guard = hook.index("if (!response || !hasContext)")
         request = hook.index("void fetchSocraticFollowups")
         self.assertLess(guard, request)
         self.assertIn("useSocraticFollowups(response: QaResponse | null)", hook)
         self.assertNotIn("!enabled", hook)
+        self.assertNotIn("!response.answer", hook)
         self.assertIn("contextPassageIds: Set<string>", hook)
         self.assertIn("retrieved_passage_ids: Array.from(sessionRef.current.contextPassageIds)", hook)
 
@@ -106,6 +107,19 @@ class SocraticUiContractTests(unittest.TestCase):
         insights = (ROOT / "src" / "components" / "socratic" / "FollowUpInsights.tsx").read_text(encoding="utf-8")
         self.assertIn("Mari đang tìm hướng khám phá tiếp", insights)
         self.assertIn("loadState === 'loading'", insights)
+
+    def test_development_mode_requests_and_renders_socratic_diagnostics(self):
+        hook = (ROOT / "src" / "hooks" / "useSocraticFollowups.ts").read_text(encoding="utf-8")
+        insights = (
+            ROOT / "src" / "components" / "socratic" / "FollowUpInsights.tsx"
+        ).read_text(encoding="utf-8")
+        home = (ROOT / "src" / "pages" / "HomePage.tsx").read_text(encoding="utf-8")
+        self.assertIn("debug: import.meta.env.DEV", hook)
+        self.assertIn("setDebug(result.debug ?? null)", hook)
+        self.assertIn("Opportunities found:", insights)
+        self.assertIn("Candidates generated:", insights)
+        self.assertIn("debug.rejection_distribution", insights)
+        self.assertIn("followUpsDebug={isCurrentResponse ? socratic.debug : null}", home)
 
 
 if __name__ == "__main__":

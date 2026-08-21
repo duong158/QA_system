@@ -109,7 +109,7 @@ class SocraticGeneratorTests(unittest.TestCase):
             {"EVENT_TIME", "CAUSE", "PURPOSE"},
         )
 
-    def test_relation_sparse_passage_correctly_returns_no_followup(self):
+    def test_relation_sparse_passage_returns_grounded_review_followup(self):
         source = passage("DOC_P0001", "Sự kiện X diễn ra tại Y.")
         followups = generate_followups(
             "Sự kiện X diễn ra ở đâu?",
@@ -119,7 +119,10 @@ class SocraticGeneratorTests(unittest.TestCase):
             [],
             config=NO_PROBE_CONFIG,
         )
-        self.assertEqual(followups, [])
+        self.assertEqual(len(followups), 1)
+        self.assertEqual(followups[0].relation, "EVIDENCE_DETAIL")
+        self.assertEqual(followups[0].source_passage_id, "DOC_P0001")
+        self.assertTrue(followups[0].evidence_sentence)
 
     def test_nominal_question_focus_is_reduced_to_the_real_entity(self):
         source = passage(
@@ -253,7 +256,7 @@ class SocraticGeneratorTests(unittest.TestCase):
             [],
             config=NO_PROBE_CONFIG,
         )
-        self.assertEqual(followups, [])
+        self.assertEqual({item.relation for item in followups}, {"EVIDENCE_DETAIL"})
 
     def test_place_is_not_treated_as_person_or_role(self):
         source = passage(
@@ -363,7 +366,7 @@ class SocraticGeneratorTests(unittest.TestCase):
             passage_lookup=corpus.get,
             config=NO_PROBE_CONFIG,
         )
-        self.assertEqual(response["debug"]["status"], "OPPORTUNITIES_FOUND_BUT_ALL_REJECTED")
+        self.assertEqual(response["debug"]["status"], "EVIDENCE_REVIEW_FALLBACK")
         self.assertEqual(response["debug"]["rejection_distribution"]["SAME_RELATION"], 1)
         trace = response["debug"]["candidates"][0]
         for field in (
@@ -393,7 +396,8 @@ class SocraticGeneratorTests(unittest.TestCase):
             passage_lookup={"DOC_P0002": no_fact}.get,
             config=NO_PROBE_CONFIG,
         )
-        self.assertEqual(response["debug"]["status"], "NO_SEMANTIC_OPPORTUNITY")
+        self.assertEqual(response["debug"]["status"], "EVIDENCE_REVIEW_FALLBACK")
+        self.assertEqual(len(response["followups"]), 1)
 
     def test_maximum_count_and_source_trace(self):
         source = passage(
@@ -429,7 +433,7 @@ class SocraticGeneratorTests(unittest.TestCase):
         source = passage(
             "DOC_P0001",
             "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá. "
-            "Thỉnh thoảng, hoa mọc ra ở nách của lá.",
+            "Thỉnh thoảng, chẳng hạn như ở hoa vi ô let, hoa mọc ra ở nách của lá.",
         )
         followups = generate_followups(
             "Hoa sinh ra ở đâu?",
@@ -446,6 +450,7 @@ class SocraticGeneratorTests(unittest.TestCase):
             config=NO_PROBE_CONFIG,
         )
         self.assertIn("Hoa mọc ra ở đâu?", {item.question for item in followups})
+        self.assertNotIn("Hoa hoa mọc ra ở đâu?", {item.question for item in followups})
         self.assertNotIn("Hoa sinh ra ở đâu?", {item.question for item in followups})
 
     def test_distinct_predicates_can_produce_multiple_initial_suggestions(self):
@@ -537,7 +542,7 @@ class SocraticGeneratorTests(unittest.TestCase):
         self.assertTrue(response["followups"])
         self.assertEqual(response["followups"][0]["source_passage_id"], "DOC_P0001")
 
-    def test_qa_answerability_gate_fails_closed(self):
+    def test_qa_answerability_failure_falls_back_to_grounded_review(self):
         source = passage("DOC_P0001", "Nguyễn Văn An sinh năm 1945.")
         response = generate_followup_response(
             {
@@ -558,7 +563,10 @@ class SocraticGeneratorTests(unittest.TestCase):
             config=NO_PROBE_CONFIG,
         )
 
-        self.assertEqual(response["followups"], [])
+        self.assertEqual(len(response["followups"]), 1)
+        self.assertEqual(response["followups"][0]["relation"], "EVIDENCE_DETAIL")
+        self.assertFalse(response["followups"][0]["qa_verified"])
+        self.assertTrue(response["followups"][0]["evidence_sentence"])
         self.assertEqual(response["answerability_gate"], "qa_pipeline")
         self.assertGreaterEqual(
             response["debug"]["rejection_distribution"]["QA_ANSWERABILITY_FAILED"],

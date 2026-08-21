@@ -165,13 +165,16 @@ export interface FollowUpCandidate {
   novelty_score: number;
   relevance_score: number;
   ranking_score: number;
+  evidence_sentence: string;
+  relation_evidence: boolean;
   qa_verified: boolean;
   verification_method: string | null;
+  origin?: string | null;
 }
 
 export interface SocraticFollowUpsRequest {
   question: string;
-  answer: string;
+  answer: string | null;
   selected_passage_id: string | null;
   retrieved_passage_ids: string[];
   question_type?: QuestionType[];
@@ -183,6 +186,23 @@ export interface SocraticFollowUpsRequest {
   visited_relations: string[];
   asked_questions: string[];
   limit: number;
+  debug?: boolean;
+}
+
+export interface SocraticDebugInfo {
+  status: string;
+  passages_scanned?: number;
+  passages_inspected?: Array<{ passage_id: string; provenance: string }>;
+  semantic_opportunities?: {
+    detected: number;
+    processed: number;
+    truncated: number;
+    by_relation: Record<string, number>;
+  };
+  candidate_generation: Record<string, number>;
+  rejection_distribution: Record<string, number>;
+  final_accepted?: number;
+  candidates: Array<Record<string, unknown>>;
 }
 
 export interface SocraticFollowUpsResponse {
@@ -191,12 +211,7 @@ export interface SocraticFollowUpsResponse {
   grounding: string;
   probe: string | null;
   answerability_gate?: 'qa_pipeline' | 'heuristic_only';
-  debug?: {
-    status: 'NO_SEMANTIC_OPPORTUNITY' | 'OPPORTUNITIES_FOUND_BUT_ALL_REJECTED' | 'FOLLOWUPS_GENERATED' | string;
-    candidate_generation: Record<string, number>;
-    rejection_distribution: Record<string, number>;
-    candidates: Array<Record<string, unknown>>;
-  };
+  debug?: SocraticDebugInfo;
 }
 
 export interface RetrieverComparisonRow {

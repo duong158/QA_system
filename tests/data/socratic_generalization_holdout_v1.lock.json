@@ -1,0 +1,22 @@
+{
+  "name": "socratic_generalization_holdout_v1",
+  "status": "LOCKED_DO_NOT_TUNE",
+  "source_sha256": "df950673787293bfb0f1d5871678e80ad7024aca3058d5a91ca080a0bba91ef5",
+  "dataset_file": "tests\\data\\socratic_generalization_holdout_v1.json",
+  "dataset_sha256": "a72e450b2ce1f47c4b0c2508c738fbfa7945d2e89afb35cdd7cb7de711a99ea7",
+  "rows": 80,
+  "actual_strata": {
+    "ATTRIBUTE_GENERAL": 10,
+    "CAUSE": 10,
+    "ENTITY": 10,
+    "IDENTITY_DEFINITION": 10,
+    "LOCATION": 10,
+    "NO_ANSWER_SPARSE": 10,
+    "PURPOSE": 10,
+    "TIME": 10
+  },
+  "unique_titles": 15,
+  "seed": "socratic-generalization-holdout-v1-2026-08-21",
+  "created_from_git_commit": "3b5bddf",
+  "holdout_was_inspected_for_production_tuning": false
+}

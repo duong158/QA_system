@@ -241,6 +241,7 @@ export function HomePage() {
                         followUps={isCurrentResponse ? socratic.followUps : []}
                         followUpsState={isCurrentResponse ? socratic.loadState : 'idle'}
                         followUpsLatencyMs={isCurrentResponse ? socratic.latencyMs : null}
+                        followUpsDebug={isCurrentResponse ? socratic.debug : null}
                         onFollowUpSelect={askFollowUp}
                         onFollowUpSpeak={isCurrentResponse && synthesis.isSupported ? speakFollowUp : undefined}
                         onSpeakAnswer={speakText}

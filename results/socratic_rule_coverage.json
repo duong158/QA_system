@@ -1,0 +1,409 @@
+{
+  "dataset": "socratic_generalization_holdout_v1",
+  "dataset_sha256": "a72e450b2ce1f47c4b0c2508c738fbfa7945d2e89afb35cdd7cb7de711a99ea7",
+  "note": "Low-coverage linguistic rules are flagged for review, not automatically removed.",
+  "modes": {
+    "selected_only": [
+      {
+        "rule_id": "evidenced_activity",
+        "pattern": "subject + generic activity predicate",
+        "matched_cases": 3,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "EVENT"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_cause",
+        "pattern": "effect clause + causal connector + cause clause",
+        "matched_cases": 1,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "CAUSE"
+        ],
+        "flag": "POSSIBLE_CASE_OVERFIT"
+      },
+      {
+        "rule_id": "evidenced_consequence",
+        "pattern": "cause clause + consequence connector",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "CONSEQUENCE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_event_time",
+        "pattern": "subject-bound clause + explicit temporal value",
+        "matched_cases": 7,
+        "unique_subjects": 5,
+        "unique_predicates": 1,
+        "relations": [
+          "EVENT_TIME"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_purpose",
+        "pattern": "action clause + purpose connector + purpose clause",
+        "matched_cases": 2,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "PURPOSE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "structural_process_location",
+        "pattern": "subject + unseen predicate + locative connector",
+        "matched_cases": 4,
+        "unique_subjects": 3,
+        "unique_predicates": 4,
+        "relations": [
+          "PROCESS_LOCATION"
+        ],
+        "flag": null
+      }
+    ],
+    "selected_plus_retrieved": [
+      {
+        "rule_id": "additional_grounded_fact",
+        "pattern": "additional subject-bound evidence sentence",
+        "matched_cases": 7,
+        "unique_subjects": 7,
+        "unique_predicates": 1,
+        "relations": [
+          "EVIDENCE_DETAIL"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_activity",
+        "pattern": "subject + generic activity predicate",
+        "matched_cases": 9,
+        "unique_subjects": 5,
+        "unique_predicates": 1,
+        "relations": [
+          "EVENT"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_cause",
+        "pattern": "effect clause + causal connector + cause clause",
+        "matched_cases": 3,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "CAUSE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_comparison",
+        "pattern": "subject-bound comparison connector",
+        "matched_cases": 2,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "COMPARISON"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_consequence",
+        "pattern": "cause clause + consequence connector",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "CONSEQUENCE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_event_time",
+        "pattern": "subject-bound clause + explicit temporal value",
+        "matched_cases": 27,
+        "unique_subjects": 8,
+        "unique_predicates": 1,
+        "relations": [
+          "EVENT_TIME"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_identity",
+        "pattern": "subject + copular definition",
+        "matched_cases": 2,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "IDENTITY"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_object_location",
+        "pattern": "subject + static location predicate",
+        "matched_cases": 6,
+        "unique_subjects": 6,
+        "unique_predicates": 1,
+        "relations": [
+          "OBJECT_LOCATION"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_purpose",
+        "pattern": "action clause + purpose connector + purpose clause",
+        "matched_cases": 9,
+        "unique_subjects": 6,
+        "unique_predicates": 1,
+        "relations": [
+          "PURPOSE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_role",
+        "pattern": "subject + appointment/office grammar",
+        "matched_cases": 4,
+        "unique_subjects": 4,
+        "unique_predicates": 1,
+        "relations": [
+          "ROLE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "explicit_birth_location",
+        "pattern": "person subject + birth predicate + location",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "BIRTH_LOCATION"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "explicit_birth_time",
+        "pattern": "person subject + birth predicate + time",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "BIRTH_TIME"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "explicit_death_time",
+        "pattern": "person subject + death predicate + time",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "DEATH_TIME"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "structural_numeric_attribute",
+        "pattern": "subject clause + measure predicate + numeric unit",
+        "matched_cases": 1,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "ATTRIBUTE"
+        ],
+        "flag": "POSSIBLE_CASE_OVERFIT"
+      },
+      {
+        "rule_id": "structural_process_location",
+        "pattern": "subject + unseen predicate + locative connector",
+        "matched_cases": 11,
+        "unique_subjects": 7,
+        "unique_predicates": 10,
+        "relations": [
+          "PROCESS_LOCATION"
+        ],
+        "flag": null
+      }
+    ],
+    "bm25_fallback": [
+      {
+        "rule_id": "additional_grounded_fact",
+        "pattern": "additional subject-bound evidence sentence",
+        "matched_cases": 7,
+        "unique_subjects": 7,
+        "unique_predicates": 1,
+        "relations": [
+          "EVIDENCE_DETAIL"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_activity",
+        "pattern": "subject + generic activity predicate",
+        "matched_cases": 9,
+        "unique_subjects": 5,
+        "unique_predicates": 1,
+        "relations": [
+          "EVENT"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_cause",
+        "pattern": "effect clause + causal connector + cause clause",
+        "matched_cases": 3,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "CAUSE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_comparison",
+        "pattern": "subject-bound comparison connector",
+        "matched_cases": 2,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "COMPARISON"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_consequence",
+        "pattern": "cause clause + consequence connector",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "CONSEQUENCE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_event_time",
+        "pattern": "subject-bound clause + explicit temporal value",
+        "matched_cases": 27,
+        "unique_subjects": 8,
+        "unique_predicates": 1,
+        "relations": [
+          "EVENT_TIME"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_identity",
+        "pattern": "subject + copular definition",
+        "matched_cases": 2,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "IDENTITY"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_object_location",
+        "pattern": "subject + static location predicate",
+        "matched_cases": 6,
+        "unique_subjects": 6,
+        "unique_predicates": 1,
+        "relations": [
+          "OBJECT_LOCATION"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_purpose",
+        "pattern": "action clause + purpose connector + purpose clause",
+        "matched_cases": 9,
+        "unique_subjects": 6,
+        "unique_predicates": 1,
+        "relations": [
+          "PURPOSE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "evidenced_role",
+        "pattern": "subject + appointment/office grammar",
+        "matched_cases": 4,
+        "unique_subjects": 4,
+        "unique_predicates": 1,
+        "relations": [
+          "ROLE"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "explicit_birth_location",
+        "pattern": "person subject + birth predicate + location",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "BIRTH_LOCATION"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "explicit_birth_time",
+        "pattern": "person subject + birth predicate + time",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "BIRTH_TIME"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "explicit_death_time",
+        "pattern": "person subject + death predicate + time",
+        "matched_cases": 2,
+        "unique_subjects": 2,
+        "unique_predicates": 1,
+        "relations": [
+          "DEATH_TIME"
+        ],
+        "flag": null
+      },
+      {
+        "rule_id": "structural_numeric_attribute",
+        "pattern": "subject clause + measure predicate + numeric unit",
+        "matched_cases": 1,
+        "unique_subjects": 1,
+        "unique_predicates": 1,
+        "relations": [
+          "ATTRIBUTE"
+        ],
+        "flag": "POSSIBLE_CASE_OVERFIT"
+      },
+      {
+        "rule_id": "structural_process_location",
+        "pattern": "subject + unseen predicate + locative connector",
+        "matched_cases": 11,
+        "unique_subjects": 7,
+        "unique_predicates": 10,
+        "relations": [
+          "PROCESS_LOCATION"
+        ],
+        "flag": null
+      }
+    ]
+  }
+}

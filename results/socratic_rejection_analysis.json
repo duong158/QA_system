@@ -1,0 +1,5175 @@
+{
+  "dataset": "socratic_generalization_holdout_v1",
+  "dataset_sha256": "a72e450b2ce1f47c4b0c2508c738fbfa7945d2e89afb35cdd7cb7de711a99ea7",
+  "modes": {
+    "selected_only": {
+      "empty_statuses": {
+        "FOLLOWUPS_GENERATED": 15,
+        "NO_OTHER_KNOWLEDGE_IN_CONTEXT": 51,
+        "ONLY_CURRENT_RELATION_AVAILABLE": 4,
+        "INPUT_NOT_ELIGIBLE": 10
+      },
+      "rejection_distribution": {
+        "SAME_RELATION": 5
+      },
+      "cases": [
+        {
+          "id": "SGH1_0003-0020-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0004-0024-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0007-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0008-0001-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0012-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0015-0025-0003",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0018-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0013-0006-0003",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0001-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0019-0035-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0003-0002-0009",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0004-0024-0008",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0006-0008",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0035-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0006-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0012-0003",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0014-0003",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0013-0002-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0011-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0019-0037-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0003-0016-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0004-0043-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0004-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0015-0004-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0007-0009-0003",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0007-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0006-0002-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0019-0003-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0003-0051-0001",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0003-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0003-0038-0002",
+          "status": "ONLY_CURRENT_RELATION_AVAILABLE",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0004-0043-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0011-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0003-0001",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0023-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0014-0009",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0007-0001-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0001-0007",
+          "status": "ONLY_CURRENT_RELATION_AVAILABLE",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0005-0002-0001",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0007-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0003-0030-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0004-0050-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0024-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0004-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0008-0001",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0025-0004",
+          "status": "ONLY_CURRENT_RELATION_AVAILABLE",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0007-0009-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0005-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0005-0007-0006",
+          "status": "ONLY_CURRENT_RELATION_AVAILABLE",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0019-0014-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0009-0008-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0008-0001-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0014-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0015-0011-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0010-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0006-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0013-0007-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0002-0001",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0019-0025-0001",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0011-0004-0010",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0003-0025-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0004-0020-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0014-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0001-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0002-0001",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0034-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0007-0014-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0019-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0017-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0019-0034-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0003-0007-0001",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0004-0007-0003",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0025-0002",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0003-0009",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0008-0005-0003",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0003-0006",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0027-0001",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0010-0005",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0011-0004-0005",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0014-0003-0007",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        }
+      ]
+    },
+    "selected_plus_retrieved": {
+      "empty_statuses": {
+        "FOLLOWUPS_GENERATED": 53,
+        "NO_OTHER_KNOWLEDGE_IN_CONTEXT": 16,
+        "ONLY_CURRENT_RELATION_AVAILABLE": 1,
+        "INPUT_NOT_ELIGIBLE": 10
+      },
+      "rejection_distribution": {
+        "LOW_RANKING_SCORE": 11,
+        "SAME_RELATION": 10,
+        "DUPLICATE_QUESTION": 4
+      },
+      "cases": [
+        {
+          "id": "SGH1_0003-0020-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0004-0024-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0007-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0008-0001-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0012-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0025-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0018-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0013-0006-0003",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0001-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0019-0035-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0003-0002-0009",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0004-0024-0008",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0006-0008",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0035-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0006-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0012-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0014-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0013-0002-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0006-0011-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 2
+          },
+          "candidate_generation": {
+            "generated": 5,
+            "after_relation_evidence": 5,
+            "after_evidence_gate": 5,
+            "after_same_relation": 5,
+            "after_visited_relation": 5,
+            "after_duplicate": 5,
+            "after_subject_gate": 5,
+            "after_topic_drift": 5,
+            "after_grounding": 5,
+            "after_bm25_probe": 5,
+            "after_qa_validation": 5,
+            "after_novelty": 5,
+            "after_ranking": 5,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0019-0037-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0003-0016-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0004-0043-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0004-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0015-0004-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0009-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0007-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0006-0002-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0019-0003-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0003-0051-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0009-0003-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0003-0038-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0004-0043-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0011-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0010-0003-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0023-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0014-0009",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0007-0001-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 3
+          },
+          "candidate_generation": {
+            "generated": 6,
+            "after_relation_evidence": 6,
+            "after_evidence_gate": 6,
+            "after_same_relation": 6,
+            "after_visited_relation": 6,
+            "after_duplicate": 6,
+            "after_subject_gate": 6,
+            "after_topic_drift": 6,
+            "after_grounding": 6,
+            "after_bm25_probe": 6,
+            "after_qa_validation": 6,
+            "after_novelty": 6,
+            "after_ranking": 6,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0002-0001-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0005-0002-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0006-0007-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0003-0030-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0004-0050-0006",
+          "status": "ONLY_CURRENT_RELATION_AVAILABLE",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0024-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0004-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0008-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 2
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0025-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0009-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0005-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0005-0007-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 2
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0019-0014-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 2
+          },
+          "candidate_generation": {
+            "generated": 5,
+            "after_relation_evidence": 5,
+            "after_evidence_gate": 5,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0009-0008-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0008-0001-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0014-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0011-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0007-0010-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0006-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0013-0007-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0002-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0019-0025-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0011-0004-0010",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0003-0025-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0004-0020-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0014-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0010-0001-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0002-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0015-0034-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0014-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0019-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0017-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0019-0034-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0003-0007-0001",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0004-0007-0003",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0025-0002",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0003-0009",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0008-0005-0003",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0003-0006",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0027-0001",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0010-0005",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0011-0004-0005",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0014-0003-0007",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        }
+      ]
+    },
+    "bm25_fallback": {
+      "empty_statuses": {
+        "FOLLOWUPS_GENERATED": 53,
+        "NO_OTHER_KNOWLEDGE_IN_CONTEXT": 16,
+        "ONLY_CURRENT_RELATION_AVAILABLE": 1,
+        "INPUT_NOT_ELIGIBLE": 10
+      },
+      "rejection_distribution": {
+        "LOW_RANKING_SCORE": 11,
+        "SAME_RELATION": 10,
+        "DUPLICATE_QUESTION": 4
+      },
+      "cases": [
+        {
+          "id": "SGH1_0003-0020-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0004-0024-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0007-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0008-0001-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0012-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0025-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0018-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0013-0006-0003",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0001-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0019-0035-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0003-0002-0009",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0004-0024-0008",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0006-0008",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0035-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0006-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0012-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0014-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0013-0002-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0006-0011-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 2
+          },
+          "candidate_generation": {
+            "generated": 5,
+            "after_relation_evidence": 5,
+            "after_evidence_gate": 5,
+            "after_same_relation": 5,
+            "after_visited_relation": 5,
+            "after_duplicate": 5,
+            "after_subject_gate": 5,
+            "after_topic_drift": 5,
+            "after_grounding": 5,
+            "after_bm25_probe": 5,
+            "after_qa_validation": 5,
+            "after_novelty": 5,
+            "after_ranking": 5,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0019-0037-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0003-0016-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0004-0043-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0004-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0015-0004-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0009-0003",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0007-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0006-0002-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0019-0003-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0003-0051-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0009-0003-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0003-0038-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0004-0043-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0011-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0010-0003-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0023-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0014-0009",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0007-0001-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 3
+          },
+          "candidate_generation": {
+            "generated": 6,
+            "after_relation_evidence": 6,
+            "after_evidence_gate": 6,
+            "after_same_relation": 6,
+            "after_visited_relation": 6,
+            "after_duplicate": 6,
+            "after_subject_gate": 6,
+            "after_topic_drift": 6,
+            "after_grounding": 6,
+            "after_bm25_probe": 6,
+            "after_qa_validation": 6,
+            "after_novelty": 6,
+            "after_ranking": 6,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0002-0001-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0005-0002-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0006-0007-0002",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0003-0030-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0004-0050-0006",
+          "status": "ONLY_CURRENT_RELATION_AVAILABLE",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0024-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0004-0002",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0008-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 2
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0025-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 1
+          },
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0009-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0005-0007",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0005-0007-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 2
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0019-0014-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "SAME_RELATION": 2
+          },
+          "candidate_generation": {
+            "generated": 5,
+            "after_relation_evidence": 5,
+            "after_evidence_gate": 5,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0009-0008-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0008-0001-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0014-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "DUPLICATE_QUESTION": 1
+          },
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0015-0011-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0007-0010-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0002-0006-0005",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0013-0007-0004",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0002-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {
+            "LOW_RANKING_SCORE": 1
+          },
+          "candidate_generation": {
+            "generated": 4,
+            "after_relation_evidence": 4,
+            "after_evidence_gate": 4,
+            "after_same_relation": 4,
+            "after_visited_relation": 4,
+            "after_duplicate": 4,
+            "after_subject_gate": 4,
+            "after_topic_drift": 4,
+            "after_grounding": 4,
+            "after_bm25_probe": 4,
+            "after_qa_validation": 4,
+            "after_novelty": 4,
+            "after_ranking": 4,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0019-0025-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0011-0004-0010",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0003-0025-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 3,
+            "after_relation_evidence": 3,
+            "after_evidence_gate": 3,
+            "after_same_relation": 3,
+            "after_visited_relation": 3,
+            "after_duplicate": 3,
+            "after_subject_gate": 3,
+            "after_topic_drift": 3,
+            "after_grounding": 3,
+            "after_bm25_probe": 3,
+            "after_qa_validation": 3,
+            "after_novelty": 3,
+            "after_ranking": 3,
+            "final": 3
+          }
+        },
+        {
+          "id": "SGH1_0004-0020-0006",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0014-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0010-0001-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0012-0002-0001",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0015-0034-0006",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0007-0014-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0002-0019-0007",
+          "status": "NO_OTHER_KNOWLEDGE_IN_CONTEXT",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0017-0005",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 1,
+            "after_relation_evidence": 1,
+            "after_evidence_gate": 1,
+            "after_same_relation": 1,
+            "after_visited_relation": 1,
+            "after_duplicate": 1,
+            "after_subject_gate": 1,
+            "after_topic_drift": 1,
+            "after_grounding": 1,
+            "after_bm25_probe": 1,
+            "after_qa_validation": 1,
+            "after_novelty": 1,
+            "after_ranking": 1,
+            "final": 1
+          }
+        },
+        {
+          "id": "SGH1_0019-0034-0004",
+          "status": "FOLLOWUPS_GENERATED",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 2,
+            "after_relation_evidence": 2,
+            "after_evidence_gate": 2,
+            "after_same_relation": 2,
+            "after_visited_relation": 2,
+            "after_duplicate": 2,
+            "after_subject_gate": 2,
+            "after_topic_drift": 2,
+            "after_grounding": 2,
+            "after_bm25_probe": 2,
+            "after_qa_validation": 2,
+            "after_novelty": 2,
+            "after_ranking": 2,
+            "final": 2
+          }
+        },
+        {
+          "id": "SGH1_0003-0007-0001",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0004-0007-0003",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0009-0025-0002",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0010-0003-0009",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0008-0005-0003",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0012-0003-0006",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0015-0027-0001",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0006-0010-0005",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0011-0004-0005",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        },
+        {
+          "id": "SGH1_0014-0003-0007",
+          "status": "INPUT_NOT_ELIGIBLE",
+          "rejections": {},
+          "candidate_generation": {
+            "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
+            "after_same_relation": 0,
+            "after_visited_relation": 0,
+            "after_duplicate": 0,
+            "after_subject_gate": 0,
+            "after_topic_drift": 0,
+            "after_grounding": 0,
+            "after_bm25_probe": 0,
+            "after_qa_validation": 0,
+            "after_novelty": 0,
+            "after_ranking": 0,
+            "final": 0
+          }
+        }
+      ]
+    }
+  }
+}

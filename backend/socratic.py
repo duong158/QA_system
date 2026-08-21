@@ -31,7 +31,12 @@ class SocraticConfig:
     allow_bm25_probe: bool = True
     probe_top_k: int = 5
     max_bm25_probes: int = 3
-    max_context_passages: int = 12
+    max_passages_for_followup_discovery: int = 12
+    min_subject_score: float = 0.70
+    min_relation_score: float = 0.70
+    min_evidence_score: float = 0.62
+    min_novelty_score: float = 0.07
+    min_ranking_score: float = 0.50
     duplicate_similarity_threshold: float = 0.72
     one_hop_only: bool = True
     prefer_relation_diversity: bool = True
@@ -52,8 +57,11 @@ class FollowUpCandidate:
     novelty_score: float
     relevance_score: float
     ranking_score: float
+    evidence_sentence: str
+    relation_evidence: bool
     qa_verified: bool = False
     verification_method: str | None = None
+    origin: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -71,8 +79,11 @@ class SocraticCandidateTrace:
     evidence_sentence: str | None = None
     target: str | None = None
     predicate: str | None = None
+    origin: str | None = None
     subject_match: str | None = None
     subject_score: float | None = None
+    relation_score: float | None = None
+    evidence_score: float | None = None
     topic_relevance_score: float | None = None
     relevance_score: float | None = None
     novelty_score: float | None = None
@@ -92,7 +103,13 @@ class SocraticCandidateTrace:
 
 
 @dataclass(frozen=True)
-class FollowUpOpportunity:
+class KnowledgeOpportunity:
+    """An answerable semantic fact discovered from corpus evidence.
+
+    Question rendering is intentionally downstream of this structure: discovery
+    never starts from a question template or a benchmark entity.
+    """
+
     subject: str
     relation: str
     question_type: str
@@ -107,6 +124,28 @@ class FollowUpOpportunity:
     provenance: str
     target: str | None = None
     predicate: str | None = None
+    object_text: str | None = None
+    relation_score: float | None = None
+    evidence_score: float | None = None
+    topic_score: float | None = None
+    origin: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.object_text is None:
+            object.__setattr__(self, "object_text", self.target)
+        if self.relation_score is None:
+            object.__setattr__(self, "relation_score", self.evidence_strength)
+        if self.evidence_score is None:
+            object.__setattr__(self, "evidence_score", self.evidence_strength)
+        if self.topic_score is None:
+            object.__setattr__(self, "topic_score", self.topic_relevance_score)
+        if self.origin is None:
+            object.__setattr__(self, "origin", f"{self.provenance}:{self.generated_by}")
+
+
+# Compatibility name for callers written against V1.1. Runtime instances are
+# KnowledgeOpportunity objects; no production behavior is keyed by this alias.
+FollowUpOpportunity = KnowledgeOpportunity
 
 
 Probe = Callable[[str, int], Sequence[Mapping[str, Any]]]
@@ -128,7 +167,17 @@ def load_socratic_config(path: str | Path | None = None) -> SocraticConfig:
         allow_bm25_probe=bool(payload.get("allow_bm25_probe", True)),
         probe_top_k=int(payload.get("probe_top_k", 5)),
         max_bm25_probes=int(payload.get("max_bm25_probes", 3)),
-        max_context_passages=int(payload.get("max_context_passages", 12)),
+        max_passages_for_followup_discovery=int(
+            payload.get(
+                "max_passages_for_followup_discovery",
+                payload.get("max_context_passages", 12),
+            )
+        ),
+        min_subject_score=float(payload.get("min_subject_score", 0.70)),
+        min_relation_score=float(payload.get("min_relation_score", 0.70)),
+        min_evidence_score=float(payload.get("min_evidence_score", 0.62)),
+        min_novelty_score=float(payload.get("min_novelty_score", 0.07)),
+        min_ranking_score=float(payload.get("min_ranking_score", 0.50)),
         duplicate_similarity_threshold=float(payload.get("duplicate_similarity_threshold", 0.72)),
         one_hop_only=bool(payload.get("one_hop_only", True)),
         prefer_relation_diversity=bool(payload.get("prefer_relation_diversity", True)),
@@ -145,9 +194,18 @@ def load_socratic_config(path: str | Path | None = None) -> SocraticConfig:
         raise ValueError("socratic.max_internal_candidates must be within 1..50")
     if not 0 <= config.max_bm25_probes <= config.max_internal_candidates:
         raise ValueError("socratic.max_bm25_probes must be within 0..max_internal_candidates")
-    if config.max_context_passages < 1:
-        raise ValueError("socratic.max_context_passages must be positive")
-    for name in ("min_answerability_score", "min_topic_relevance", "duplicate_similarity_threshold"):
+    if config.max_passages_for_followup_discovery < 1:
+        raise ValueError("socratic.max_passages_for_followup_discovery must be positive")
+    for name in (
+        "min_answerability_score",
+        "min_topic_relevance",
+        "min_subject_score",
+        "min_relation_score",
+        "min_evidence_score",
+        "min_novelty_score",
+        "min_ranking_score",
+        "duplicate_similarity_threshold",
+    ):
         if not 0.0 <= float(getattr(config, name)) <= 1.0:
             raise ValueError(f"socratic.{name} must be within 0..1")
     weight_total = (
@@ -384,6 +442,14 @@ def _restore_subject_surface(subject: str, passages: Iterable[Any]) -> str:
     return subject
 
 
+def _subject_from_passage_titles(passages: Iterable[Any]) -> str | None:
+    for passage in passages:
+        subject = _focus_subject(_passage_value(passage, "title", ""))
+        if subject:
+            return subject
+    return None
+
+
 def _has(text: str, pattern: str) -> bool:
     return re.search(pattern, text, flags=re.UNICODE) is not None
 
@@ -397,20 +463,19 @@ _OBJECT_LOCATION = r"\b(?:nam|toa lac|dat tai|thuoc)\b.{0,70}\b(?:tai|o|mien|tin
 _CONSEQUENCE = r"\b(?:dan den|gay ra|ket qua la|hau qua)\b"
 _CONTEXT = r"\b(?:trong boi canh|boi canh|trong thoi ky|trong giai doan)\b"
 _COMPARISON = r"\b(?:khac voi|khac biet|so voi|tuong dong)\b"
-_TEMPORAL_ACTION = (
-    r"\b(?:duoc thanh lap|thanh lap|duoc xay dung|xay dung|bat dau|ket thuc|"
-    r"bi bai bo|bai bo|tro thanh|ra mat|phat hien|duoc cong bo|ky ket)\b"
-)
 _HEIGHT_ATTRIBUTE = r"\b(?:co do cao|do cao(?: la)?|cao(?: la)?)\b.{0,28}\b\d+(?:[,.]\d+)?\s*(?:m|met|km)\b"
-_SPATIAL_PROCESS = (
-    r"\b(?:sinh ra|moc ra|phat trien|xuat hien|phan bo|sinh song|"
-    r"duoc trong|duoc tim thay)\b.{0,70}\b(?:tai|o)\b"
+_NUMERIC_ATTRIBUTE = (
+    r"\b(?:co|dat|cao|dai|rong|sau|chiem|gom)\b.{0,45}"
+    r"\b\d+(?:[,.]\d+)?\s*(?:%|phan tram|m|met|km|kg|tan|nguoi|con|ngay|thang|lan)\b"
 )
 _LOW_INFORMATION_DETAIL = (
     r"\b(?:duoc nhac den|duoc de cap|de cap den)\b|"
     r"\bnoi ve\b.{0,45}\b(?:tai lieu|van ban|doan van|cau hoi)\b"
 )
-_COREFERENCE_MARKER = r"\b(?:ong|ba|nguoi nay|nhan vat nay|vi nay)\b"
+_COREFERENCE_MARKER = (
+    r"\b(?:ong|ba|ho|no|nguoi nay|nhan vat nay|vi nay|nuoc nay|to chuc nay|"
+    r"su kien nay|dia diem nay|khu vuc nay|doi tuong nay|cong trinh nay)\b"
+)
 
 
 FOLLOWUP_RELATIONS: dict[str, dict[str, Any]] = {
@@ -453,7 +518,7 @@ QUESTION_TEMPLATES: dict[str, str] = {
     "CONTEXT": "{subject} diễn ra trong bối cảnh nào?",
     "COMPARISON": "Tài liệu nêu điểm khác biệt nào liên quan đến {subject}?",
     "IDENTITY": "{subject} là gì?",
-    "EVIDENCE_DETAIL": "Ngoài nội dung vừa trả lời, tài liệu còn cho biết điều gì về {subject}?",
+    "EVIDENCE_DETAIL": "Tài liệu mô tả {subject} như thế nào?",
 }
 
 
@@ -596,8 +661,32 @@ def _subject_precedes_pattern(
 
 
 def _usable_clause_target(subject: str, clause: str | None) -> str | None:
-    if not clause or _subject_coverage(subject, clause) < 0.75:
+    if not clause:
         return None
+    if _subject_coverage(subject, clause) < 0.75:
+        folded_words = _fold(clause).split()
+        original_words = clause.split()
+        marker = re.search(_COREFERENCE_MARKER, _fold(clause))
+        if not marker:
+            return None
+        marker_words = marker.group(0).split()
+        marker_index = next(
+            (
+                index
+                for index in range(0, len(folded_words) - len(marker_words) + 1)
+                if folded_words[index : index + len(marker_words)] == marker_words
+            ),
+            -1,
+        )
+        if marker_index < 0 or marker_index > 2:
+            return None
+        clause = " ".join(
+            [
+                *original_words[:marker_index],
+                subject,
+                *original_words[marker_index + len(marker_words) :],
+            ]
+        )
     cleaned = clause.strip(" \t\r\n,;:-\"")
     if not cleaned or len(cleaned) > 130 or cleaned.count(",") > 2:
         return None
@@ -634,22 +723,14 @@ def _role_is_bound_to_subject(
     folded_sentence: str,
     subject_match: str,
 ) -> bool:
-    # Avoid accent-fold collisions such as "nhà thơ"/"nhà thờ" and "tướng"/"tượng".
-    role_noun = r"(?:co van|lanh dao|giao su|nha van|nha viet kich|thu tuong|tong thong|chu tich|bo truong|dai tuong)"
-    predicate = r"(?:voi tu cach|giu chuc|dam nhiem|duoc bau|duoc bo nhiem|tro thanh|la)"
+    # Bind to generic appointment/office grammar instead of known role nouns.
+    predicate = r"(?:voi tu cach|giu chuc|dam nhiem|duoc bau|duoc bo nhiem|tro thanh)"
     folded_subject = re.escape(_fold(subject))
     if subject_match == "COREFERENCE_SUBJECT":
-        return bool(re.search(rf"\b(?:ong|ba|nguoi nay|nhan vat nay|vi nay)\b.{{0,65}}(?:{predicate}.{{0,30}})?{role_noun}\b", folded_sentence))
+        return bool(re.search(rf"{_COREFERENCE_MARKER}.{{0,65}}\b{predicate}\b\s+\w", folded_sentence))
     if subject_match != "DIRECT_SUBJECT":
         return False
-    return bool(
-        re.search(
-            rf"{folded_subject}.{{0,95}}{predicate}\s+(?:(?:mot|cac|nhung|nguoi)\s+)?{role_noun}\b",
-            folded_sentence,
-        )
-        or re.search(rf"\b{role_noun}\b.{{0,20}}{folded_subject}", folded_sentence)
-        or re.search(rf"{folded_subject}.{{0,45}}\b(?:giu chuc|dam nhiem|duoc bau|duoc bo nhiem)\b", folded_sentence)
-    )
+    return bool(re.search(rf"{folded_subject}.{{0,65}}\b{predicate}\b\s+\w", folded_sentence))
 
 
 def _activity_is_bound_to_subject(
@@ -708,20 +789,92 @@ def _upper_first(text: str) -> str:
     return text[:1].upper() + text[1:] if text else text
 
 
-def _spatial_process_predicate(folded_sentence: str) -> str:
-    for folded_predicate, display_predicate in (
-        ("duoc tim thay", "được tìm thấy"),
-        ("duoc trong", "được trồng"),
-        ("sinh ra", "sinh ra"),
-        ("moc ra", "mọc ra"),
-        ("phat trien", "phát triển"),
-        ("xuat hien", "xuất hiện"),
-        ("phan bo", "phân bố"),
-        ("sinh song", "sinh sống"),
+def _clause_after_subject(
+    subject: str,
+    sentence: str,
+    subject_match: str,
+) -> str | None:
+    """Return the surface clause after a direct subject or local coreference."""
+
+    original_words = sentence.split()
+    folded_words = _fold(sentence).split()
+    if subject_match == "DIRECT_SUBJECT":
+        subject_words = _fold(subject).split()
+        for index in range(0, len(folded_words) - len(subject_words) + 1):
+            if folded_words[index : index + len(subject_words)] == subject_words:
+                return " ".join(original_words[index + len(subject_words) :]).strip(" ,;:-")
+        return None
+    if subject_match == "COREFERENCE_SUBJECT":
+        marker = re.search(_COREFERENCE_MARKER, _fold(sentence))
+        if marker:
+            marker_words = marker.group(0).split()
+            for index in range(0, len(folded_words) - len(marker_words) + 1):
+                if folded_words[index : index + len(marker_words)] == marker_words:
+                    return " ".join(original_words[index + len(marker_words) :]).strip(" ,;:-")
+    return None
+
+
+def _location_predicate(
+    subject: str,
+    sentence: str,
+    subject_match: str,
+) -> str | None:
+    """Extract an unseen predicate from the structure `subject … tại/ở …`."""
+
+    clause = _clause_after_subject(subject, sentence, subject_match)
+    if not clause:
+        return None
+    location = re.search(r"\b(?:tại|ở)\b", clause.casefold(), flags=re.UNICODE)
+    if not location:
+        return None
+    predicate = clause[: location.start()].strip(" ,;:-")
+    if "," in predicate:
+        predicate = predicate.rsplit(",", 1)[-1].strip()
+    # A subject may occur first inside an example name and then again as the
+    # grammatical subject (for example: "ở hoa vi ô let, hoa mọc ra ở ...").
+    # Keep the extracted predicate from echoing that second subject into the
+    # rendered question ("Hoa hoa mọc ra ở đâu?").
+    predicate_words = predicate.split()
+    folded_predicate_words = _fold(predicate).split()
+    folded_subject_words = _fold(subject).split()
+    if (
+        folded_subject_words
+        and folded_predicate_words[: len(folded_subject_words)] == folded_subject_words
     ):
-        if re.search(rf"\b{folded_predicate}\b", folded_sentence):
-            return display_predicate
-    return "xuất hiện"
+        predicate = " ".join(predicate_words[len(folded_subject_words) :]).strip()
+    predicate = re.sub(
+        r"^(?:(?:đã|đang|sẽ|từng|thường|thỉnh thoảng)\s+|có thể\s+)+",
+        "",
+        predicate,
+        flags=re.I,
+    ).strip()
+    if not 1 <= len(predicate.split()) <= 7:
+        return None
+    if _has(_fold(predicate), r"\b(?:la|co|gom|bao gom|nam|toa lac|dat tai|thuoc)\b$"):
+        return None
+    return predicate
+
+
+def _numeric_attribute_target(
+    subject: str,
+    sentence: str,
+    subject_match: str,
+) -> str | None:
+    clause = _clause_after_subject(subject, sentence, subject_match)
+    if not clause or not _has(_fold(clause), _NUMERIC_ATTRIBUTE):
+        return None
+    match = re.search(
+        r"\b(?:có|đạt|cao|dài|rộng|sâu|chiếm|gồm)\b\s*"
+        r"(?P<label>[^\d,.;!?]{0,45}?)\s*(?:là\s+)?"
+        r"\d+(?:[,.]\d+)?\s*(?:%|phần trăm|m|mét|km|kg|tấn|người|con|ngày|tháng|lần)\b",
+        clause,
+        flags=re.I | re.UNICODE,
+    )
+    if not match:
+        return None
+    label = re.sub(r"\b(?:trung bình|khoảng|xấp xỉ)\b", "", match.group("label"), flags=re.I)
+    label = re.sub(r"\s+", " ", label).strip(" ,;:-")
+    return label if 1 <= len(label.split()) <= 6 else "giá trị định lượng"
 
 
 def _question_semantics_for_subject(subject: str) -> QuestionSemantics:
@@ -866,9 +1019,79 @@ def _evidence_detail_opportunity(
     )
 
 
+def _grounded_review_opportunity(
+    subject: str,
+    passages: Sequence[Any],
+    selected_id: str | None,
+    answer: str,
+) -> KnowledgeOpportunity | None:
+    """Guarantee a safe review direction when no novel typed fact survives.
+
+    This is not presented as a new fact. It asks the learner to inspect a real
+    evidence sentence from a real passage about the current document subject.
+    """
+
+    ranked: list[tuple[float, KnowledgeOpportunity]] = []
+    for passage_index, passage in enumerate(passages):
+        passage_id = str(_passage_value(passage, "passage_id", ""))
+        text = str(_passage_value(passage, "text", "")).strip()
+        title = str(_passage_value(passage, "title", "")).strip()
+        if not passage_id or not text:
+            continue
+        relevance = _passage_relevance(passage, passage_index, selected_id)
+        provenance = "selected" if passage_id == selected_id else "retrieved"
+        for sentence in split_sentences(text):
+            subject_match, subject_score, subject_reason = _subject_match_level(
+                subject,
+                sentence,
+                text,
+                title,
+            )
+            if subject_match == "NO_SUBJECT_MATCH":
+                if _subject_coverage(subject, title) < 0.75:
+                    continue
+                subject_match = "TITLE_TOPIC_SUBJECT"
+                subject_score = 0.72
+                subject_reason = "PASSAGE_TITLE_TOPIC"
+            topic_score = _topic_relevance_score(
+                subject_score=subject_score,
+                passage_relevance=relevance,
+                provenance=provenance,
+                subject=subject,
+                sentence=sentence,
+                answer=answer,
+            )
+            opportunity = KnowledgeOpportunity(
+                subject=subject,
+                relation="EVIDENCE_DETAIL",
+                question_type="GENERAL",
+                source_passage_id=passage_id,
+                evidence_sentence=sentence,
+                generated_by=f"grounded_evidence_review:{subject_reason}",
+                evidence_strength=0.74,
+                relevance_score=relevance,
+                topic_relevance_score=topic_score,
+                subject_match=subject_match,
+                subject_score=subject_score,
+                provenance=provenance,
+                predicate="bằng chứng",
+            )
+            rank = (
+                (0.10 if provenance == "selected" else 0.0)
+                + 0.45 * subject_score
+                + 0.25 * topic_score
+                + 0.20 * relevance
+            )
+            ranked.append((rank, opportunity))
+    return max(ranked, key=lambda item: item[0])[1] if ranked else None
+
+
 def _temporal_target(subject: str, sentence: str, folded_sentence: str) -> str:
     target = _clause_before(sentence, folded_sentence, _DATE)
-    if target and _subject_coverage(subject, target) >= 0.75:
+    if target and (
+        _subject_coverage(subject, target) >= 0.75
+        or _has(_fold(target), _COREFERENCE_MARKER)
+    ):
         target = re.sub(r"\s+(?:vào|từ|đến)\s*$", "", target, flags=re.I).strip(" ,;:-")
         if 3 <= len(target) <= 145:
             return target
@@ -989,19 +1212,24 @@ def _discover_sentence_opportunities(
         subject, folded, _EVENT, subject_match, distance=60
     )
     subject_event = _subject_is_event(subject) and event_is_bound
-    temporal_action = _subject_precedes_pattern(
-        subject, folded, _TEMPORAL_ACTION, subject_match, distance=65
+    temporal_target = _usable_clause_target(
+        subject,
+        _temporal_target(subject, sentence, folded),
+    )
+    generic_temporal_fact = bool(
+        temporal_target
+        and normalize_question(temporal_target) != normalize_question(subject)
     )
     if (
         subject_is_grounded
         and has_date
         and _has_explicit_temporal_value(sentence)
-        and not has_birth
-        and not has_death
-        and (subject_event or temporal_action)
+        and not (has_birth and person_event_compatible)
+        and not (has_death and person_event_compatible)
+        and not biography_dates
+        and (subject_event or generic_temporal_fact)
     ):
-        target = subject if subject_event else _temporal_target(subject, sentence, folded)
-        target = _usable_clause_target(subject, target)
+        target = subject if subject_event else temporal_target
         if target and (subject_event or normalize_question(target) != normalize_question(subject)):
             add("EVENT_TIME", 0.87, "evidenced_event_time", target=target, predicate="thời gian")
     if subject_is_grounded and subject_event and _has_location_marker(sentence):
@@ -1015,18 +1243,20 @@ def _discover_sentence_opportunities(
     ):
         add("OBJECT_LOCATION", 0.86, "evidenced_object_location", predicate="nằm")
 
+    location_predicate = _location_predicate(subject, sentence, subject_match)
     if (
         subject_is_grounded
-        and _has(folded, _SPATIAL_PROCESS)
-        and _relation_is_bound_to_subject(
-            subject, folded, _SPATIAL_PROCESS, subject_match, distance=55
-        )
+        and location_predicate
+        and not (has_birth and person_event_compatible)
+        and not (has_death and person_event_compatible)
+        and not subject_event
+        and not _has_object_location_marker(sentence)
     ):
         add(
             "PROCESS_LOCATION",
             0.86,
-            "evidenced_spatial_process",
-            predicate=_spatial_process_predicate(folded),
+            "structural_process_location",
+            predicate=location_predicate,
         )
 
     if subject_is_grounded and _has_cause_marker(sentence):
@@ -1086,6 +1316,16 @@ def _discover_sentence_opportunities(
     ):
         add("ATTRIBUTE", 0.90, "evidenced_height", target="độ cao", predicate="độ cao")
 
+    numeric_attribute = _numeric_attribute_target(subject, sentence, subject_match)
+    if subject_is_grounded and numeric_attribute and not _has(folded, _HEIGHT_ATTRIBUTE):
+        add(
+            "ATTRIBUTE",
+            0.82,
+            "structural_numeric_attribute",
+            target=numeric_attribute,
+            predicate=numeric_attribute,
+        )
+
     if (
         subject_is_grounded
         and _has(folded, _COMPARISON)
@@ -1135,15 +1375,19 @@ def discover_followup_opportunities(
 ) -> list[FollowUpOpportunity]:
     active_config = config or SOCRATIC_CONFIG
     semantic_subject = _focus_subject(_semantic_value(semantics, "subject"))
-    subject = semantic_subject or _infer_subject(question)
-    if not subject:
-        return []
     passages = _collect_context_passages(
         selected_passage,
         retrieved_passages,
-        active_config.max_context_passages,
+        active_config.max_passages_for_followup_discovery,
     )
     if not passages:
+        return []
+    subject = (
+        semantic_subject
+        or _infer_subject(question)
+        or _subject_from_passage_titles(passages)
+    )
+    if not subject:
         return []
     if semantic_subject is None or semantic_subject == semantic_subject.casefold():
         subject = _restore_subject_surface(subject, passages)
@@ -1240,6 +1484,13 @@ def _opportunity_question(opportunity: FollowUpOpportunity) -> str | None:
     if relation == "PROCESS_LOCATION":
         predicate = (opportunity.predicate or "xuất hiện").strip()
         return f"{_upper_first(subject)} {predicate} ở đâu?"
+    if relation == "ATTRIBUTE":
+        attribute = (opportunity.target or opportunity.predicate or "giá trị định lượng").strip()
+        if normalize_question(attribute) == normalize_question("độ cao"):
+            return f"{subject} có độ cao bao nhiêu?"
+        if normalize_question(attribute) == normalize_question("giá trị định lượng"):
+            return f"Tài liệu nêu số liệu nào về {subject}?"
+        return f"{subject} có {attribute} bao nhiêu?"
     if relation == "EVENT_TIME" and normalize_question(target) == normalize_question(subject):
         return f"{subject} diễn ra vào thời gian nào?"
     if relation == "CAUSE":
@@ -1321,6 +1572,8 @@ def _empty_generation_debug(status: str) -> dict[str, Any]:
         "status": status,
         "candidate_generation": {
             "generated": 0,
+            "after_relation_evidence": 0,
+            "after_evidence_gate": 0,
             "after_same_relation": 0,
             "after_visited_relation": 0,
             "after_duplicate": 0,
@@ -1329,6 +1582,7 @@ def _empty_generation_debug(status: str) -> dict[str, Any]:
             "after_grounding": 0,
             "after_bm25_probe": 0,
             "after_qa_validation": 0,
+            "after_novelty": 0,
             "after_ranking": 0,
             "final": 0,
         },
@@ -1360,27 +1614,36 @@ def _generate_followups_internal(
 
     generation_started = time.perf_counter()
     active_config = config or SOCRATIC_CONFIG
-    if not active_config.enabled or not str(question or "").strip() or not str(answer or "").strip():
+    if not active_config.enabled or not str(question or "").strip():
         return [], _empty_generation_debug("INPUT_NOT_ELIGIBLE")
     requested_limit = min(active_config.max_followups, max(0, int(limit or 0)))
     if requested_limit == 0:
         return [], _empty_generation_debug("LIMIT_ZERO")
 
-    semantic_subject = _focus_subject(_semantic_value(semantics, "subject"))
-    subject = semantic_subject or _infer_subject(question)
-    if subject is None:
-        return [], _empty_generation_debug("NO_SUBJECT")
-
     retrieved_list = list(retrieved_passages)
     passages = _collect_context_passages(
         selected_passage,
         retrieved_list,
-        active_config.max_context_passages,
+        active_config.max_passages_for_followup_discovery,
     )
     if not passages:
-        debug = _empty_generation_debug("NO_SEMANTIC_OPPORTUNITY")
-        debug.update({"subject": subject, "current_relation": "GENERAL"})
+        debug = _empty_generation_debug("NO_OTHER_KNOWLEDGE_IN_CONTEXT")
+        debug.update(
+            {
+                "subject": _focus_subject(_semantic_value(semantics, "subject"))
+                or _infer_subject(question),
+                "current_relation": "GENERAL",
+            }
+        )
         return [], debug
+    semantic_subject = _focus_subject(_semantic_value(semantics, "subject"))
+    subject = (
+        semantic_subject
+        or _infer_subject(question)
+        or _subject_from_passage_titles(passages)
+    )
+    if subject is None:
+        return [], _empty_generation_debug("NO_SUBJECT")
     if semantic_subject is None or semantic_subject == semantic_subject.casefold():
         subject = _restore_subject_surface(subject, passages)
 
@@ -1437,8 +1700,11 @@ def _generate_followups_internal(
                 evidence_sentence=opportunity.evidence_sentence,
                 target=opportunity.target,
                 predicate=opportunity.predicate,
+                origin=opportunity.origin,
                 subject_match=opportunity.subject_match,
                 subject_score=round(opportunity.subject_score, 6),
+                relation_score=round(float(opportunity.relation_score or 0.0), 6),
+                evidence_score=round(float(opportunity.evidence_score or 0.0), 6),
                 topic_relevance_score=round(opportunity.topic_relevance_score, 6),
                 relevance_score=round(opportunity.relevance_score, 6),
             ),
@@ -1457,14 +1723,26 @@ def _generate_followups_internal(
             evidence_sentence=opportunity.evidence_sentence,
             target=opportunity.target,
             predicate=opportunity.predicate,
+            origin=opportunity.origin,
             subject_match=opportunity.subject_match,
             subject_score=round(opportunity.subject_score, 6),
+            relation_score=round(float(opportunity.relation_score or 0.0), 6),
+            evidence_score=round(float(opportunity.evidence_score or 0.0), 6),
             topic_relevance_score=round(opportunity.topic_relevance_score, 6),
             relevance_score=round(opportunity.relevance_score, 6),
         )
         if not question_text:
             reject(trace, "RELATION_EVIDENCE_NOT_FOUND")
             continue
+
+        if float(opportunity.relation_score or 0.0) < active_config.min_relation_score:
+            reject(trace, "RELATION_EVIDENCE_WEAK")
+            continue
+        counts["after_relation_evidence"] += 1
+        if float(opportunity.evidence_score or 0.0) < active_config.min_evidence_score:
+            reject(trace, "NO_EVIDENCE")
+            continue
+        counts["after_evidence_gate"] += 1
 
         canonical = _canonical_relation(opportunity.relation)
         same_relation = canonical == current_relation
@@ -1515,7 +1793,10 @@ def _generate_followups_internal(
             continue
         counts["after_duplicate"] += 1
 
-        if opportunity.subject_match == "NO_SUBJECT_MATCH":
+        if (
+            opportunity.subject_match == "NO_SUBJECT_MATCH"
+            or opportunity.subject_score < active_config.min_subject_score
+        ):
             reject(trace, "SUBJECT_RELEVANCE_LOW")
             continue
         counts["after_subject_gate"] += 1
@@ -1603,11 +1884,18 @@ def _generate_followups_internal(
         counts["after_qa_validation"] += 1
 
         novelty = min(1.0, max(0.0, 1.0 - maximum_similarity))
+        if novelty < active_config.min_novelty_score:
+            reject(trace, "NOVELTY_LOW")
+            continue
+        counts["after_novelty"] += 1
         base_ranking = (
             active_config.answerability_weight * answerability
             + active_config.relevance_weight * accepted_opportunity.relevance_score
             + active_config.novelty_weight * novelty
         )
+        if base_ranking < active_config.min_ranking_score:
+            reject(trace, "LOW_RANKING_SCORE")
+            continue
         candidate = FollowUpCandidate(
             question=question_text,
             subject=accepted_opportunity.subject,
@@ -1618,8 +1906,11 @@ def _generate_followups_internal(
             novelty_score=round(novelty, 6),
             relevance_score=round(accepted_opportunity.relevance_score, 6),
             ranking_score=round(base_ranking, 6),
+            evidence_sentence=accepted_opportunity.evidence_sentence,
+            relation_evidence=True,
             qa_verified=bool(answerability_validator is not None),
             verification_method=verification_method,
+            origin=accepted_opportunity.origin,
         )
         trace.answerability_score = candidate.answerability_score
         trace.novelty_score = candidate.novelty_score
@@ -1670,10 +1961,129 @@ def _generate_followups_internal(
     candidates = [candidate for candidate, _trace, _opportunity in selected_pairs]
     counts["final"] = len(candidates)
 
-    if not opportunities:
-        status = "NO_SEMANTIC_OPPORTUNITY"
+    used_review_fallback = False
+    if not candidates:
+        review = _grounded_review_opportunity(
+            subject,
+            passages,
+            str(_passage_value(selected_passage, "passage_id", "")) or None,
+            str(answer or ""),
+        )
+        # Retrieval can legitimately miss the question subject. In that case,
+        # keep the always-on tutoring contract without pretending the passage
+        # supports that subject: pivot the review prompt to the real document
+        # title and retain the exact evidence sentence/source.
+        if review is None:
+            passage_subject = _subject_from_passage_titles(passages)
+            if passage_subject:
+                review = _grounded_review_opportunity(
+                    passage_subject,
+                    passages,
+                    str(_passage_value(selected_passage, "passage_id", "")) or None,
+                    str(answer or ""),
+                )
+        if review is not None:
+            review_subject = review.subject
+            review_question = _opportunity_question(review) or f"Tài liệu mô tả {review_subject} như thế nào?"
+            if question_similarity(review_question, question) >= 0.93:
+                review_question = f"Bằng chứng nào trong tài liệu nói về {review_subject}?"
+            qa_verified = False
+            verification_method = "grounded_evidence_review"
+            verification_rejection_reason: str | None = None
+            if answerability_validator is not None:
+                try:
+                    verification = answerability_validator(
+                        review_question,
+                        review.source_passage_id,
+                    )
+                    verified_source = str(verification.get("source_passage_id") or "")
+                    qa_verified = bool(
+                        (verification.get("verified") or verification.get("has_answer"))
+                        and verified_source == review.source_passage_id
+                    )
+                    verification_method = (
+                        str(verification.get("method") or "")
+                        or verification_method
+                    )
+                    verification_rejection_reason = (
+                        str(verification.get("rejection_reason") or "") or None
+                    )
+                except Exception as error:
+                    verification_rejection_reason = f"VALIDATOR_ERROR:{type(error).__name__}"
+            novelty = min(1.0, max(0.0, 1.0 - question_similarity(review_question, question)))
+            answerability = min(
+                1.0,
+                0.58 * review.evidence_strength
+                + 0.22 * review.subject_score
+                + 0.14 * review.topic_relevance_score,
+            )
+            ranking = (
+                active_config.answerability_weight * answerability
+                + active_config.relevance_weight * review.relevance_score
+                + active_config.novelty_weight * novelty
+            )
+            fallback_candidate = FollowUpCandidate(
+                question=review_question,
+                subject=review.subject,
+                relation=review.relation,
+                question_type=review.question_type,
+                source_passage_id=review.source_passage_id,
+                answerability_score=round(answerability, 6),
+                novelty_score=round(novelty, 6),
+                relevance_score=round(review.relevance_score, 6),
+                ranking_score=round(ranking, 6),
+                evidence_sentence=review.evidence_sentence,
+                relation_evidence=True,
+                qa_verified=qa_verified,
+                verification_method=verification_method,
+                origin=review.origin,
+            )
+            fallback_trace = SocraticCandidateTrace(
+                question=review_question,
+                relation=review.relation,
+                subject=review.subject,
+                source_passage_id=review.source_passage_id,
+                generated_by=review.generated_by,
+                evidence_sentence=review.evidence_sentence,
+                predicate=review.predicate,
+                origin=review.origin,
+                subject_match=review.subject_match,
+                subject_score=round(review.subject_score, 6),
+                relation_score=round(float(review.relation_score or 0.0), 6),
+                evidence_score=round(float(review.evidence_score or 0.0), 6),
+                topic_relevance_score=round(review.topic_relevance_score, 6),
+                relevance_score=round(review.relevance_score, 6),
+                novelty_score=fallback_candidate.novelty_score,
+                answerability_score=fallback_candidate.answerability_score,
+                ranking_score=fallback_candidate.ranking_score,
+                tier="GROUNDED_REVIEW_FALLBACK",
+                qa_verified=qa_verified,
+                verification_method=verification_method,
+                verification_rejection_reason=verification_rejection_reason,
+                why_accepted=(
+                    "No novel typed fact survived; offered a source-bound evidence review "
+                    f"from {review.source_passage_id}"
+                ),
+                accepted=True,
+            )
+            candidates = [fallback_candidate]
+            traces.append(fallback_trace)
+            counts["final"] = 1
+            used_review_fallback = True
+
+    if used_review_fallback:
+        status = "EVIDENCE_REVIEW_FALLBACK"
+    elif not opportunities:
+        status = "NO_OTHER_KNOWLEDGE_IN_CONTEXT"
+    elif not candidates and all(
+        _canonical_relation(opportunity.relation) == current_relation
+        for opportunity in opportunities
+    ):
+        status = "ONLY_CURRENT_RELATION_AVAILABLE"
+    elif not candidates and rejection_distribution.get("RELATION_EVIDENCE_NOT_FOUND"):
+        status = "OPPORTUNITIES_FOUND_BUT_GENERATOR_FAILED"
     elif not candidates:
-        status = "OPPORTUNITIES_FOUND_BUT_ALL_REJECTED"
+        status = "CANDIDATES_FOUND_BUT_GATES_TOO_STRICT"
     else:
         status = "FOLLOWUPS_GENERATED"
     relation_counts: dict[str, int] = {}
@@ -1687,6 +2097,18 @@ def _generate_followups_internal(
         "current_target": current_target,
         "current_predicate": current_predicate,
         "passages_scanned": len(passages),
+        "passages_inspected": [
+            {
+                "passage_id": str(_passage_value(passage, "passage_id", "")),
+                "provenance": (
+                    "selected"
+                    if str(_passage_value(passage, "passage_id", ""))
+                    == str(_passage_value(selected_passage, "passage_id", ""))
+                    else "retrieved"
+                ),
+            }
+            for passage in passages
+        ],
         "semantic_opportunities": {
             "detected": len(opportunities),
             "processed": len(processable),
@@ -1694,6 +2116,7 @@ def _generate_followups_internal(
             "by_relation": relation_counts,
         },
         "candidate_generation": counts,
+        "final_accepted": len(candidates),
         "rejection_distribution": rejection_distribution,
         "latency": {
             "tier_1_ms": round(max(0.0, elapsed_ms - probe_latency_ms), 3),
@@ -1820,6 +2243,7 @@ __all__ = [
     "SocraticCandidateTrace",
     "SOCRATIC_CONFIG",
     "SocraticConfig",
+    "KnowledgeOpportunity",
     "FollowUpOpportunity",
     "FOLLOWUP_RELATIONS",
     "QUESTION_TEMPLATES",

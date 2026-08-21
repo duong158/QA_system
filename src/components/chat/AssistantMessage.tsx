@@ -3,13 +3,14 @@ import { Bot, Check, ChevronDown, Clipboard, Database, SlidersHorizontal, Volume
 import { AnswerFeedback } from '@/components/feedback/AnswerFeedback';
 import { FollowUpInsights } from '@/components/socratic/FollowUpInsights';
 import type { SocraticLoadState } from '@/hooks/useSocraticFollowups';
-import type { FollowUpCandidate, PassageResult, QaResponse } from '@/types/qa';
+import type { FollowUpCandidate, PassageResult, QaResponse, SocraticDebugInfo } from '@/types/qa';
 
 interface AssistantMessageProps {
   response: QaResponse;
   followUps?: FollowUpCandidate[];
   followUpsState?: SocraticLoadState;
   followUpsLatencyMs?: number | null;
+  followUpsDebug?: SocraticDebugInfo | null;
   onFollowUpSelect?: (followUp: FollowUpCandidate) => void;
   onFollowUpSpeak?: (followUp: FollowUpCandidate) => void;
   onSpeakAnswer: (text: string) => void;
@@ -88,6 +89,7 @@ export function AssistantMessage({
   followUps = [],
   followUpsState = 'idle',
   followUpsLatencyMs,
+  followUpsDebug,
   onFollowUpSelect,
   onFollowUpSpeak,
   onSpeakAnswer,
@@ -136,6 +138,7 @@ export function AssistantMessage({
               onSelect={onFollowUpSelect}
               onSpeak={onFollowUpSpeak}
               showDebug={showDebug}
+              debug={followUpsDebug}
             />
           </div>
         ) : null}

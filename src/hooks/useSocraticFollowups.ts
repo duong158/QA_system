@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fetchSocraticFollowups } from '@/services/qaService';
-import type { FollowUpCandidate, QaResponse } from '@/types/qa';
+import type { FollowUpCandidate, QaResponse, SocraticDebugInfo } from '@/types/qa';
 
 export type SocraticLoadState = 'idle' | 'loading' | 'ready' | 'error';
 
@@ -29,6 +29,7 @@ export function useSocraticFollowups(response: QaResponse | null) {
   const [followUps, setFollowUps] = useState<FollowUpCandidate[]>([]);
   const [loadState, setLoadState] = useState<SocraticLoadState>('idle');
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
+  const [debug, setDebug] = useState<SocraticDebugInfo | null>(null);
   const sessionRef = useRef<SocraticSession>({
     subjectKey: '',
     visitedRelations: new Set(),
@@ -38,11 +39,14 @@ export function useSocraticFollowups(response: QaResponse | null) {
 
   useEffect(() => {
     const controller = new AbortController();
-    const hasAnswer = response?.has_answer ?? Boolean(response?.answer);
-    if (!response || !hasAnswer || !response.answer) {
+    const hasContext = Boolean(
+      response?.selected_passage_id || response?.passages?.some((passage) => passage.passage_id),
+    );
+    if (!response || !hasContext) {
       setFollowUps([]);
       setLoadState('idle');
       setLatencyMs(null);
+      setDebug(null);
       return () => controller.abort();
     }
 
@@ -74,6 +78,7 @@ export function useSocraticFollowups(response: QaResponse | null) {
     setFollowUps([]);
     setLoadState('loading');
     setLatencyMs(null);
+    setDebug(null);
     void fetchSocraticFollowups(
       {
         question: response.question,
@@ -89,6 +94,7 @@ export function useSocraticFollowups(response: QaResponse | null) {
         visited_relations: Array.from(sessionRef.current.visitedRelations),
         asked_questions: Array.from(sessionRef.current.askedQuestions),
         limit: 3,
+        debug: import.meta.env.DEV,
       },
       controller.signal,
     )
@@ -98,6 +104,7 @@ export function useSocraticFollowups(response: QaResponse | null) {
         }
         setFollowUps(result.followups);
         setLatencyMs(result.processing_time_ms);
+        setDebug(result.debug ?? null);
         setLoadState('ready');
       })
       .catch((error: unknown) => {
@@ -108,6 +115,7 @@ export function useSocraticFollowups(response: QaResponse | null) {
         console.debug('Socratic follow-up generation unavailable', error);
         setFollowUps([]);
         setLatencyMs(null);
+        setDebug(null);
         setLoadState('error');
       });
 
@@ -134,12 +142,14 @@ export function useSocraticFollowups(response: QaResponse | null) {
     setFollowUps([]);
     setLoadState('idle');
     setLatencyMs(null);
+    setDebug(null);
   }, []);
 
   return {
     followUps,
     loadState,
     latencyMs,
+    debug,
     markSelected,
     resetSession,
   };
