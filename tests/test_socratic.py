@@ -61,7 +61,7 @@ class SocraticGeneratorTests(unittest.TestCase):
         birth_questions = [item for item in followups if item.relation == "BIRTH_TIME"]
         self.assertEqual(len(birth_questions), 1)
 
-    def test_ungrounded_candidate_is_rejected(self):
+    def test_grounded_unregistered_fact_uses_general_evidence_fallback(self):
         source = passage(
             "DOC_P0001",
             "Nguyễn Văn An yêu thích việc đọc sách và thường xuyên ghi chép.",
@@ -74,7 +74,8 @@ class SocraticGeneratorTests(unittest.TestCase):
             [],
             config=NO_PROBE_CONFIG,
         )
-        self.assertEqual(followups, [])
+        self.assertEqual([item.relation for item in followups], ["EVIDENCE_DETAIL"])
+        self.assertEqual(followups[0].source_passage_id, "DOC_P0001")
 
     def test_tier_one_candidate_does_not_depend_on_probe(self):
         source = passage("DOC_P0001", "Nguyễn Văn An sinh năm 1945.")
@@ -119,6 +120,95 @@ class SocraticGeneratorTests(unittest.TestCase):
             config=NO_PROBE_CONFIG,
         )
         self.assertEqual(followups, [])
+
+    def test_nominal_question_focus_is_reduced_to_the_real_entity(self):
+        source = passage(
+            "DOC_P0001",
+            "Chức năng của hoa là hỗ trợ sinh sản. Hoa có thể sinh ra ở đầu ngọn hoặc ở nách lá.",
+        )
+        followups = generate_followups(
+            "Chức năng của hoa là gì?",
+            "Hỗ trợ sinh sản.",
+            {"subject": "Chức năng của hoa", "relation": "DEFINITION"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        location = next(item for item in followups if item.relation == "PROCESS_LOCATION")
+        self.assertEqual(location.subject.casefold(), "hoa")
+        self.assertEqual(location.question, "Hoa sinh ra ở đâu?")
+
+    def test_spatial_process_rule_generalizes_across_domains(self):
+        cases = (
+            ("Cây lúa", "Cây lúa được trồng ở đồng bằng.", "Cây lúa được trồng ở đâu?"),
+            ("Loài chim này", "Loài chim này phân bố ở Đông Nam Á.", "Loài chim này phân bố ở đâu?"),
+            ("Khoáng vật X", "Khoáng vật X được tìm thấy ở vùng núi.", "Khoáng vật X được tìm thấy ở đâu?"),
+        )
+        for subject, evidence, expected_question in cases:
+            with self.subTest(subject=subject):
+                source = passage("DOC_P0001", evidence)
+                followups = generate_followups(
+                    f"{subject} là gì?",
+                    "Một đối tượng được mô tả trong tài liệu.",
+                    {"subject": subject, "relation": "IDENTITY"},
+                    source,
+                    [],
+                    config=NO_PROBE_CONFIG,
+                )
+                candidate = next(item for item in followups if item.relation == "PROCESS_LOCATION")
+                self.assertEqual(candidate.question, expected_question)
+
+    def test_one_token_subject_rejects_diacritic_collisions_and_topic_drift(self):
+        selected = passage(
+            "FLOWER_P0001",
+            "Chức năng của hoa là hỗ trợ sinh sản. Hoa sinh ra ở đầu ngọn.",
+        )
+        unrelated = [
+            passage("GENOME_P0001", "Dự án được toàn cầu hóa nhằm tích hợp kiến thức sinh học.", 1.0),
+            passage("WATER_P0001", "Hoa Kỳ tham gia thành lập một cơ quan quản lý nước.", 0.9),
+        ]
+        followups = generate_followups(
+            "Chức năng của hoa là gì?",
+            "Hỗ trợ sinh sản.",
+            {"subject": "Chức năng của hoa", "relation": "DEFINITION"},
+            selected,
+            unrelated,
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertEqual({item.relation for item in followups}, {"PROCESS_LOCATION"})
+        self.assertTrue(all(item.source_passage_id == "FLOWER_P0001" for item in followups))
+
+    def test_non_person_subject_does_not_generate_activity_or_role_prompt(self):
+        source = passage(
+            "DOC_P0001",
+            "Paris tham gia vào mạng lưới giao thông và giữ vai trò trung tâm của khu vực.",
+        )
+        followups = generate_followups(
+            "Paris nằm ở đâu?",
+            "Tại Pháp.",
+            {"subject": "Paris", "relation": "OBJECT_LOCATION"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertFalse({"EVENT", "ROLE"} & {item.relation for item in followups})
+
+    def test_additional_grounded_fact_prevents_empty_followups_for_unknown_relations(self):
+        source = passage(
+            "DOC_P0001",
+            "Năng lượng mặt trời có nguồn cung dồi dào. "
+            "Năng lượng mặt trời giúp giảm nhu cầu sử dụng nhiên liệu hóa thạch.",
+        )
+        followups = generate_followups(
+            "Đặc điểm của năng lượng mặt trời là gì?",
+            "Có nguồn cung dồi dào.",
+            {"subject": "Đặc điểm của năng lượng mặt trời", "relation": "DEFINITION"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+        self.assertEqual([item.relation for item in followups], ["EVIDENCE_DETAIL"])
+        self.assertIn("năng lượng mặt trời", followups[0].question.casefold())
 
     def test_previous_sentence_coreference_discovers_birth_time(self):
         source = passage(
@@ -335,21 +425,47 @@ class SocraticGeneratorTests(unittest.TestCase):
             [],
         )
 
-    def test_visited_relation_is_not_repeated(self):
+    def test_visited_relation_allows_a_distinct_predicate_question(self):
         source = passage(
             "DOC_P0001",
-            "Nguyễn Văn An sinh năm 1945 và giữ chức hiệu trưởng.",
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá. "
+            "Thỉnh thoảng, hoa mọc ra ở nách của lá.",
         )
         followups = generate_followups(
-            "Nguyễn Văn An là ai?",
-            "Một nhà giáo.",
-            {"subject": "Nguyễn Văn An", "relation": "IDENTITY"},
+            "Hoa sinh ra ở đâu?",
+            "Ở đầu ngọn hay ở nách lá.",
+            {
+                "subject": "Hoa",
+                "relation": "PROCESS_LOCATION",
+                "predicate": "sinh ra",
+            },
             source,
             [],
-            visited_relations=["BIRTH_TIME"],
+            visited_relations=["PROCESS_LOCATION"],
+            asked_questions=["Hoa sinh ra ở đâu?"],
             config=NO_PROBE_CONFIG,
         )
-        self.assertNotIn("BIRTH_TIME", {item.relation for item in followups})
+        self.assertIn("Hoa mọc ra ở đâu?", {item.question for item in followups})
+        self.assertNotIn("Hoa sinh ra ở đâu?", {item.question for item in followups})
+
+    def test_distinct_predicates_can_produce_multiple_initial_suggestions(self):
+        source = passage(
+            "DOC_P0001",
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá. "
+            "Thỉnh thoảng, hoa mọc ra ở nách của lá.",
+        )
+        followups = generate_followups(
+            "Chức năng của hoa là gì?",
+            "Hoa hỗ trợ sinh sản.",
+            {"subject": "Chức năng của hoa", "relation": "DEFINITION"},
+            source,
+            [],
+            config=NO_PROBE_CONFIG,
+        )
+
+        questions = {item.question for item in followups}
+        self.assertIn("Hoa sinh ra ở đâu?", questions)
+        self.assertIn("Hoa mọc ra ở đâu?", questions)
 
     def test_repeated_question_tail_is_removed_from_semantic_subject(self):
         source = passage(
@@ -420,6 +536,61 @@ class SocraticGeneratorTests(unittest.TestCase):
         self.assertEqual(response["grounding"], "selected_and_retrieved_corpus_passages")
         self.assertTrue(response["followups"])
         self.assertEqual(response["followups"][0]["source_passage_id"], "DOC_P0001")
+
+    def test_qa_answerability_gate_fails_closed(self):
+        source = passage("DOC_P0001", "Nguyễn Văn An sinh năm 1945.")
+        response = generate_followup_response(
+            {
+                "question": "Nguyễn Văn An là ai?",
+                "answer": "Một nhà giáo.",
+                "subject": "Nguyễn Văn An",
+                "relation": "IDENTITY",
+                "selected_passage_id": "DOC_P0001",
+                "retrieved_passage_ids": [],
+                "debug": True,
+            },
+            passage_lookup={"DOC_P0001": source}.get,
+            answerability_validator=lambda _question, passage_id: {
+                "verified": False,
+                "source_passage_id": passage_id,
+                "rejection_reason": "ANSWER_TYPE_MISMATCH",
+            },
+            config=NO_PROBE_CONFIG,
+        )
+
+        self.assertEqual(response["followups"], [])
+        self.assertEqual(response["answerability_gate"], "qa_pipeline")
+        self.assertGreaterEqual(
+            response["debug"]["rejection_distribution"]["QA_ANSWERABILITY_FAILED"],
+            1,
+        )
+
+    def test_qa_answerability_gate_marks_returned_suggestions_verified(self):
+        source = passage("DOC_P0001", "Nguyễn Văn An sinh năm 1945.")
+        response = generate_followup_response(
+            {
+                "question": "Nguyễn Văn An là ai?",
+                "answer": "Một nhà giáo.",
+                "subject": "Nguyễn Văn An",
+                "relation": "IDENTITY",
+                "selected_passage_id": "DOC_P0001",
+                "retrieved_passage_ids": [],
+            },
+            passage_lookup={"DOC_P0001": source}.get,
+            answerability_validator=lambda _question, passage_id: {
+                "verified": True,
+                "has_answer": True,
+                "source_passage_id": passage_id,
+                "method": "phrase_fallback",
+            },
+            config=NO_PROBE_CONFIG,
+        )
+
+        self.assertTrue(response["followups"])
+        self.assertTrue(all(item["qa_verified"] for item in response["followups"]))
+        self.assertTrue(
+            all(item["verification_method"] == "phrase_fallback" for item in response["followups"])
+        )
 
     def test_config_is_valid_and_contains_no_entity_specific_rule(self):
         config_payload = json.loads((ROOT / "config" / "socratic.json").read_text(encoding="utf-8"))

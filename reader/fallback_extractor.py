@@ -148,7 +148,8 @@ _QUESTION_STOPWORDS = {
 LOCATION_RELATION_PATTERNS = {
     "EVENT_LOCATION": r"(?:diễn[\s_]+ra|xảy[\s_]+ra|nổ[\s_]+ra)",
     "OBJECT_LOCATION": r"(?:nằm|tọa[\s_]+lạc|đặt|đóng|thuộc)",
-    "BIRTH_LOCATION": r"(?:sinh|ra[\s_]+đời)",
+    "PROCESS_LOCATION": r"(?:sinh[\s_]+ra|mọc(?:[\s_]+ra)?|phát[\s_]+triển|xuất[\s_]+hiện|phân[\s_]+bố|được[\s_]+trồng|được[\s_]+tìm[\s_]+thấy)",
+    "BIRTH_LOCATION": r"(?:sinh(?=[\s_]+(?:ở|tại))|chào[\s_]+đời|ra[\s_]+đời)",
     "DEATH_LOCATION": r"(?:mất|qua[\s_]+đời)",
     "ORGANIZED_LOCATION": r"(?:được[\s_]+tổ[\s_]+chức|tổ[\s_]+chức)",
     "HEADQUARTERS_LOCATION": r"(?:có[\s_]+trụ[\s_]+sở|đặt[\s_]+trụ[\s_]+sở)",
@@ -157,17 +158,29 @@ LOCATION_RELATION_PATTERNS = {
 LOCATION_RELATION_NORMALIZED_PATTERNS = {
     "EVENT_LOCATION": r"(?:dien ra|xay ra|no ra)",
     "OBJECT_LOCATION": r"(?:nam|toa lac|dat|dong|thuoc)",
-    "BIRTH_LOCATION": r"(?:sinh|ra doi)",
+    "PROCESS_LOCATION": r"(?:sinh ra|moc(?: ra)?|phat trien|xuat hien|phan bo|duoc trong|duoc tim thay)",
+    "BIRTH_LOCATION": r"(?:sinh(?=\s+(?:o|tai))|chao doi|ra doi)",
     "DEATH_LOCATION": r"(?:mat|qua doi)",
     "ORGANIZED_LOCATION": r"(?:duoc to chuc|to chuc)",
     "HEADQUARTERS_LOCATION": r"(?:co tru so|dat tru so)",
     "RESIDENCE_LOCATION": r"(?:sinh song|cu tru|tap trung|song(?=\s+(?:o|tai)))",
 }
+_PROCESS_LOCATION_PREDICATES = (
+    (r"\bduoc tim thay\b", r"được[\s_]+tìm[\s_]+thấy"),
+    (r"\bduoc trong\b", r"được[\s_]+trồng"),
+    (r"\bsinh ra\b", r"sinh[\s_]+ra"),
+    (r"\bmoc ra\b", r"mọc[\s_]+ra"),
+    (r"\bmoc\b", r"mọc"),
+    (r"\bphat trien\b", r"phát[\s_]+triển"),
+    (r"\bxuat hien\b", r"xuất[\s_]+hiện"),
+    (r"\bphan bo\b", r"phân[\s_]+bố"),
+)
 _LOCATION_PREPOSITION = r"(?:ở|tại|trên|trong)"
 _LOCATION_SUPPLEMENTAL_RELATIONS = frozenset({"OBJECT_LOCATION"})
 _LOCATION_DESIGNATORS = {
-    "chau", "dao", "dia diem", "huyen", "khu vuc", "lanh tho", "mien", "nuoc",
-    "phuong", "quan", "quoc gia", "thanh pho", "thi tran", "tinh", "xa",
+    "be mat", "ben trong", "canh", "chau", "dau", "dao", "dia diem", "huyen",
+    "khu vuc", "la", "lanh tho", "mien", "nach", "ngon", "nuoc", "phuong",
+    "quan", "quoc gia", "re", "thanh pho", "than", "thi tran", "tinh", "xa",
 }
 _EVENT_TERMS = {
     "cach mang", "chien tranh", "cuoc chien", "hiep dinh", "hoi nghi", "khoi nghia",
@@ -748,6 +761,18 @@ def detect_location_relation(question: str) -> str:
     return "GENERIC_LOCATION"
 
 
+def _location_relation_pattern(question: str, relation_type: str) -> str | None:
+    """Bind broad process-location relations to the predicate being asked."""
+
+    if relation_type != "PROCESS_LOCATION":
+        return LOCATION_RELATION_PATTERNS.get(relation_type)
+    normalized_question = _normalize(question)
+    for normalized_pattern, surface_pattern in _PROCESS_LOCATION_PREDICATES:
+        if re.search(normalized_pattern, normalized_question):
+            return surface_pattern
+    return LOCATION_RELATION_PATTERNS[relation_type]
+
+
 def _question_location_subject(question: str, relation_type: str) -> str:
     normalized = _normalize(question).strip(" ?!.")
     pattern = LOCATION_RELATION_NORMALIZED_PATTERNS.get(relation_type)
@@ -860,7 +885,7 @@ def extract_location_candidate(
     sentence = str(sentence or "").strip()
     relation_type = relation or detect_location_relation(question)
     subject = _question_location_subject(question, relation_type)
-    relation_pattern = LOCATION_RELATION_PATTERNS.get(relation_type)
+    relation_pattern = _location_relation_pattern(question, relation_type)
     candidates: list[FallbackCandidate] = []
 
     if relation_pattern:

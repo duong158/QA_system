@@ -8,8 +8,6 @@ interface HeaderProps {
   onToggleHistory: () => void;
   audioEnabled: boolean;
   onToggleMari?: () => void;
-  socraticEnabled?: boolean;
-  onSocraticEnabledChange?: (enabled: boolean) => void;
 }
 
 export function Header({
@@ -18,8 +16,6 @@ export function Header({
   onToggleHistory,
   audioEnabled,
   onToggleMari,
-  socraticEnabled = false,
-  onSocraticEnabledChange,
 }: HeaderProps) {
   const location = useLocation();
   const isChat = location.pathname === '/';
@@ -58,27 +54,6 @@ export function Header({
           >
             <Smile className="h-5 w-5" />
           </button>
-        ) : null}
-        {isChat && onSocraticEnabledChange ? (
-          <label className="hidden cursor-pointer items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface-subtle)] px-2.5 py-2 text-xs font-medium text-[var(--text-secondary)] sm:flex">
-            <span>Gia sư</span>
-            <button
-              type="button"
-              role="switch"
-              aria-checked={socraticEnabled}
-              aria-label="Bật hoặc tắt chế độ Gia sư Socratic"
-              onClick={() => onSocraticEnabledChange(!socraticEnabled)}
-              className={`relative h-6 w-11 shrink-0 rounded-full p-0.5 transition-colors ${
-                socraticEnabled ? 'bg-[var(--socratic)]' : 'bg-slate-300'
-              }`}
-            >
-              <span
-                className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${
-                  socraticEnabled ? 'translate-x-[18px]' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </label>
         ) : null}
         <button
           type="button"

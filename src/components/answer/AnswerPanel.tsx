@@ -6,7 +6,6 @@ import type { FollowUpCandidate, PassageResult, QaResponse } from '@/types/qa';
 import type { SocraticLoadState } from '@/hooks/useSocraticFollowups';
 import { formatLatency } from '@/utils/formatScore';
 import { FollowUpInsights } from '@/components/socratic/FollowUpInsights';
-import { SocraticToggle } from '@/components/socratic/SocraticToggle';
 import { AnswerFeedback } from '@/components/feedback/AnswerFeedback';
 import { SourceCard } from './SourceCard';
 import { PassageCard } from './PassageCard';
@@ -17,8 +16,6 @@ interface AnswerPanelProps {
   state: PipelineState;
   compareMode: boolean;
   onViewSource?: (passage: PassageResult) => void;
-  socraticEnabled: boolean;
-  onSocraticEnabledChange: (enabled: boolean) => void;
   followUps: FollowUpCandidate[];
   followUpsState: SocraticLoadState;
   followUpsLatencyMs?: number | null;
@@ -33,8 +30,6 @@ export function AnswerPanel({
   state,
   compareMode,
   onViewSource,
-  socraticEnabled,
-  onSocraticEnabledChange,
   followUps,
   followUpsState,
   followUpsLatencyMs,
@@ -103,9 +98,7 @@ export function AnswerPanel({
 
       {response ? <AnswerFeedback response={response} /> : null}
 
-      <SocraticToggle enabled={socraticEnabled} onChange={onSocraticEnabledChange} />
-
-      {socraticEnabled && response && hasAnswer ? (
+      {response && hasAnswer ? (
         <FollowUpInsights
           followUps={followUps}
           loadState={followUpsState}

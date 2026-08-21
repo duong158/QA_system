@@ -6,11 +6,15 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class SocraticUiContractTests(unittest.TestCase):
-    def test_off_state_short_circuits_before_followup_request(self):
+    def test_followups_run_automatically_after_answer(self):
         hook = (ROOT / "src" / "hooks" / "useSocraticFollowups.ts").read_text(encoding="utf-8")
-        guard = hook.index("if (!enabled || !response || !hasAnswer || !response.answer)")
+        guard = hook.index("if (!response || !hasAnswer || !response.answer)")
         request = hook.index("void fetchSocraticFollowups")
         self.assertLess(guard, request)
+        self.assertIn("useSocraticFollowups(response: QaResponse | null)", hook)
+        self.assertNotIn("!enabled", hook)
+        self.assertIn("contextPassageIds: Set<string>", hook)
+        self.assertIn("retrieved_passage_ids: Array.from(sessionRef.current.contextPassageIds)", hook)
 
     def test_on_state_calls_dedicated_endpoint_after_response(self):
         service = (ROOT / "src" / "services" / "qaService.ts").read_text(encoding="utf-8")
@@ -21,7 +25,14 @@ class SocraticUiContractTests(unittest.TestCase):
 
     def test_clicking_suggestion_submits_it_to_main_qa_pipeline(self):
         home = (ROOT / "src" / "pages" / "HomePage.tsx").read_text(encoding="utf-8")
-        self.assertIn("submitQuestion(followUp.question)", home)
+        pipeline = (ROOT / "src" / "hooks" / "useQaPipeline.ts").read_text(encoding="utf-8")
+        qa_types = (ROOT / "src" / "types" / "qa.ts").read_text(encoding="utf-8")
+        api = (ROOT / "backend" / "viqa_api.py").read_text(encoding="utf-8")
+        self.assertIn("submitConversationQuestion(followUp.question, followUp.source_passage_id)", home)
+        self.assertIn("preferred_passage_id: options.preferredPassageId", pipeline)
+        self.assertIn("grounded_passage_only: Boolean(options.preferredPassageId)", pipeline)
+        self.assertIn("preferred_passage_id?: string | null", qa_types)
+        self.assertIn("answerability_validator=_validate_socratic_answerability", api)
         self.assertIn("onFollowUpSelect={askFollowUp}", home)
 
     def test_followup_failure_does_not_replace_main_answer(self):
@@ -31,19 +42,25 @@ class SocraticUiContractTests(unittest.TestCase):
         self.assertIn("setLoadState('error')", error_branch)
         self.assertNotIn("setAnswer", error_branch)
 
-    def test_toggle_and_chips_are_keyboard_accessible(self):
-        toggle = (ROOT / "src" / "components" / "socratic" / "SocraticToggle.tsx").read_text(encoding="utf-8")
+    def test_toggle_is_removed_and_chips_remain_keyboard_accessible(self):
+        home = (ROOT / "src" / "pages" / "HomePage.tsx").read_text(encoding="utf-8")
+        header = (ROOT / "src" / "components" / "layout" / "Header.tsx").read_text(encoding="utf-8")
+        composer = (ROOT / "src" / "components" / "chat" / "ChatComposer.tsx").read_text(encoding="utf-8")
         chip = (ROOT / "src" / "components" / "socratic" / "FollowUpChip.tsx").read_text(encoding="utf-8")
-        self.assertIn('role="switch"', toggle)
-        self.assertIn("aria-checked={enabled}", toggle)
-        self.assertIn("absolute left-1 top-1", toggle)
-        self.assertIn("translate-x-5", toggle)
+        self.assertFalse((ROOT / "src" / "components" / "socratic" / "SocraticToggle.tsx").exists())
+        self.assertNotIn("socraticEnabled", home)
+        self.assertNotIn('role="switch"', header)
+        self.assertNotIn('role="switch"', composer)
         self.assertGreaterEqual(chip.count('<button'), 1)
         self.assertIn("aria-label", chip)
 
-    def test_socratic_preference_defaults_off_and_is_persisted(self):
+    def test_socratic_preference_is_removed_from_persisted_settings(self):
         store = (ROOT / "src" / "store" / "appStore.ts").read_text(encoding="utf-8")
-        self.assertIn("socraticEnabled: false", store)
+        hook = (ROOT / "src" / "hooks" / "useSocraticFollowups.ts").read_text(encoding="utf-8")
+        self.assertNotIn("socraticEnabled: false", store)
+        self.assertIn("delete migratedSettings.socraticEnabled", store)
+        self.assertIn("const socratic = useSocraticFollowups(answer)", (ROOT / "src" / "pages" / "HomePage.tsx").read_text(encoding="utf-8"))
+        self.assertNotIn("enabled: boolean", hook)
         self.assertIn("settings: state.settings", store)
 
     def test_voice_and_draft_question_are_deduplicated_before_submit(self):

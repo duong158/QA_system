@@ -49,6 +49,16 @@ class QuestionTypeTests(unittest.TestCase):
             0.0,
         )
 
+    def test_process_location_phrase_passes_with_relation_evidence(self):
+        assessment = assess_answer_type(
+            [QuestionType.LOCATION],
+            "đầu ngọn hay ở nách lá",
+            relation_score=1.0,
+            phrase_quality=1.0,
+        )
+        self.assertTrue(assessment.matched)
+        self.assertGreaterEqual(assessment.score, 0.5)
+
 
     def test_event_names_score_below_their_location_arguments(self):
         cases = [

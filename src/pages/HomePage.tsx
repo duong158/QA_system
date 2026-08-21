@@ -55,13 +55,12 @@ export function HomePage() {
   const setHistoryOpen = useAppStore((state) => state.setHistoryOpen);
   const toggleHistory = useAppStore((state) => state.toggleHistory);
   const updateVoiceSettings = useAppStore((state) => state.updateVoiceSettings);
-  const updateSettings = useAppStore((state) => state.updateSettings);
   const resetTransientState = useAppStore((state) => state.resetTransientState);
 
   const { submitQuestion, stopAll, stop } = useQaPipeline();
   const speech = useSpeechRecognition();
   const synthesis = useSpeechSynthesis();
-  const socratic = useSocraticFollowups(answer, settings.socraticEnabled);
+  const socratic = useSocraticFollowups(answer);
 
   const composedQuestion = useMemo(
     () => mergeQuestionParts(draft, speech.transcript, speech.interimTranscript),
@@ -94,7 +93,10 @@ export function HomePage() {
     return () => window.cancelAnimationFrame(frame);
   }, [turns, socratic.followUps, socratic.loadState]);
 
-  const submitConversationQuestion = async (rawQuestion: string) => {
+  const submitConversationQuestion = async (
+    rawQuestion: string,
+    preferredPassageId?: string | null,
+  ) => {
     const normalizedQuestion = collapseRepeatedQuestion(rawQuestion);
     if (!normalizedQuestion || isProcessing || requestInFlightRef.current) return;
 
@@ -103,7 +105,7 @@ export function HomePage() {
     shouldAutoScrollRef.current = true;
     addTurn({ id, question: normalizedQuestion, createdAt: Date.now(), status: 'pending' });
     try {
-      const result = await submitQuestion(normalizedQuestion);
+      const result = await submitQuestion(normalizedQuestion, { preferredPassageId });
       updateTurn(id, result.response
         ? { status: 'complete', response: result.response }
         : { status: 'error', error: 'Không thể nhận câu trả lời. Vui lòng kiểm tra kết nối và thử lại.' }
@@ -152,9 +154,7 @@ export function HomePage() {
     speech.stopListening();
     speech.resetTranscript();
     setDraft('');
-    // This is the conversational equivalent of submitQuestion(followUp.question):
-    // it creates the visible user turn before invoking the same QA pipeline.
-    await submitConversationQuestion(followUp.question);
+    await submitConversationQuestion(followUp.question, followUp.source_passage_id);
   };
 
   const speakText = (text: string) => {
@@ -185,8 +185,6 @@ export function HomePage() {
         onToggleSettings={toggleSettings}
         onToggleHistory={toggleHistory}
         onToggleMari={() => setMobileMariOpen(true)}
-        socraticEnabled={settings.socraticEnabled}
-        onSocraticEnabledChange={(enabled) => updateSettings({ socraticEnabled: enabled })}
       />
 
       <main className={`mt-3 grid min-h-0 flex-1 gap-3 lg:grid-cols-[248px_minmax(0,1fr)] ${
@@ -219,7 +217,7 @@ export function HomePage() {
                   </span>
                   <h1 className="mt-5 text-xl font-semibold tracking-tight text-[var(--text-primary)] sm:text-2xl">Bạn muốn khám phá điều gì?</h1>
                   <p className="mt-2 text-sm leading-6 text-[var(--text-secondary)]">
-                    Hỏi một câu về tài liệu. Mari sẽ trả lời, dẫn nguồn và gợi mở từng bước khi bật chế độ Gia sư.
+                    Hỏi một câu về tài liệu. Mari sẽ trả lời, dẫn nguồn và luôn gợi mở từng bước.
                   </p>
                 </div>
               ) : null}
@@ -269,8 +267,6 @@ export function HomePage() {
             speechSupported={speech.isSupported}
             audioActive={pipelineState === 'speaking' || synthesis.speaking}
             submitting={isProcessing}
-            socraticEnabled={settings.socraticEnabled}
-            onSocraticEnabledChange={(enabled) => updateSettings({ socraticEnabled: enabled })}
             onChange={changeDraft}
             onSubmit={submit}
             onVoiceToggle={toggleVoiceInput}
@@ -283,7 +279,6 @@ export function HomePage() {
             <MariPanel
               state={displayedAvatarState}
               collapsed={avatarCollapsed}
-              socraticEnabled={settings.socraticEnabled}
               onCollapsedChange={setAvatarCollapsed}
             />
           </Suspense>
@@ -295,7 +290,6 @@ export function HomePage() {
           <MariSheet
             open={mobileMariOpen}
             state={displayedAvatarState}
-            socraticEnabled={settings.socraticEnabled}
             onClose={() => setMobileMariOpen(false)}
           />
         </Suspense>

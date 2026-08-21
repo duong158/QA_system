@@ -86,6 +86,7 @@ READER_FALLBACK_THRESHOLD = PIPELINE_CONFIG.reader_fallback_threshold
 SENTENCE_FALLBACK_THRESHOLD = PIPELINE_CONFIG.sentence_fallback_threshold
 QA_DEBUG = os.getenv("QA_DEBUG", "false").lower() in {"1", "true", "yes", "on"}
 PRELOAD_READER = os.getenv("QA_PRELOAD_READER", "true").lower() in {"1", "true", "yes", "on"}
+PRELOAD_LLM = os.getenv("QA_PRELOAD_LLM", "false").lower() in {"1", "true", "yes", "on"}
 SUPPORTED_RETRIEVERS = {"tfidf", "bm25", "hybrid", "dense"}
 UNIMPLEMENTED_RETRIEVERS = {
     "pyserini": "Pyserini BM25 is not wired into this API yet: no Lucene index/runtime is configured for online serving.",
@@ -135,6 +136,48 @@ class SearchHit:
     retrieval_score_raw: float
     retrieval_score_normalized: float = 0.0
     retrieval_rank: int = 0
+
+
+def prioritize_preferred_passage(
+    hits: list[SearchHit],
+    preferred_passage: IndexedPassage | None,
+    limit: int,
+) -> list[SearchHit]:
+    """Inject a grounded follow-up source without bypassing Reader validation."""
+
+    if preferred_passage is None:
+        return hits
+    preferred_id = preferred_passage.metadata.passage_id
+    existing = next(
+        (hit for hit in hits if hit.passage.metadata.passage_id == preferred_id),
+        None,
+    )
+    raw_score = existing.retrieval_score_raw if existing is not None else max(
+        (hit.retrieval_score_raw for hit in hits),
+        default=0.0,
+    )
+    prioritized = [
+        SearchHit(
+            passage=preferred_passage,
+            retrieval_score_raw=raw_score,
+            retrieval_score_normalized=1.0,
+            retrieval_rank=1,
+        )
+    ]
+    for hit in hits:
+        if hit.passage.metadata.passage_id == preferred_id:
+            continue
+        prioritized.append(
+            SearchHit(
+                passage=hit.passage,
+                retrieval_score_raw=hit.retrieval_score_raw,
+                retrieval_score_normalized=min(0.92, hit.retrieval_score_normalized),
+                retrieval_rank=len(prioritized) + 1,
+            )
+        )
+        if len(prioritized) >= limit:
+            break
+    return prioritized
 
 
 def normalized_token_text(tokens: list[str] | tuple[str, ...]) -> str:
@@ -646,6 +689,9 @@ class PassageIndex:
         if not db_path.exists():
             raise FileNotFoundError(f"Missing docs database: {db_path}")
         self.passages = self._load_passages(db_path)
+        self.passages_by_id = {
+            passage.metadata.passage_id: passage for passage in self.passages
+        }
         self.avg_passage_len = sum(len(item.tokens) for item in self.passages) / max(1, len(self.passages))
         frequencies: dict[str, int] = defaultdict(int)
         for passage in self.passages:
@@ -655,6 +701,9 @@ class PassageIndex:
             term: math.log(1 + (len(self.passages) - count + 0.5) / (count + 0.5))
             for term, count in frequencies.items()
         }
+
+    def get_passage(self, passage_id: str) -> IndexedPassage | None:
+        return self.passages_by_id.get(str(passage_id or ""))
 
     @staticmethod
     def _guess_title(
@@ -900,6 +949,9 @@ class ReaderManager:
                 with self._load_lock:
                     if reader_name not in self.predictors:
                         try:
+                            self.predictors.clear()
+                            import gc
+                            gc.collect()
                             from backend.llm_reader import LocalLLMReader
                             self.predictors[reader_name] = LocalLLMReader()
                         except Exception as error:
@@ -1047,6 +1099,66 @@ def _probe_socratic_passages(question: str, top_k: int) -> list[dict[str, Any]]:
     ]
 
 
+def _validate_socratic_answerability(question: str, passage_id: str) -> dict[str, Any]:
+    """Run the QA fallback and semantic gates against one grounded source passage.
+
+    Socratic generation must not maintain a second, weaker definition of
+    "answerable". This validator deliberately reuses the same candidate
+    construction and gate registry as /api/ask, without invoking the neural
+    Reader during suggestion generation.
+    """
+
+    passage = INDEX.get_passage(passage_id)
+    if passage is None:
+        return {
+            "verified": False,
+            "source_passage_id": passage_id,
+            "method": None,
+            "rejection_reason": "SOURCE_PASSAGE_NOT_FOUND",
+        }
+    context = passage.metadata.text
+    question_types = detect_question_type(question)
+    fallback_output = sentence_fallback_predict(question, context)
+    candidates = build_passage_candidates(
+        question,
+        question_types,
+        passage.metadata.passage_id,
+        context,
+        1.0,
+        {"span_candidates": []},
+        fallback_output,
+    )
+    eligible = [candidate for candidate in candidates if candidate.passes_final_gate]
+    selected = max(
+        eligible,
+        key=lambda candidate: (
+            candidate.ranking_score,
+            candidate.evidence_score,
+            candidate.reader_score,
+        ),
+        default=None,
+    )
+    rejected = max(
+        candidates,
+        key=lambda candidate: (
+            candidate.ranking_score,
+            candidate.evidence_score,
+            candidate.reader_score,
+        ),
+        default=None,
+    )
+    return {
+        "verified": selected is not None,
+        "has_answer": selected is not None,
+        "source_passage_id": passage.metadata.passage_id,
+        "method": selected.method if selected is not None else None,
+        "ranking_score": round(float(selected.ranking_score), 6) if selected is not None else 0.0,
+        "rejection_reason": None if selected is not None else (
+            rejected.rejection_reason if rejected is not None else "NO_VALID_SPAN"
+        ),
+    }
+
+
 def socratic_followups(payload: dict[str, Any]) -> dict[str, Any]:
     if SOCRATIC_CONFIG is None or generate_followup_response is None:
         return {
@@ -1060,6 +1172,7 @@ def socratic_followups(payload: dict[str, Any]) -> dict[str, Any]:
         payload,
         passage_lookup=_lookup_socratic_passage,
         probe=_probe_socratic_passages if SOCRATIC_CONFIG.allow_bm25_probe else None,
+        answerability_validator=_validate_socratic_answerability,
     )
 
 
@@ -1436,11 +1549,22 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
     validate_retriever(retriever)
     validate_reader(reader_name)
     question_types = detect_question_type(question)
+    preferred_passage_id = str(payload.get("preferred_passage_id") or "").strip()
+    grounded_passage_only = bool(payload.get("grounded_passage_only", False))
+    if grounded_passage_only and not preferred_passage_id:
+        raise ValueError("grounded_passage_only requires preferred_passage_id")
 
     candidate_count = PIPELINE_CONFIG.candidate_count(top_k)
     hits = INDEX.retrieve(question, retriever, candidate_count)
+    if preferred_passage_id:
+        preferred_passage = INDEX.get_passage(preferred_passage_id)
+        if preferred_passage is None:
+            raise ValueError("preferred_passage_id does not exist in the corpus")
+        hits = prioritize_preferred_passage(hits, preferred_passage, candidate_count)
+        if grounded_passage_only:
+            hits = hits[:1]
 
-    if reader_name in ["llm", "llm_chat"]:
+    if reader_name in ["llm", "llm_chat"] and not grounded_passage_only:
         readers = get_readers()
         predictor = readers.get("llm") # Map both to llm predictor
         if reader_name == "llm_chat" or not hits:
@@ -1482,6 +1606,10 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
                 })
                 
         elapsed = int((time.perf_counter() - started) * 1000)
+        semantics = parse_question_semantics(question)
+        selected_passage_id = (
+            str(answer_source.get("passage_id")) if answer_source else None
+        )
         return {
             "question": question,
             "answer": llm_result["text"],
@@ -1498,6 +1626,17 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             "top_retrieved_passage": passages_out[0] if passages_out else None,
             "passages": passages_out,
             "question_type": [qt.value for qt in question_types],
+            "selected_passage_id": selected_passage_id,
+            "preferred_passage_id": preferred_passage_id or None,
+            "grounded_passage_only": False,
+            "semantic_relation": semantics.relation,
+            "relation_type": semantics.relation,
+            "question_relation": semantics.relation,
+            "question_subject": semantics.subject,
+            "question_target": semantics.target,
+            "question_predicate": semantics.predicate,
+            "question_modifier": semantics.modifier,
+            "rejection_reason": None,
         }
 
     if not hits:
@@ -1508,31 +1647,37 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
             int((time.perf_counter() - started) * 1000),
         )
 
-    readers = get_readers()
-    predictor = readers.get(reader_name)
     contexts = [hit.passage.metadata.text for hit in hits]
-    predict_many = getattr(predictor, "predict_many", None)
-    if callable(predict_many):
-        outputs = predict_many(
-            question,
-            contexts,
-            max_seq_len=PIPELINE_CONFIG.reader_max_length,
-            doc_stride=PIPELINE_CONFIG.reader_stride,
-            no_answer_threshold=READER_SCORE_MARGIN_THRESHOLD,
-            span_candidate_limit=PIPELINE_CONFIG.reader_span_candidates,
-        )
+    if grounded_passage_only and reader_name in {"llm", "llm_chat"}:
+        # Follow-up suggestions were certified by the deterministic QA gates.
+        # Reuse that exact grounded path even when the conversational reader
+        # setting is an LLM; do not replace a verified span with generation.
+        outputs = [{"span_candidates": []} for _context in contexts]
     else:
-        outputs = [
-            predictor.predict(
+        readers = get_readers()
+        predictor = readers.get(reader_name)
+        predict_many = getattr(predictor, "predict_many", None)
+        if callable(predict_many):
+            outputs = predict_many(
                 question,
-                context,
+                contexts,
                 max_seq_len=PIPELINE_CONFIG.reader_max_length,
                 doc_stride=PIPELINE_CONFIG.reader_stride,
                 no_answer_threshold=READER_SCORE_MARGIN_THRESHOLD,
                 span_candidate_limit=PIPELINE_CONFIG.reader_span_candidates,
             )
-            for context in contexts
-        ]
+        else:
+            outputs = [
+                predictor.predict(
+                    question,
+                    context,
+                    max_seq_len=PIPELINE_CONFIG.reader_max_length,
+                    doc_stride=PIPELINE_CONFIG.reader_stride,
+                    no_answer_threshold=READER_SCORE_MARGIN_THRESHOLD,
+                    span_candidate_limit=PIPELINE_CONFIG.reader_span_candidates,
+                )
+                for context in contexts
+            ]
     if len(outputs) != len(hits):
         raise PipelineError(
             f"Reader returned {len(outputs)} outputs for {len(hits)} retrieved passages"
@@ -1586,6 +1731,15 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         )
 
     eligible_candidates = [row for row in all_candidates if row["rejection_reason"] is None]
+    if grounded_passage_only:
+        verified_fallbacks = [
+            row
+            for row in eligible_candidates
+            if row["passage_id"] == preferred_passage_id
+            and row["method"] in {"phrase_fallback", "sentence_fallback"}
+        ]
+        if verified_fallbacks:
+            eligible_candidates = verified_fallbacks
     selected_candidate = max(
         eligible_candidates,
         key=lambda row: (row["ranking_score"], row["evidence_score"], row["reader_score"]),
@@ -1843,6 +1997,8 @@ def ask_question(payload: dict[str, Any]) -> dict[str, Any]:
         "lexical_evidence": bool((decision_candidate or {}).get("passes_evidence_gate", False)),
         "relation_evidence": bool((decision_candidate or {}).get("passes_relation_gate", False)),
         "selected_passage_id": selected["passage_id"] if selected is not None else None,
+        "preferred_passage_id": preferred_passage_id or None,
+        "grounded_passage_only": grounded_passage_only,
         "processing_time_ms": elapsed,
         "retriever": retriever,
         "reader": reader_name,
@@ -2306,17 +2462,15 @@ def main() -> None:
     if PRELOAD_READER:
         print("Preloading reader model before accepting requests...")
         readers = get_readers()
-        
-        # FIX: Preload LLM in the main thread to prevent bitsandbytes deadlock in background threads
-        try:
-            print("Loading LLM into VRAM...")
-            readers.get("llm")
-            print("LLM model is ready!")
-        except Exception as e:
-            print(f"Skipping LLM preload (it may not be installed): {e}")
-
-        # Tạm tắt PhoBERT để tiết kiệm tối đa VRAM cho LLM (RTX 3050 4GB)
-        # predictor = readers.get("phobert")
+        if PRELOAD_LLM:
+            try:
+                print("Loading optional LLM into VRAM...")
+                readers.get("llm")
+                print("LLM model is ready!")
+            except Exception as error:
+                print(f"Skipping LLM preload (it may not be installed): {error}")
+        else:
+            readers.get("phobert")
         print("Reader model is ready")
     print(f"Serving http://localhost:{PORT}")
     server.serve_forever()

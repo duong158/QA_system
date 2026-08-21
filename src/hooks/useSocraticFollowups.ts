@@ -8,6 +8,7 @@ interface SocraticSession {
   subjectKey: string;
   visitedRelations: Set<string>;
   askedQuestions: Set<string>;
+  contextPassageIds: Set<string>;
 }
 
 function normalizedKey(value: string | null | undefined): string {
@@ -24,7 +25,7 @@ function responseRelation(response: QaResponse): string | null {
   return response.semantic_relation || response.question_relation || response.relation_type || null;
 }
 
-export function useSocraticFollowups(response: QaResponse | null, enabled: boolean) {
+export function useSocraticFollowups(response: QaResponse | null) {
   const [followUps, setFollowUps] = useState<FollowUpCandidate[]>([]);
   const [loadState, setLoadState] = useState<SocraticLoadState>('idle');
   const [latencyMs, setLatencyMs] = useState<number | null>(null);
@@ -32,12 +33,13 @@ export function useSocraticFollowups(response: QaResponse | null, enabled: boole
     subjectKey: '',
     visitedRelations: new Set(),
     askedQuestions: new Set(),
+    contextPassageIds: new Set(),
   });
 
   useEffect(() => {
     const controller = new AbortController();
     const hasAnswer = response?.has_answer ?? Boolean(response?.answer);
-    if (!enabled || !response || !hasAnswer || !response.answer) {
+    if (!response || !hasAnswer || !response.answer) {
       setFollowUps([]);
       setLoadState('idle');
       setLatencyMs(null);
@@ -50,7 +52,17 @@ export function useSocraticFollowups(response: QaResponse | null, enabled: boole
         subjectKey,
         visitedRelations: new Set(),
         askedQuestions: new Set(),
+        contextPassageIds: new Set(),
       };
+    }
+
+    if (response.selected_passage_id) {
+      sessionRef.current.contextPassageIds.add(response.selected_passage_id);
+    }
+    for (const passage of response.passages ?? []) {
+      if (passage.passage_id) {
+        sessionRef.current.contextPassageIds.add(passage.passage_id);
+      }
     }
 
     const relation = responseRelation(response);
@@ -67,9 +79,7 @@ export function useSocraticFollowups(response: QaResponse | null, enabled: boole
         question: response.question,
         answer: response.answer,
         selected_passage_id: response.selected_passage_id ?? null,
-        retrieved_passage_ids: Array.from(
-          new Set((response.passages ?? []).map((passage) => passage.passage_id).filter(Boolean)),
-        ),
+        retrieved_passage_ids: Array.from(sessionRef.current.contextPassageIds),
         question_type: response.question_type,
         relation,
         subject: response.question_subject,
@@ -102,7 +112,7 @@ export function useSocraticFollowups(response: QaResponse | null, enabled: boole
       });
 
     return () => controller.abort();
-  }, [enabled, response]);
+  }, [response]);
 
   const markSelected = useCallback((followUp: FollowUpCandidate) => {
     if (followUp.subject) {
@@ -119,6 +129,7 @@ export function useSocraticFollowups(response: QaResponse | null, enabled: boole
       subjectKey: '',
       visitedRelations: new Set(),
       askedQuestions: new Set(),
+      contextPassageIds: new Set(),
     };
     setFollowUps([]);
     setLoadState('idle');

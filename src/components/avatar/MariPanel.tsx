@@ -6,14 +6,12 @@ import { AvatarScene } from './AvatarScene';
 interface MariPanelProps {
   state: AvatarState;
   collapsed: boolean;
-  socraticEnabled: boolean;
   onCollapsedChange: (collapsed: boolean) => void;
 }
 
 interface MariSheetProps {
   open: boolean;
   state: AvatarState;
-  socraticEnabled: boolean;
   onClose: () => void;
 }
 
@@ -32,7 +30,7 @@ function stateLabel(state: AvatarState): string {
   }
 }
 
-function MariContent({ state, socraticEnabled }: Pick<MariPanelProps, 'state' | 'socraticEnabled'>) {
+function MariContent({ state }: Pick<MariPanelProps, 'state'>) {
   return (
     <div className="surface-card flex h-full min-h-0 flex-col overflow-hidden rounded-2xl p-3">
       <div className="mb-3 px-1">
@@ -47,14 +45,14 @@ function MariContent({ state, socraticEnabled }: Pick<MariPanelProps, 'state' | 
         </p>
         <p className="flex items-center gap-2">
           <GraduationCap className="h-4 w-4 text-violet-600" />
-          {socraticEnabled ? 'Gia sư đang bật' : 'Gia sư đang tắt'}
+          Gia sư luôn bật
         </p>
       </div>
     </div>
   );
 }
 
-export const MariPanel = memo(function MariPanel({ state, collapsed, socraticEnabled, onCollapsedChange }: MariPanelProps) {
+export const MariPanel = memo(function MariPanel({ state, collapsed, onCollapsedChange }: MariPanelProps) {
   return (
     <aside
       className={collapsed
@@ -63,7 +61,7 @@ export const MariPanel = memo(function MariPanel({ state, collapsed, socraticEna
       aria-label="Mari 3D assistant"
     >
       <div className={`absolute right-0 top-0 h-full w-[272px] transition-opacity ${collapsed ? 'pointer-events-none invisible opacity-0' : 'visible opacity-100'}`}>
-        <MariContent state={state} socraticEnabled={socraticEnabled} />
+        <MariContent state={state} />
       </div>
       <button
         type="button"
@@ -77,7 +75,7 @@ export const MariPanel = memo(function MariPanel({ state, collapsed, socraticEna
   );
 });
 
-export const MariSheet = memo(function MariSheet({ open, state, socraticEnabled, onClose }: MariSheetProps) {
+export const MariSheet = memo(function MariSheet({ open, state, onClose }: MariSheetProps) {
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 min-[1200px]:hidden" role="dialog" aria-modal="true" aria-label="Mari 3D assistant">
@@ -86,7 +84,7 @@ export const MariSheet = memo(function MariSheet({ open, state, socraticEnabled,
         <button type="button" onClick={onClose} aria-label="Đóng Mari" className="soft-icon-button absolute right-5 top-5 z-20 h-9 w-9">
           <X className="h-4 w-4" />
         </button>
-        <MariContent state={state} socraticEnabled={socraticEnabled} />
+        <MariContent state={state} />
       </section>
     </div>
   );

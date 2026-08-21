@@ -6,6 +6,8 @@ export interface AskQuestionRequest {
   retriever: RetrieverType;
   reader: ReaderType;
   top_k: number;
+  preferred_passage_id?: string | null;
+  grounded_passage_only?: boolean;
 }
 
 export interface SourceInfo {
@@ -103,6 +105,8 @@ export interface QaResponse {
   lexical_evidence?: boolean;
   relation_evidence?: boolean;
   selected_passage_id?: string | null;
+  preferred_passage_id?: string | null;
+  grounded_passage_only?: boolean;
   processing_time_ms: number;
   retriever: RetrieverType;
   reader: ReaderType;
@@ -161,6 +165,8 @@ export interface FollowUpCandidate {
   novelty_score: number;
   relevance_score: number;
   ranking_score: number;
+  qa_verified: boolean;
+  verification_method: string | null;
 }
 
 export interface SocraticFollowUpsRequest {
@@ -184,6 +190,7 @@ export interface SocraticFollowUpsResponse {
   processing_time_ms: number;
   grounding: string;
   probe: string | null;
+  answerability_gate?: 'qa_pipeline' | 'heuristic_only';
   debug?: {
     status: 'NO_SEMANTIC_OPPORTUNITY' | 'OPPORTUNITIES_FOUND_BUT_ALL_REJECTED' | 'FOLLOWUPS_GENERATED' | string;
     candidate_generation: Record<string, number>;

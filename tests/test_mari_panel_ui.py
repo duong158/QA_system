@@ -14,7 +14,7 @@ class MariPanelUiTests(unittest.TestCase):
         self.assertIn("<AvatarScene state={state} compact", panel)
         self.assertIn('aria-label="Mari 3D assistant"', panel)
         self.assertIn("Trợ lý học tập VIQA", panel)
-        self.assertIn("Gia sư đang bật", panel)
+        self.assertIn("Gia sư luôn bật", panel)
 
     def test_desktop_layout_contains_collapsible_avatar_column(self):
         home = self.read("src/pages/HomePage.tsx")

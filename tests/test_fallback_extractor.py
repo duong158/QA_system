@@ -142,6 +142,31 @@ class FallbackExtractorTests(unittest.TestCase):
         self.assertEqual(candidate.relation_type, "BIRTH_LOCATION")
         self.assertTrue(candidate.relation_evidence)
 
+    def test_extracts_process_location_for_plant_structure(self):
+        candidate = extract_location_candidate(
+            "Hoa sinh ra ở đâu?",
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá.",
+        )
+
+        self.assertEqual(candidate.answer, "đầu ngọn hay ở nách lá")
+        self.assertEqual(candidate.relation_type, "PROCESS_LOCATION")
+        self.assertTrue(candidate.relation_evidence)
+
+    def test_process_location_requires_the_requested_predicate(self):
+        wrong = extract_location_candidate(
+            "Hoa mọc ra ở đâu?",
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá.",
+        )
+        correct = extract_location_candidate(
+            "Hoa mọc ra ở đâu?",
+            "Thỉnh thoảng, hoa mọc ra ở nách của lá.",
+        )
+
+        self.assertFalse(wrong.relation_evidence)
+        self.assertEqual(wrong.method, "whole_sentence")
+        self.assertTrue(correct.relation_evidence)
+        self.assertEqual(correct.answer, "nách của lá")
+
     def test_extracts_plain_preposition_location(self):
         candidate = extract_location_candidate(
             "H\u1ed3 Ho\u00e0n Ki\u1ebfm \u1edf \u0111\u00e2u?",

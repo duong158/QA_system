@@ -11,6 +11,10 @@ export interface SubmitQuestionResult {
   compare?: Awaited<ReturnType<typeof compareRetrievers>>;
 }
 
+export interface SubmitQuestionOptions {
+  preferredPassageId?: string | null;
+}
+
 export function useQaPipeline() {
   const setQuestion = useAppStore((state) => state.setQuestion);
   const setAnswer = useAppStore((state) => state.setAnswer);
@@ -44,7 +48,10 @@ export function useQaPipeline() {
     setStatusMessage('SYSTEM ONLINE');
   };
 
-  const submitQuestion = async (question: string): Promise<SubmitQuestionResult> => {
+  const submitQuestion = async (
+    question: string,
+    options: SubmitQuestionOptions = {},
+  ): Promise<SubmitQuestionResult> => {
     const normalizedQuestion = collapseRepeatedQuestion(question);
     if (!normalizedQuestion) {
       return {};
@@ -92,6 +99,8 @@ export function useQaPipeline() {
       retriever: settings.retriever,
       reader: settings.reader,
       top_k: settings.topK,
+      preferred_passage_id: options.preferredPassageId ?? null,
+      grounded_passage_only: Boolean(options.preferredPassageId),
     };
 
     try {

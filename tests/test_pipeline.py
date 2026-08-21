@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import patch
+from pathlib import Path
 
 from backend.chunking import Passage, split_sentences
 from backend.viqa_api import (
@@ -12,7 +13,9 @@ from backend.viqa_api import (
     concise_source_answer,
     expand_answer_to_sentence,
     format_display_answer,
+    prioritize_preferred_passage,
     sentence_fallback_predict,
+    _validate_socratic_answerability,
 )
 
 
@@ -74,6 +77,31 @@ class NoAnswerPredictor:
             }
             for _ in contexts
         ]
+
+
+class WrongProcessPredicatePredictor:
+    def predict_many(self, question, contexts, no_answer_threshold, **kwargs):
+        results = []
+        for context in contexts:
+            answer = "đầu ngọn hay ở nách lá"
+            start = context.index(answer)
+            results.append(
+                {
+                    "answer": answer,
+                    "candidate_answer": answer,
+                    "candidate_start": start,
+                    "candidate_end": start + len(answer),
+                    "confidence": 0.95,
+                    "reader_threshold_score": 0.95,
+                    "score_margin": 4.0,
+                    "passes_reader_threshold": True,
+                    "valid_span": True,
+                    "start": start,
+                    "end": start + len(answer),
+                    "has_answer": True,
+                }
+            )
+        return results
 
 
 class MontmartreWrongSpanPredictor:
@@ -156,6 +184,140 @@ class TruncatedAliasPredictor:
 
 
 class PipelineTests(unittest.TestCase):
+    def test_llm_preload_is_opt_in_so_default_api_startup_stays_offline(self):
+        source = (Path(__file__).resolve().parents[1] / "backend" / "viqa_api.py").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn('PRELOAD_LLM = os.getenv("QA_PRELOAD_LLM", "false")', source)
+        self.assertIn("if PRELOAD_LLM:", source)
+
+    def test_socratic_answerability_uses_main_candidate_gates(self):
+        source = make_hit(
+            "FLOWER_P0001",
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá.",
+            1.0,
+            1.0,
+        ).passage
+        with patch("backend.viqa_api.INDEX.get_passage", return_value=source):
+            verification = _validate_socratic_answerability(
+                "Hoa sinh ra ở đâu?",
+                "FLOWER_P0001",
+            )
+
+        self.assertTrue(verification["verified"])
+        self.assertEqual(verification["source_passage_id"], "FLOWER_P0001")
+        self.assertEqual(verification["method"], "phrase_fallback")
+
+    def test_grounded_followup_reads_only_its_verified_source(self):
+        wrong_hit = make_hit(
+            "WRONG_P0001",
+            "Tài liệu không liên quan nói về di truyền học.",
+            9.0,
+            1.0,
+        )
+        source = make_hit(
+            "FLOWER_P0001",
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá.",
+            0.0,
+            0.0,
+        ).passage
+        predictor = NoAnswerPredictor()
+        with patch("backend.viqa_api.INDEX.retrieve", return_value=[wrong_hit]), patch(
+            "backend.viqa_api.INDEX.get_passage", return_value=source
+        ), patch("backend.viqa_api.READERS.get", return_value=predictor):
+            result = ask_question(
+                {
+                    "question": "Hoa sinh ra ở đâu?",
+                    "retriever": "bm25",
+                    "reader": "phobert",
+                    "top_k": 10,
+                    "preferred_passage_id": "FLOWER_P0001",
+                    "grounded_passage_only": True,
+                }
+            )
+
+        self.assertTrue(result["has_answer"])
+        self.assertEqual(result["answer"], "đầu ngọn hay ở nách lá")
+        self.assertEqual(result["selected_passage_id"], "FLOWER_P0001")
+        self.assertEqual([item["passage_id"] for item in result["passages"]], ["FLOWER_P0001"])
+
+    def test_grounded_followup_prefers_verified_predicate_bound_fallback(self):
+        context = (
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá. "
+            "Thỉnh thoảng, hoa mọc ra ở nách của lá."
+        )
+        source = make_hit("FLOWER_P0001", context, 0.0, 0.0).passage
+        with patch("backend.viqa_api.INDEX.retrieve", return_value=[]), patch(
+            "backend.viqa_api.INDEX.get_passage", return_value=source
+        ), patch(
+            "backend.viqa_api.READERS.get",
+            return_value=WrongProcessPredicatePredictor(),
+        ):
+            result = ask_question(
+                {
+                    "question": "Hoa mọc ra ở đâu?",
+                    "retriever": "bm25",
+                    "reader": "phobert",
+                    "top_k": 10,
+                    "preferred_passage_id": "FLOWER_P0001",
+                    "grounded_passage_only": True,
+                }
+            )
+
+        self.assertTrue(result["has_answer"])
+        self.assertEqual(result["answer"], "nách của lá")
+        self.assertEqual(result["reader_method"], "phrase_fallback")
+
+    def test_grounded_followup_bypasses_llm_generation(self):
+        source = make_hit(
+            "FLOWER_P0001",
+            "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá.",
+            0.0,
+            0.0,
+        ).passage
+        with patch("backend.viqa_api.INDEX.retrieve", return_value=[]), patch(
+            "backend.viqa_api.INDEX.get_passage", return_value=source
+        ), patch(
+            "backend.viqa_api.READERS.get",
+            side_effect=AssertionError("LLM must not run for a verified follow-up"),
+        ):
+            result = ask_question(
+                {
+                    "question": "Hoa sinh ra ở đâu?",
+                    "retriever": "bm25",
+                    "reader": "llm",
+                    "top_k": 10,
+                    "preferred_passage_id": "FLOWER_P0001",
+                    "grounded_passage_only": True,
+                }
+            )
+
+        self.assertTrue(result["has_answer"])
+        self.assertEqual(result["answer"], "đầu ngọn hay ở nách lá")
+        self.assertEqual(result["reader_method"], "phrase_fallback")
+
+    def test_preferred_passage_is_injected_ahead_of_lexical_hits(self):
+        lexical_hits = [
+            make_hit("WRONG_P0001", "unrelated passage", 8.0, 1.0),
+            make_hit("OTHER_P0001", "another passage", 4.0, 0.4),
+        ]
+        preferred = make_hit(
+            "SOURCE_P0001",
+            "The grounded follow-up answer is here.",
+            0.0,
+            0.0,
+        ).passage
+
+        prioritized = prioritize_preferred_passage(lexical_hits, preferred, 3)
+
+        self.assertEqual(
+            [hit.passage.metadata.passage_id for hit in prioritized],
+            ["SOURCE_P0001", "WRONG_P0001", "OTHER_P0001"],
+        )
+        self.assertEqual([hit.retrieval_rank for hit in prioritized], [1, 2, 3])
+        self.assertEqual(prioritized[0].retrieval_score_normalized, 1.0)
+        self.assertLess(prioritized[1].retrieval_score_normalized, 1.0)
+
     def test_complete_alias_phrase_beats_truncated_neural_name(self):
         question = (
             "Tên gọi nào được Phạm Văn Đồng sử dụng khi làm Phó chủ nhiệm "

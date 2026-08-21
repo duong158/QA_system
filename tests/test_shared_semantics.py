@@ -41,8 +41,34 @@ class SharedQuestionSemanticsTests(unittest.TestCase):
         self.assertEqual(semantics.relation, "OBJECT_LOCATION")
         self.assertEqual(semantics.subject, "Paris")
 
+    def test_non_person_arising_question_is_process_location(self):
+        semantics = parse_question_semantics("Hoa sinh ra ở đâu?")
+        self.assertEqual(semantics.question_type, ["LOCATION"])
+        self.assertEqual(semantics.relation, "PROCESS_LOCATION")
+        self.assertEqual(semantics.subject, "Hoa")
+        self.assertEqual(semantics.predicate, "sinh ra")
+
 
 class SharedSubjectAndRelationTests(unittest.TestCase):
+    def test_process_location_accepts_grounded_plant_position(self):
+        question = "Hoa sinh ra ở đâu?"
+        evidence = "Hoa có thể sinh ra ở đầu ngọn hay ở nách lá."
+        answer = "đầu ngọn hay ở nách lá"
+        start = evidence.index(answer)
+        relation = validate_candidate_relation(
+            parse_question_semantics(question),
+            question,
+            evidence,
+            answer,
+            start,
+            start + len(answer),
+            "neural_span",
+            {"sentence_answer": evidence},
+        )
+        self.assertTrue(relation.relation_evidence)
+        self.assertEqual(relation.reason, "DIRECT_LOCATION_RELATION")
+        self.assertEqual(relation.relation_score, 1.0)
+
     def test_subject_consistency_rejects_unrelated_time_passage(self):
         semantics = parse_question_semantics("Phạm Văn Đồng sinh năm nào?")
         evidence = "Love Story, xuất bản năm 1970, là tác phẩm của Erich Segal."

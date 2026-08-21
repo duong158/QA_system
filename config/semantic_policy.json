@@ -116,6 +116,13 @@
       "min_relation_score": 0.50,
       "allow_ranking_bypass": true
     },
+    "PROCESS_LOCATION": {
+      "require_subject_match": true,
+      "require_relation_match": true,
+      "min_subject_score": 0.50,
+      "min_relation_score": 0.50,
+      "allow_ranking_bypass": true
+    },
     "BIRTH_LOCATION": {
       "require_subject_match": true,
       "require_relation_match": true,

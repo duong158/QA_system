@@ -132,8 +132,9 @@ PREDICATE_BOUNDARY_RULES = (
         "PREDICATE_EVENT_BOUNDARY",
         "predicate_boundary",
         re.compile(
-            r"\b(?P<predicate>(?:sinh|chao doi|ra doi|mat|qua doi|dien ra|xay ra|"
-            r"no ra|toa lac|nam|gui|phat trien|gia tang|suy giam|bung no|sup do|"
+            r"\b(?P<predicate>(?:sinh ra|sinh|chao doi|ra doi|mat|qua doi|dien ra|xay ra|"
+            r"no ra|moc ra|moc|xuat hien|phan bo|duoc trong|duoc tim thay|toa lac|"
+            r"nam|gui|phat trien|gia tang|suy giam|bung no|sup do|"
             r"tro thanh|thanh lap|xay dung))\b"
         ),
         True,
@@ -207,6 +208,9 @@ def _strip_interrogative_tail(body: str, relation: str) -> str:
             r"\s+(?:o dau|tai dau|noi nao|dia diem nao)\s*[?!.]*$",
             r"\s+nam\s+ben\s+bo\s+(?:con\s+)?song\s+nao\s*[?!.]*$",
         ),
+        "PROCESS_LOCATION": (
+            r"\s+(?:o dau|tai dau|noi nao|dia diem nao|vi tri nao)\s*[?!.]*$",
+        ),
     }
     end = len(body)
     for pattern in patterns.get(relation, ()):
@@ -259,7 +263,14 @@ def _time_relation(folded: str) -> str:
 
 
 def _location_relation(folded: str) -> str:
-    if re.search(r"\b(?:sinh|ra doi)\b", folded):
+    # "sinh ra" is not necessarily a person's birth. Plants, flowers,
+    # organs, products, and natural phenomena can all arise at a position.
+    if re.search(
+        r"\b(?:sinh ra|moc(?: ra)?|phat trien|xuat hien|phan bo|duoc trong|duoc tim thay)\b",
+        folded,
+    ):
+        return "PROCESS_LOCATION"
+    if re.search(r"\b(?:sinh(?=\s+(?:o|tai))|chao doi|ra doi)\b", folded):
         return "BIRTH_LOCATION"
     if re.search(r"\b(?:mat|qua doi|tu tran)\b", folded):
         return "DEATH_LOCATION"

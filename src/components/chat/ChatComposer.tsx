@@ -12,8 +12,6 @@ interface ChatComposerProps {
   speechSupported: boolean;
   audioActive: boolean;
   submitting: boolean;
-  socraticEnabled: boolean;
-  onSocraticEnabledChange: (enabled: boolean) => void;
   onChange: (value: string) => void;
   onSubmit: () => void;
   onVoiceToggle: () => void;
@@ -28,8 +26,6 @@ export function ChatComposer({
   speechSupported,
   audioActive,
   submitting,
-  socraticEnabled,
-  onSocraticEnabledChange,
   onChange,
   onSubmit,
   onVoiceToggle,
@@ -55,19 +51,6 @@ export function ChatComposer({
 
   return (
     <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
-      <div className="mb-2 flex items-center justify-between sm:hidden">
-        <span className="text-xs text-[var(--text-secondary)]">Chế độ Gia sư</span>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={socraticEnabled}
-          onClick={() => onSocraticEnabledChange(!socraticEnabled)}
-          className={`relative h-6 w-11 rounded-full p-0.5 ${socraticEnabled ? 'bg-[var(--socratic)]' : 'bg-slate-300'}`}
-        >
-          <span className={`block h-5 w-5 rounded-full bg-white shadow-sm transition-transform ${socraticEnabled ? 'translate-x-[18px]' : ''}`} />
-        </button>
-      </div>
-
       <div className="flex items-end gap-2 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface)] p-2 shadow-sm transition focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-50">
         <Link
           to="/knowledge-blind-spots#document-contribution"
