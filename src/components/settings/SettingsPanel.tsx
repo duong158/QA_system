@@ -158,7 +158,7 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
                     <select
                       value={settings.voice.voiceName ?? ''}
                       onChange={(event) => updateVoiceSettings({ voiceName: event.target.value || undefined })}
-                      className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-slate-100 outline-none"
+                      className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-slate-100 outline-none"
                     >
                       <option value="">Auto-select Vietnamese female</option>
                       {sortedVoices.map((voice) => (
@@ -175,6 +175,7 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
                       min="0.6"
                       max="1.4"
                       step="0.1"
+                      className="w-full"
                       value={settings.voice.rate}
                       onChange={(event) => updateVoiceSettings({ rate: Number(event.target.value) })}
                     />
@@ -186,6 +187,7 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
                       min="0.6"
                       max="1.4"
                       step="0.1"
+                      className="w-full"
                       value={settings.voice.pitch}
                       onChange={(event) => updateVoiceSettings({ pitch: Number(event.target.value) })}
                     />
@@ -197,6 +199,7 @@ export function SettingsPanel({ voices, onTestVoice }: SettingsPanelProps) {
                       min="0.2"
                       max="1"
                       step="0.1"
+                      className="w-full"
                       value={settings.voice.volume}
                       onChange={(event) => updateVoiceSettings({ volume: Number(event.target.value) })}
                     />

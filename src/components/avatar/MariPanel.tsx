@@ -67,9 +67,11 @@ export const MariPanel = memo(function MariPanel({ state, collapsed, onCollapsed
         type="button"
         onClick={() => onCollapsedChange(!collapsed)}
         aria-label={collapsed ? 'Hiện Mari' : 'Thu gọn Mari'}
-        className={`soft-icon-button absolute z-30 h-9 w-9 ${collapsed ? 'right-1 top-3' : 'right-3 top-3'}`}
+        className={collapsed 
+          ? 'absolute z-30 top-1/2 -translate-y-1/2 right-0 flex h-16 w-8 items-center justify-center rounded-l-xl bg-white border border-r-0 border-slate-200 shadow-md text-slate-500 hover:bg-slate-50 hover:text-slate-900 transition-colors' 
+          : 'soft-icon-button absolute z-30 h-9 w-9 right-3 top-3'}
       >
-        {collapsed ? <ChevronLeft className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+        {collapsed ? <ChevronLeft className="h-5 w-5" /> : <ChevronRight className="h-4 w-4" />}
       </button>
     </aside>
   );

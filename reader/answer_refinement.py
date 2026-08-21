@@ -160,6 +160,51 @@ def _expand_right_name_or_fixed_phrase(context: str, start: int, end: int) -> tu
     return start, end
 
 
+def _expand_to_nlp_boundaries(context: str, start: int, end: int) -> tuple[int, int]:
+    if start < 0 or end <= start or end > len(context):
+        return start, end
+    try:
+        from underthesea import word_tokenize
+        
+        window_start = max(0, start - 50)
+        window_end = min(len(context), end + 50)
+        
+        while window_start > 0 and context[window_start - 1].isalnum():
+            window_start -= 1
+        while window_end < len(context) and context[window_end].isalnum():
+            window_end += 1
+            
+        window = context[window_start:window_end]
+        words = word_tokenize(window)
+        
+        local_start = start - window_start
+        local_end = end - window_start
+        
+        current = 0
+        new_local_start = local_start
+        new_local_end = local_end
+        
+        for w in words:
+            pos = window.find(w, current)
+            if pos == -1:
+                break
+            w_end = pos + len(w)
+            
+            if pos < local_start < w_end:
+                new_local_start = pos
+                
+            if pos < local_end < w_end:
+                new_local_end = w_end
+                
+            current = w_end
+            if current >= max(local_end, new_local_end):
+                break
+                
+        return window_start + new_local_start, window_start + new_local_end
+    except Exception:
+        return start, end
+
+
 def assess_relation_completeness(
     question: str,
     question_types: list[QuestionType | str] | QuestionType | str,
@@ -238,9 +283,14 @@ def refine_answer(
 
     raw_answer = context[raw_start:raw_end]
     raw_completeness = assess_answer_completeness(raw_answer)
-    final_start, final_end = _trim_outer_boundaries(context, raw_start, raw_end)
+    
+    nlp_start, nlp_end = _expand_to_nlp_boundaries(context, raw_start, raw_end)
+    final_start, final_end = _trim_outer_boundaries(context, nlp_start, nlp_end)
+    
     methods: list[str] = []
-    if (final_start, final_end) != (raw_start, raw_end):
+    if (nlp_start, nlp_end) != (raw_start, raw_end):
+        methods.append("nlp_boundary_expansion")
+    if (final_start, final_end) != (nlp_start, nlp_end):
         methods.append("punctuation_cleanup")
 
     if not isinstance(question_types, list):

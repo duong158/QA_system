@@ -1,11 +1,11 @@
 # VIQA Nexus
 
-VIQA Nexus là hệ thống hỏi đáp tiếng Việt chạy cục bộ, kết hợp truy hồi tài liệu, Reader trích xuất XLM-RoBERTa và mô hình sinh Qwen3. Giao diện được xây dựng bằng React, TypeScript và Vite; backend là HTTP API viết bằng Python.
+VIQA Nexus là hệ thống hỏi đáp tiếng Việt chạy cục bộ, kết hợp truy hồi tài liệu, Reader trích xuất XLM-RoBERTa và mô hình sinh LFM2.5. Giao diện được xây dựng bằng React, TypeScript và Vite; backend là HTTP API viết bằng Python.
 
 Project hiện hỗ trợ hai hướng trả lời:
 
 - **Extractive QA:** tìm passage phù hợp rồi trích xuất span bằng checkpoint `xlm-roberta-large-viquad`.
-- **Generative QA:** dùng Qwen3-1.7B ở chế độ RAG hoặc hội thoại trực tiếp.
+- **Generative QA:** dùng LFM2.5-2.6B ở chế độ RAG hoặc hội thoại trực tiếp.
 
 Ngoài hỏi đáp, hệ thống còn có gợi ý câu hỏi tiếp theo, so sánh retriever, phản hồi có kiểm duyệt, quản lý tài liệu đóng góp và trang phân tích điểm mù tri thức.
 
@@ -16,7 +16,7 @@ Ngoài hỏi đáp, hệ thống còn có gợi ý câu hỏi tiếp theo, so s�
 | Corpus runtime | 5.317 tài liệu, 6.544 passage đã chia theo câu trong `docs.db` |
 | Retriever | TF-IDF, BM25, Dense và Hybrid |
 | Extractive Reader | XLM-RoBERTa tại `models/reader/xlm-roberta-large-viquad` |
-| Local LLM | `Qwen/Qwen3-1.7B`, nạp bằng Transformers và bitsandbytes 4-bit |
+| Local LLM | `LFM/LFM2.5-2.6B`, nạp bằng Transformers và bitsandbytes 4-bit |
 | Gợi ý Socratic | Luôn được gọi sau câu trả lời; truy hồi câu hỏi gần nhất bằng BM25 |
 | Feedback | SQLite, có quy trình chờ duyệt; không tự huấn luyện model lúc runtime |
 | Frontend | React 18, TypeScript, Vite, Zustand, Tailwind CSS, Three.js |
@@ -41,27 +41,27 @@ Python HTTP API (localhost:8000)
     |
     +--> XLM-RoBERTa Extractive Reader
     |
-    +--> Qwen3 Local LLM (RAG hoặc Direct)
+    +--> LFM2.5 Local LLM (RAG hoặc Direct)
     |
     +--> Socratic BM25 + Feedback SQLite + Evaluation API
 ```
 
-Luồng extractive thực hiện truy hồi, chạy Reader trên các passage ứng viên, chấm điểm lại bằng retrieval/Reader/answer type và áp dụng các cổng từ chối trước khi trả lời. Luồng Qwen có hai chế độ:
+Luồng extractive thực hiện truy hồi, chạy Reader trên các passage ứng viên, chấm điểm lại bằng retrieval/Reader/answer type và áp dụng các cổng từ chối trước khi trả lời. Luồng LFM có hai chế độ:
 
 | Reader gửi từ frontend | Cách hoạt động |
 | --- | --- |
 | `phobert` | Khóa tương thích cũ; hiện dùng checkpoint XLM-RoBERTa đã cấu hình |
 | `xlmr` | Gọi trực tiếp XLM-RoBERTa extractive QA |
 | `llm` | Dùng tối đa 5 passage làm RAG khi retrieval đủ mạnh; nếu không thì trả lời trực tiếp |
-| `llm_chat` | Qwen trả lời trực tiếp, không gắn nguồn tài liệu |
+| `llm_chat` | LFM trả lời trực tiếp, không gắn nguồn tài liệu |
 
-Frontend mặc định dùng **BM25**, Reader `phobert` (thực tế là checkpoint XLM-R hiện tại) và `top_k = 10`. Nếu gọi `/api/ask` mà không truyền retriever, backend dùng **Hybrid** theo `config/qa_pipeline.json`.
+Frontend mặc định dùng **BM25**, Reader `xlmr` và `top_k = 10`. Nếu gọi `/api/ask` mà không truyền retriever, backend dùng **Hybrid** theo `config/qa_pipeline.json`.
 
 ## Cấu trúc thư mục chính
 
 ```text
 QA_system/
-├── backend/                    # API, Qwen Reader, Socratic và feedback
+├── backend/                    # API, LFM Reader, Socratic và feedback
 ├── config/                     # Cấu hình pipeline và semantic policy
 ├── data/
 │   ├── processed/docs.db       # Corpus SQLite dùng khi chạy
@@ -82,9 +82,9 @@ QA_system/
 
 - Python 3.10 trở lên; project hiện được kiểm tra với Python 3.12.0.
 - Node.js 18 trở lên; môi trường hiện tại dùng Node.js 22.16.0 và npm 10.9.2.
-- Dung lượng trống cho checkpoint XLM-R khoảng 2,2 GB và cache Qwen.
-- GPU NVIDIA/CUDA được khuyến nghị mạnh khi chạy Qwen3. Code hiện nạp Qwen bằng lượng tử hóa 4-bit của bitsandbytes; máy chỉ có CPU hoặc driver không tương thích có thể không nạp được LLM.
-- Kết nối mạng ở lần đầu tải Qwen hoặc Dense Encoder từ Hugging Face. Sau khi model đã nằm trong cache có thể chạy offline.
+- Dung lượng trống cho checkpoint XLM-R khoảng 2,2 GB và cache LFM.
+- GPU NVIDIA/CUDA được khuyến nghị mạnh khi chạy LFM2.5. Code hiện nạp LFM bằng lượng tử hóa 4-bit của bitsandbytes; máy chỉ có CPU hoặc driver không tương thích có thể không nạp được LLM.
+- Kết nối mạng ở lần đầu tải LFM hoặc Dense Encoder từ Hugging Face. Sau khi model đã nằm trong cache có thể chạy offline.
 
 ## Cài đặt
 
@@ -127,7 +127,7 @@ data/raw/viquad2_validation.parquet
 data/raw/viquad2_test.parquet
 ```
 
-Ở trạng thái hiện tại, ba split cung cấp khoảng 39.446 câu hỏi duy nhất cho chỉ mục BM25 gợi ý.
+Ở trạng thái hiện tại, ba split cung cấp khoảng 39.446 câu hỏi duy nhất cho chỉ mục Hybrid gợi ý.
 
 ### Checkpoint XLM-RoBERTa
 
@@ -143,12 +143,12 @@ models/reader/xlm-roberta-large-viquad/
 
 `model.safetensors` có dung lượng lớn và bị loại khỏi Git bởi `.gitignore`, vì vậy clone repository mới sẽ không tự có trọng số này. Cần sao chép checkpoint vào đúng đường dẫn trước khi chạy Extractive Reader.
 
-### Qwen3
+### LFM
 
 Mặc định backend dùng model:
 
 ```text
-Qwen/Qwen3-1.7B
+LFM2.5-2.6B
 ```
 
 Lần chạy đầu tiên cần tải model vào Hugging Face cache. Khi model đã được cache đầy đủ, có thể buộc Transformers chỉ dùng dữ liệu cục bộ:
@@ -161,7 +161,7 @@ Không bật biến này ở lần đầu tải model.
 
 ## Hướng dẫn chạy
 
-### Cách 1: Chạy đầy đủ XLM-RoBERTa và Qwen3
+### Cách 1: Chạy đầy đủ XLM-RoBERTa và LFM2.5-2.6B
 
 Mở **hai cửa sổ PowerShell**.
 
@@ -176,7 +176,7 @@ $env:QA_PRELOAD_LLM="true"
 python backend\viqa_api.py
 ```
 
-Backend chỉ bắt đầu nhận request sau khi cả hai model đã nạp xong. Lần đầu nạp Qwen có thể mất nhiều thời gian vì phải tải model.
+Backend chỉ bắt đầu nhận request sau khi cả hai model đã nạp xong. Lần đầu nạp LFM có thể mất nhiều thời gian vì phải tải model.
 
 Terminal 2 — frontend:
 
@@ -208,7 +208,7 @@ Trường `loaded_readers` nên có `llm` và ít nhất một trong `phobert`/`
 
 ### Cách 2: Chỉ chạy XLM-RoBERTa
 
-Cấu hình này nhẹ hơn và không nạp Qwen khi khởi động:
+Cấu hình này nhẹ hơn và không nạp LFM khi khởi động:
 
 ```powershell
 $env:QA_PRELOAD_READER="true"
@@ -216,9 +216,9 @@ $env:QA_PRELOAD_LLM="false"
 python backend\viqa_api.py
 ```
 
-Nếu sau đó chọn Qwen trên giao diện, model vẫn được nạp lười ở request đầu tiên.
+Nếu sau đó chọn LFM trên giao diện, model vẫn được nạp lười ở request đầu tiên.
 
-### Cách 3: Chỉ preload Qwen3
+### Cách 3: Chỉ preload LFM2.5
 
 ```powershell
 $env:QA_PRELOAD_READER="false"
@@ -236,7 +236,7 @@ Lệnh npm sau tương đương chạy trực tiếp backend với `QA_PRELOAD_R
 npm run api
 ```
 
-> Hiện không khuyến nghị dùng `run_system.bat`: tệp này còn gắn cứng đường dẫn `D:\Python\python.exe` và chưa thiết lập Qwen. Quy trình hai terminal ở trên phản ánh đúng runtime hiện tại.
+> Hiện không khuyến nghị dùng `run_system.bat`: tệp này còn gắn cứng đường dẫn `D:\Python\python.exe` và chưa thiết lập LFM. Quy trình hai terminal ở trên phản ánh đúng runtime hiện tại.
 
 ## Sử dụng giao diện
 
@@ -333,8 +333,8 @@ python evaluate_feedback_loop.py
 | `QA_HOST` | `0.0.0.0` | Địa chỉ backend lắng nghe |
 | `QA_PORT` | `8000` | Cổng API |
 | `QA_PRELOAD_READER` | `true` | Nạp XLM-RoBERTa trước khi mở server |
-| `QA_PRELOAD_LLM` | `false` | Nạp Qwen trước khi mở server |
-| `QA_LLM_MODEL` | `Qwen/Qwen3-1.7B` | Model ID hoặc đường dẫn local của LLM |
+| `QA_PRELOAD_LLM` | `false` | Nạp LFM trước khi mở server |
+| `QA_LLM_MODEL` | `LFM/LFM2.5-1.7B` | Model ID hoặc đường dẫn local của LLM |
 | `QA_LLM_MAX_NEW_TOKENS` | `96` | Số token sinh tối đa, tối thiểu 16 |
 | `QA_DENSE_MODEL` | `keepitreal/vietnamese-sbert` | Dense Encoder |
 | `QA_DEBUG` | `false` | In log kỹ thuật của pipeline |
@@ -389,7 +389,7 @@ python evaluate_qa.py --validation --mode oracle
 python evaluate_qa.py --validation --mode end-to-end --retriever bm25 --top-k 10
 ```
 
-Tại lần kiểm tra gần nhất ngày 21/08/2026, `npm run build` thành công; bộ test Python có **207 test đạt và 15 test lỗi**. Vì vậy repository hiện chưa ở trạng thái test xanh hoàn toàn và không nên coi các artifact đánh giá cũ là benchmark của Qwen/XLM-R hiện tại nếu chưa chạy lại đúng checkpoint.
+Tại lần kiểm tra gần nhất ngày 21/08/2026, `npm run build` thành công; bộ test Python có **207 test đạt và 15 test lỗi**. Vì vậy repository hiện chưa ở trạng thái test xanh hoàn toàn và không nên coi các artifact đánh giá cũ là benchmark của LFM/XLM-R hiện tại nếu chưa chạy lại đúng checkpoint.
 
 ## Xử lý lỗi thường gặp
 
@@ -441,7 +441,7 @@ npm run dev
 - Gợi ý chỉ được gọi khi câu trả lời chính có nội dung.
 - Xem log `[QuestionBM25Index]` ở terminal backend khi endpoint được gọi lần đầu.
 
-### Qwen không nạp được
+### LFM không nạp được
 
 - Kiểm tra CUDA, driver NVIDIA, PyTorch và bitsandbytes có tương thích không.
 - Đảm bảo máy còn đủ VRAM/RAM và dung lượng cache.

@@ -59,7 +59,7 @@ from reader.relation_validator import relation_validation_details, validate_cand
 from reader.rejection_reasons import REJECTION_DEBUG_PRIORITY, REJECTION_MESSAGES
 from reader.semantic_policy import SEMANTIC_POLICIES
 from reader.span_boundaries import assess_span_boundary
-from backend.related_questions import get_bm25_index
+from backend.related_questions import get_hybrid_index
 
 PIPELINE_CONFIG = load_pipeline_config()
 DOCS_DB = ROOT / "data" / "processed" / "docs.db"
@@ -1166,14 +1166,17 @@ def socratic_followups(payload: dict[str, Any]) -> dict[str, Any]:
     start = time.perf_counter()
     
     asked_questions = payload.get("asked_questions", [])
+    index = get_hybrid_index()
+    DENSE_SCORER._ensure_model()
+    if DENSE_SCORER._model is not None:
+        index.inject_dense_model(DENSE_SCORER._model)
     
-    bm25 = get_bm25_index()
-    followups = bm25.get_related_questions(question, asked_questions)
+    followups = index.get_related_questions(question, asked_questions)
     
     return {
         "followups": followups,
         "processing_time_ms": int((time.perf_counter() - start) * 1000),
-        "grounding": "bm25_train_val_test",
+        "grounding": "hybrid_train_val_test",
         "probe": None,
     }
 

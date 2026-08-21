@@ -41,6 +41,16 @@ function SourceItem({ item, isSelected, answer }: { item: PassageResult; isSelec
             {isSelected ? highlightAnswer(item.text, answer ?? undefined) : item.text}
           </p>
           <div className="grid grid-cols-2 gap-2 text-xs text-[var(--text-muted)] mt-2 border-t border-[var(--border)] pt-3">
+            <div><span className="font-medium text-[var(--text-secondary)]">Trạng thái:</span> <br/>
+              <span className={item.selection_status === 'SELECTED' ? 'text-viqa-cyan font-medium' : 'text-rose-500 font-medium'}>
+                {item.selection_status === 'SELECTED' ? 'Đã chọn' : 'Bị từ chối'}
+              </span>
+            </div>
+            {item.selection_status === 'REJECTED' && item.rejection_detail && (
+              <div className="col-span-2 text-rose-500 mt-1 mb-1">
+                <span className="font-medium text-[var(--text-secondary)]">Lý do:</span> {item.rejection_detail}
+              </div>
+            )}
             <div><span className="font-medium text-[var(--text-secondary)]">Document ID:</span> <br/>{item.document_id}</div>
             <div><span className="font-medium text-[var(--text-secondary)]">Passage ID:</span> <br/>{item.passage_id}</div>
             {item.ranking_score !== undefined && (
