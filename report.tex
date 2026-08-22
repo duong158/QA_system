@@ -1,0 +1,1339 @@
+\documentclass[12pt,a4paper,oneside]{report}
+
+% Báo cáo được biên dịch bằng XeLaTeX/Tectonic để hiển thị Unicode tiếng Việt.
+\usepackage{fontspec}
+\setmainfont{Times New Roman}
+\setsansfont{Arial}
+\setmonofont{DejaVu Sans Mono}[Scale=0.84]
+
+\usepackage[left=3cm,right=2.2cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{setspace}
+\setstretch{1.35}
+\usepackage{graphicx}
+\graphicspath{{IMG/}}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{amsmath,amssymb,mathtools}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{fancyvrb}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit,calc}
+\usepackage{fancyhdr}
+\usepackage{hyperref}
+\usepackage[nameinlink,noabbrev]{cleveref}
+
+\definecolor{viqablue}{HTML}{3156A6}
+\definecolor{viqacyan}{HTML}{0E8FAC}
+\definecolor{viqaviolet}{HTML}{6D5BD0}
+\definecolor{viqaamber}{HTML}{C77D00}
+\definecolor{viqagreen}{HTML}{14805E}
+\definecolor{viqared}{HTML}{B42318}
+\definecolor{lightblue}{HTML}{EDF4FF}
+\definecolor{lightgray}{HTML}{F4F6F8}
+\definecolor{darkgray}{HTML}{374151}
+
+\hypersetup{
+  colorlinks=true,
+  linkcolor=viqablue,
+  citecolor=viqablue,
+  urlcolor=viqacyan,
+  pdftitle={VIQA Nexus -- Hệ thống hỏi đáp tiếng Việt có dẫn nguồn},
+  pdfauthor={Nhóm 15 -- NLP Summer 2026}
+}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{}
+\fancyhead[R]{}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt}
+\setlength{\headheight}{15pt}
+\setlength{\parindent}{1.15cm}
+\setlength{\parskip}{0.25em}
+\setlist[itemize]{leftmargin=1.8em,itemsep=0.25em,topsep=0.35em}
+\setlist[enumerate]{leftmargin=2em,itemsep=0.25em,topsep=0.35em}
+\captionsetup{font=small,labelfont=bf}
+\makeatletter
+\renewcommand{\@makechapterhead}[1]{%
+  \vspace*{0.8em}%
+  {\parindent \z@ \raggedright \normalfont
+    \ifnum \c@secnumdepth >\m@ne
+      \huge\bfseries \@chapapp\space \thechapter
+      \par\nobreak
+      \vskip 0.8em
+    \fi
+    \Huge \bfseries #1\par\nobreak
+    \vskip 1.2em}}
+\renewcommand{\@makeschapterhead}[1]{%
+  \vspace*{0.8em}%
+  {\parindent \z@ \raggedright
+    \normalfont\Huge\bfseries #1\par\nobreak
+    \vskip 1.2em}}
+\renewcommand\section{\@startsection {section}{1}{\z@}%
+  {1.2ex \@plus .4ex \@minus .2ex}%
+  {0.6ex \@plus .2ex}%
+  {\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {1.0ex \@plus .3ex \@minus .2ex}%
+  {0.45ex \@plus .2ex}%
+  {\normalfont\large\bfseries}}
+\makeatother
+\renewcommand{\contentsname}{Mục lục}
+\renewcommand{\listfigurename}{Danh mục hình}
+\renewcommand{\listtablename}{Danh mục bảng}
+\renewcommand{\bibname}{Tài liệu tham khảo}
+\renewcommand{\arraystretch}{1.22}
+\sloppy
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\artifact}[1]{\path{#1}}
+\newcommand{\optionalfigure}[4][0.94\textwidth]{%
+\begin{figure}[H]
+\centering
+\IfFileExists{IMG/#2}{%
+  \includegraphics[width=#1]{#2}%
+}{%
+  \fbox{\begin{minipage}[c][4.0cm][c]{0.86\textwidth}
+  \centering
+  \textbf{Chèn ảnh minh họa tại đây}\\[0.4em]
+  Đặt file vào: \texttt{\detokenize{IMG/#2}}\\[0.4em]
+  Ảnh này dùng để minh họa: #3
+  \end{minipage}}%
+}
+\caption{#3}
+\label{#4}
+\end{figure}
+}
+
+\lstdefinestyle{viqa}{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{lightgray},
+  frame=single,
+  rulecolor=\color{gray!35},
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  xleftmargin=0.35em,
+  xrightmargin=0.35em,
+  aboveskip=0.7em,
+  belowskip=0.7em
+}
+
+\tikzset{
+  block/.style={draw=viqablue,rounded corners=3pt,fill=lightblue,
+    minimum height=1.05cm,text width=2.55cm,align=center,font=\small},
+  postblock/.style={draw=viqaviolet,rounded corners=3pt,fill=viqaviolet!8,
+    minimum height=0.95cm,text width=2.35cm,align=center,font=\small},
+  store/.style={draw=viqacyan,rounded corners=3pt,fill=viqacyan!7,
+    minimum height=0.95cm,text width=2.35cm,align=center,font=\small},
+  flowarrow/.style={-{Latex[length=2.5mm]},thick,draw=darkgray},
+  dasharrow/.style={-{Latex[length=2.5mm]},thick,dashed,draw=darkgray}
+}
+
+\begin{document}
+
+% -----------------------------------------------------------------------------
+% TRANG BÌA
+% -----------------------------------------------------------------------------
+\begin{titlepage}
+\thispagestyle{empty}
+\begin{center}
+\vspace*{0.15cm}
+{\large ĐẠI HỌC QUỐC GIA HÀ NỘI}\\[0.18cm]
+{\large\bfseries TRƯỜNG ĐẠI HỌC CÔNG NGHỆ}\\[0.25cm]
+{\small ***\,$\diamond$\,***}\\[0.25cm]
+\includegraphics[width=2.45cm]{Logo-DH-Cong-Nghe-UET.jpg}\\[0.7cm]
+
+{\Large\bfseries BÁO CÁO BÀI TẬP LỚN}\\[0.2cm]
+{\large\bfseries XỬ LÝ NGÔN NGỮ TỰ NHIÊN}\\[0.55cm]
+
+{\large\bfseries ĐỀ TÀI}\\[0.25cm]
+{\LARGE\bfseries VIQA NEXUS}\\[0.25cm]
+{\Large\bfseries HỆ THỐNG HỎI ĐÁP TIẾNG VIỆT}\\[0.18cm]
+{\large\bfseries CÓ DẪN NGUỒN, GIA SƯ SOCRATIC VÀ VÒNG LẶP PHẢN HỒI}\\[0.45cm]
+{\large\bfseries NHÓM 15}\\[0.55cm]
+
+\begin{tabular}{L{4.1cm}L{8.0cm}}
+\textbf{Mã môn học:} & NLP Summer 2026\\[0.08cm]
+\textbf{Giảng viên hướng dẫn:} & Trần Hồng Việt\\[0.08cm]
+\textbf{Nhóm thực hiện:} & Nhóm 15\\[0.08cm]
+\textbf{Sinh viên thực hiện:} & Nguyễn Tùng Dương \hfill 24022306\\
+& Tống Đức Hồng Anh \hfill 24022258\\
+& Lê Toàn \hfill 24022466\\
+& Lê Ngọc Quý \hfill 23021677
+\end{tabular}
+
+\vfill
+{\large Hà Nội, 2026}
+\end{center}
+\end{titlepage}
+
+\pagenumbering{roman}
+
+\chapter*{Lời cảm ơn}
+\addcontentsline{toc}{chapter}{Lời cảm ơn}
+Nhóm thực hiện xin trân trọng cảm ơn giảng viên hướng dẫn Trần Hồng Việt đã cung
+cấp nền tảng kiến thức về biểu diễn văn bản, truy hồi thông tin, mô hình ngôn ngữ
+tiền huấn luyện và phương pháp đánh giá hệ thống. Các góp ý trong quá trình học giúp
+nhóm chuyển đề tài từ một bản minh họa Retriever--Reader thành một hệ thống có cấu
+hình, benchmark, cơ chế từ chối trả lời, truy vết nguồn và kiểm thử hồi quy.
+
+Nhóm cũng ghi nhận đóng góp của cộng đồng mã nguồn mở đối với PhoBERT, Hugging
+Face Transformers, Sentence Transformers, FAISS, React, Three.js và các thư viện
+được sử dụng trong dự án. Báo cáo này mô tả trạng thái mã nguồn và kết quả kiểm
+chứng hiện tại; những kết quả còn chưa đạt hoặc chưa được xác minh được trình bày
+như giới hạn, không được diễn giải thành khả năng đã hoàn thiện.
+
+\chapter*{Phân công nhiệm vụ}
+\addcontentsline{toc}{chapter}{Phân công nhiệm vụ}
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{L{3.8cm}C{2.3cm}C{1.8cm}Y}
+\toprule
+\textbf{Họ và tên} & \textbf{Mã sinh viên} & \textbf{Đóng góp} & \textbf{Nhiệm vụ phân công chính} \\
+\midrule
+Nguyễn Tùng Dương & 24022306 & 25\% & \textbf{Document Retriever}: Thiết kế và hiện thực hóa các phương pháp truy hồi (TF--IDF, BM25 Okapi, Dense SBERT, Hybrid RRF), chuẩn hóa điểm số và tối ưu hóa candidate pool. \\
+\addlinespace[0.3em]
+Tống Đức Hồng Anh & 24022258 & 25\% & \textbf{Reader / Answer Extraction}: Huấn luyện và tinh chỉnh Reader (XLM-RoBERTa, PhoBERT), xây dựng cơ chế trích xuất span, ranking ứng viên và hiệu chỉnh threshold. \\
+\addlinespace[0.3em]
+Lê Toàn & 24022466 & 25\% & \textbf{Dữ liệu \& Tiếng Việt hóa}: Tiền xử lý tập dữ liệu UIT-ViQuAD 2.0, phân đoạn văn bản, chunking bảo toàn biên câu, xây dựng cơ sở dữ liệu SQLite \code{docs.db} và căn chỉnh offset. \\
+\addlinespace[0.3em]
+Lê Ngọc Quý & 23021677 & 25\% & \textbf{Tích hợp hệ thống, Web UI \& Báo cáo}: Xây dựng backend orchestration API, tích hợp Local LLM LFM2.5, phát triển giao diện React/Vite 3D tương tác và tổng hợp báo cáo kỹ thuật. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapter*{Tóm tắt}
+\addcontentsline{toc}{chapter}{Tóm tắt}
+VIQA Nexus là hệ thống hỏi đáp tiếng Việt chạy cục bộ trên kho tài liệu đóng, kết hợp
+truy hồi tài liệu, Reader trích xuất XLM-RoBERTa và mô hình ngôn ngữ sinh LFM2.5-2.6B.
+Một câu hỏi được đưa qua Retriever để lấy các passage liên quan, sau đó có thể đi theo
+hai hướng xử lý:
+\begin{itemize}
+  \item \textbf{Extractive QA}: chạy Reader XLM-RoBERTa trên các passage ứng viên, sinh nhiều
+  span, rồi qua lớp phân tích ngữ nghĩa và chuỗi semantic gate nhằm kiểm tra tính hợp lệ
+  của span, biên câu trả lời, bằng chứng, chủ thể, quan hệ và kiểu câu hỏi;
+  \item \textbf{Generative QA}: nạp mô hình cục bộ \code{LiquidAI/LFM2.5-2.6B} (lượng tử hóa
+  4-bit NF4 qua bitsandbytes) để sinh câu trả lời tự nhiên dạng RAG từ top-5 passage hoặc
+  hội thoại trực tiếp.
+\end{itemize}
+Hệ thống trả lời kèm passage nguồn; trong luồng extractive, nếu không có ứng viên vượt gate
+thì trả về trạng thái no-answer thay vì tự tạo nội dung mới.
+
+Mã nguồn hiện hỗ trợ bốn Retriever ở API (TF--IDF, BM25, Dense và Hybrid), hai luồng Reader
+(Extractive XLM-RoBERTa/PhoBERT compatibility và Generative LFM2.5), semantic policy v2,
+cơ chế tinh chỉnh span, fallback có kiểm soát, chuẩn hóa source title, giao diện chat
+responsive với nhân vật 3D Mari, chế độ Gia sư Socratic và vòng lặp phản hồi có người kiểm duyệt.
+Socratic không dùng mô hình sinh ngoài: câu hỏi gợi mở được tạo từ bằng chứng trong các
+passage đã chọn/truy hồi, khử trùng lặp và được kiểm tra lại bằng BM25. Phản hồi được lưu
+trong SQLite ở trạng thái chờ duyệt; model và corpus không tự cập nhật trong runtime.
+
+Benchmark Retriever trên 7.301 câu hỏi test cho thấy Hybrid đứng đầu với MRR 0,7682 và
+Recall@10 là 0,9156. Frontend mặc định sử dụng BM25 với Reader XLM-RoBERTa và hỗ trợ chuyển
+sang LFM2.5 RAG/Chat linh hoạt.
+
+\noindent\textbf{Mã nguồn:} \url{https://github.com/duong158/QA_system}
+
+\noindent\textbf{Từ khóa:} Question Answering, tiếng Việt, Retriever--Reader,
+Hybrid Retrieval, XLM-RoBERTa, LFM2.5, Generative RAG, semantic gating, Socratic tutoring.
+
+\chapter*{Quy ước về bằng chứng và phạm vi}
+\addcontentsline{toc}{chapter}{Quy ước về bằng chứng và phạm vi}
+Báo cáo phân biệt ba loại bằng chứng:
+\begin{itemize}
+  \item \textbf{Runtime}: hành vi đọc trực tiếp từ \artifact{backend/viqa_api.py},
+  \artifact{config/qa_pipeline.json}, \artifact{config/semantic_policy.json} và
+  \artifact{config/socratic.json}.
+  \item \textbf{Artifact đánh giá}: số liệu đã lưu trong \artifact{results/}; mỗi
+  bảng nêu rõ tập dữ liệu và file nguồn.
+  \item \textbf{Kiểm tra build và test}: \code{npm run build} và
+  \code{python -m pytest -q}.
+\end{itemize}
+Điểm Retriever, Reader và ranking trong API là tín hiệu xếp hạng, không phải xác
+suất câu trả lời đúng. Hai trường \code{confidence} và \code{answer\_confidence}
+được giữ để tương thích nhưng hiện trả về \code{null}.
+
+\tableofcontents
+\listoffigures
+\listoftables
+\clearpage
+\pagenumbering{arabic}
+
+% =============================================================================
+\chapter{Giới thiệu}
+\label{chap:introduction}
+
+\section{Bài toán}
+Question Answering (QA) hướng tới việc trả lời trực tiếp câu hỏi tự nhiên thay vì
+chỉ trả về danh sách tài liệu. Với kho tiếng Việt cỡ vừa, việc cho Reader đọc toàn bộ
+corpus là tốn kém; kiến trúc phổ biến là Retriever--Reader: Retriever thu hẹp không
+gian tìm kiếm, Reader trích xuất span từ các đoạn liên quan, sau đó hệ thống xếp hạng
+và kiểm tra bằng chứng \cite{chen2017drqa}.
+
+VIQA Nexus giải quyết biến thể \emph{closed-domain extractive QA}. Câu trả lời hợp lệ
+phải là chuỗi có vị trí xác định trong passage nguồn. Hệ thống không hứa trả lời mọi
+câu hỏi; khả năng từ chối khi bằng chứng không đủ là một phần của đặc tả, đặc biệt
+với câu hỏi sai tiền đề hoặc câu hỏi có quan hệ ngữ nghĩa nhạy cảm như nguyên nhân,
+thời gian sinh/mất và địa điểm sự kiện.
+
+\section{Mục tiêu hiện tại}
+\begin{enumerate}
+  \item Xây dựng pipeline QA tiếng Việt có thể đổi Retriever và Reader qua cấu hình.
+  \item Bảo toàn liên kết từ câu trả lời đến document, passage và offset bằng chứng.
+  \item Kết hợp mô hình neural với luật ngữ nghĩa có version và gate có thể kiểm toán.
+  \item Cung cấp UI chat dễ dùng, hỗ trợ bàn phím, giọng nói và avatar Mari.
+  \item Gợi mở học tập bằng câu hỏi Socratic có nguồn, không tạo câu hỏi ngoài corpus.
+  \item Thu phản hồi theo vòng lặp có kiểm duyệt, không tự động học từ dữ liệu chưa duyệt.
+  \item Duy trì benchmark và test đủ để nhìn thấy cả cải tiến lẫn hồi quy.
+\end{enumerate}
+
+\section{Đóng góp của phiên bản đang báo cáo}
+\begin{itemize}
+  \item Online API hỗ trợ TF--IDF, BM25, Dense và Hybrid BM25+Dense bằng Reciprocal
+  Rank Fusion (RRF) \cite{cormack2009rrf}.
+  \item Reader sinh tối đa năm span cho mỗi passage, kết hợp phrase fallback và
+  sentence fallback, sau đó lọc bằng semantic policy v2.
+  \item Parser tách subject, predicate, modifier và relation; validator chuyên biệt
+  cho cause, location, time, purpose, identity, definition và contrast.
+  \item Source title được ưu tiên theo metadata/heading, sau đó mới suy ra entity ở
+  đầu passage; chi tiết ngày sinh--mất vẫn nằm trong evidence.
+  \item Socratic follow-up và feedback/knowledge-blind-spot là hai lớp hậu xử lý độc
+  lập, không làm hỏng đường trả lời chính nếu chúng gặp lỗi.
+  \item Frontend được redesign thành hội thoại responsive, disclosure nguồn/pipeline,
+  lịch sử, cài đặt, phản hồi, giọng nói và avatar 3D được lazy-load.
+\end{itemize}
+
+\section{Phạm vi và điều không được tuyên bố}
+Hệ thống là prototype nghiên cứu chạy cục bộ, chưa có authentication/RBAC cho các API
+review, chưa tự động promote tài liệu hoặc checkpoint, chưa hiệu chuẩn xác suất đúng,
+và chưa chứng minh chất lượng trên một test set end-to-end có gold answer độc lập.
+XLM-R có checkpoint và có thể được API nạp, nhưng báo cáo hiện chỉ có artifact đánh
+giá đầy đủ cho PhoBERT. Pyserini có mã thử nghiệm offline nhưng không được nối vào
+online API.
+
+% =============================================================================
+\chapter{Cơ sở lý thuyết và tiêu chí thiết kế}
+\label{chap:background}
+
+\section{Retriever--Reader}
+Với câu hỏi $q$ và corpus $\mathcal{D}$, Retriever tạo tập passage ứng viên
+$\mathcal{P}_k(q)$. Reader ước lượng các span $(s,e)$ trong từng passage. VIQA Nexus
+không chọn span có logit lớn nhất một cách trực tiếp mà sinh nhiều ứng viên, tính thêm
+tín hiệu kiểu câu hỏi và quan hệ rồi mới áp dụng gate cuối.
+
+\section{Truy hồi lexical, dense và hybrid}
+TF--IDF biểu diễn tài liệu bằng trọng số tần suất từ và nghịch đảo tần suất tài liệu.
+BM25 bổ sung bão hòa term frequency và chuẩn hóa độ dài \cite{robertson2009bm25}.
+Dense Retrieval mã hóa câu hỏi và tài liệu thành vector ngữ nghĩa; implementation
+offline dùng Sentence Transformers và FAISS, còn runtime dùng embedding đã chuẩn hóa
+và cosine similarity \cite{reimers2019sbert}. Hybrid lấy thứ hạng từ BM25 và Dense
+rồi hợp nhất bằng RRF:
+\begin{equation}
+  \operatorname{RRF}(d)=\frac{1}{K+r_{\mathrm{BM25}}(d)}+
+  \frac{1}{K+r_{\mathrm{Dense}}(d)}, \qquad K=60.
+\end{equation}
+
+\section{Reader trích xuất và no-answer}
+PhoBERT kế thừa kiến trúc RoBERTa, được tiền huấn luyện cho tiếng Việt
+\cite{liu2019roberta,nguyen2020phobert}. Đầu QA dự đoán vị trí bắt đầu/kết thúc và
+null span. Runtime dùng margin
+\begin{equation}
+  m = \operatorname{score}(s^*,e^*)-\operatorname{score}(\mathrm{null})
+\end{equation}
+và threshold được hiệu chỉnh trên validation. Margin không phải xác suất; do đó báo
+cáo không gọi nó là confidence.
+
+\section{Đánh giá}
+Retriever được đo bằng Recall@$k$ và MRR. Reader được đo bằng Exact Match (EM), token
+F1, Answerable F1 và Unanswerable Accuracy. Với pipeline có từ chối, false positive
+là trả lời câu không nên trả lời; false negative là từ chối câu có đáp án. Hai loại
+lỗi này cần được trình bày cùng nhau vì tối ưu một phía có thể làm phía kia xấu đi.
+
+\section{Nguyên tắc an toàn dữ liệu}
+Vòng lặp phản hồi tuân theo hướng human-in-the-loop: dữ liệu người dùng phải được
+kiểm duyệt trước khi xuất thành tập huấn luyện \cite{settles2009active}. Runtime chỉ
+ghi nhận phản hồi và phân tích điểm mù; không sửa trọng số model hoặc production
+corpus. Quyết định này hạn chế data poisoning và tránh biến một feedback đơn lẻ thành
+tri thức hệ thống.
+
+% =============================================================================
+\chapter{Dữ liệu và tiền xử lý}
+\label{chap:data}
+
+\section{UIT-ViQuAD2.0 và corpus}
+Các file parquet đã xử lý có schema
+\code{id, title, context, question, answer\_text, answer\_start}. Thống kê đọc trực
+tiếp từ file hiện tại được trình bày ở \Cref{tab:data-splits}.
+
+\begin{table}[H]
+\centering
+\caption{Thống kê các split đã xử lý}
+\label{tab:data-splits}
+\begin{tabular}{lrrr}
+\toprule
+Split & Tổng câu hỏi & Có đáp án & Không có đáp án/không công bố gold \\
+\midrule
+Train & 28.454 & 19.238 & 9.216 \\
+Validation & 3.814 & 2.653 & 1.161 \\
+Test & 7.301 & 0 & 7.301 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Test parquet không chứa gold answer có thể dùng để chấm Reader, nhưng mỗi câu hỏi vẫn
+có context. Benchmark Retriever ánh xạ context đó về document trong corpus bằng exact
+match, substring hoặc Jaccard khi cần. Vì vậy kết quả test ở chương thực nghiệm là
+benchmark truy hồi document, không phải chất lượng trả lời end-to-end.
+
+Corpus \artifact{data/processed/corpus_clean.parquet} và SQLite
+\artifact{data/processed/docs.db} có 5.317 document. Bảng \code{documents} trong
+SQLite hiện chỉ có hai cột \code{id} và \code{text}; không có title metadata. Khi
+API khởi động, 5.317 document được chia thành 6.544 passage theo cấu hình tối đa 220
+token và chồng lấn hai câu.
+
+\section{Chunking có biên câu}
+Module \artifact{backend/chunking.py} tách paragraph, tách câu, rồi đóng gói các câu
+cho đến giới hạn token. Câu đơn quá dài được tách theo dấu chấm phẩy, hai chấm, dấu
+phẩy hoặc theo cửa sổ từ. Mỗi passage lưu
+\code{document\_id}, \code{passage\_id}, \code{paragraph\_id},
+\code{sentence\_start}, \code{sentence\_end}, nội dung và page nếu có. Hai câu overlap
+giúp giảm rủi ro đáp án nằm ngay biên chunk.
+
+\section{Căn chỉnh span và tokenizer}
+Pipeline Reader dùng raw text, PyVi một lần và tokenizer tương thích PhoBERT với
+offset tường minh. Báo cáo integrity hiện có kết quả ở \Cref{tab:span-integrity}.
+
+\begin{table}[H]
+\centering
+\caption{Kiểm tra ánh xạ answer span; nguồn: \texttt{results/span\_integrity\_report.json}}
+\label{tab:span-integrity}
+\begin{tabular}{lrrrr}
+\toprule
+Split & Mẫu có đáp án & Span hợp lệ & Span lỗi & Độ chính xác ánh xạ \\
+\midrule
+Train & 19.238 & 18.913 & 325 & 98,31\% \\
+Validation & 2.653 & 2.614 & 39 & 98,53\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Phần lớn lỗi còn lại được gắn nhãn \code{TOKENIZER\_BOUNDARY}; ba mẫu train có đáp
+án dài hơn stride. Đây là giới hạn dữ liệu/tokenizer cần sửa trước khi kỳ vọng
+Answerable EM cao.
+
+\section{Chuẩn hóa tiêu đề nguồn}
+Tiêu đề không còn được lấy bằng cách cắt cứng câu đầu. Hàm
+\code{derive\_source\_title} ưu tiên: (1) document title; (2) heading; (3) entity
+chính ở đầu passage; (4) first sentence truncated. Hàm chỉ bỏ ngoặc khi nội dung có
+dấu hiệu birth/death range, không xóa ngoặc hợp lệ như ``Hội nghị Genève (1954)''.
+Ví dụ:
+\begin{center}
+\fcolorbox{viqablue}{lightblue}{\parbox{0.86\textwidth}{
+\textbf{Nguồn:} Phạm Văn Đồng\\
+\textbf{Evidence:} Phạm Văn Đồng (1 tháng 3 năm 1906 -- 29 tháng 4 năm 2000) là
+Thủ tướng đầu tiên\ldots}}
+\end{center}
+Đây là sửa lỗi metadata/title extraction; CSS truncate chỉ còn vai trò trình bày.
+
+% =============================================================================
+\chapter{Kiến trúc hệ thống hiện tại}
+\label{chap:architecture}
+
+\section{Luồng tổng thể}
+\Cref{fig:architecture} cho thấy đường QA chính và hai lớp hậu xử lý. Socratic và
+feedback được tách khỏi quyết định trả lời để lỗi của chúng không chặn API
+\code{/api/ask}.
+
+\begin{figure}[H]
+\centering
+\resizebox{0.94\textwidth}{!}{%
+\begin{tikzpicture}[node distance=0.65cm and 0.62cm]
+  \node[block] (ui) {React chat UI\\Mari, voice, settings};
+  \node[block,right=of ui] (api) {HTTP API\\validation + orchestration};
+  \node[block,right=of api] (ret) {Retriever\\BM25 / TF--IDF\\Dense / Hybrid};
+  \node[block,right=of ret] (reader) {Reader / LLM\\XLM-R (Extract)\\LFM2.5 (Generative)};
+  \node[block,right=of reader] (gates) {Candidates\\refinement + semantic gates};
+  \node[store,below=1.15cm of ret] (corpus) {SQLite corpus\\5.317 documents\\6.544 passages};
+  \node[postblock,below=1.15cm of reader] (socratic) {Socratic follow-ups\\grounded one-hop};
+  \node[postblock,below=1.15cm of gates] (feedback) {Feedback review\\analytics + submissions};
+  \draw[flowarrow] (ui) -- (api);
+  \draw[flowarrow] (api) -- (ret);
+  \draw[flowarrow] (ret) -- (reader);
+  \draw[flowarrow] (reader) -- (gates);
+  \draw[flowarrow] (corpus) -- (ret);
+  \draw[dasharrow] (gates) -- (socratic);
+  \draw[dasharrow] (gates) -- (feedback);
+\end{tikzpicture}}
+\caption{Kiến trúc runtime của VIQA Nexus}
+\label{fig:architecture}
+\end{figure}
+
+\optionalfigure{ui_chat_overview.png}
+{Giao diện hỏi đáp chính của VIQA Nexus với vùng hội thoại, truy vết nguồn và trạng thái hệ thống}
+{fig:ui-chat-overview}
+
+\section{Phân tách offline và online}
+\begin{table}[H]
+\centering
+\caption{Phạm vi các thành phần}
+\label{tab:offline-online}
+\begin{tabularx}{\textwidth}{L{3.0cm}YY}
+\toprule
+Lớp & Offline & Online/runtime \\
+\midrule
+Dữ liệu & clean parquet, build corpus/index, kiểm tra span & load SQLite, chunk passage khi khởi động \\
+Retriever & module benchmark document-level, FAISS index & PassageIndex nội bộ, dense cosine, hybrid RRF \\
+Reader / LLM & train/evaluate checkpoint XLM-R, nạp weights LFM & lazy-load XLM-RoBERTa, LFM2.5 4-bit NF4 RAG/Chat \\
+Semantic & build holdout, ablation, rule coverage & parse question, refine span, validate candidate, abstain \\
+Feedback & export bản ghi approved thành JSONL & SQLite WAL, review queue, analytics; không học trực tiếp \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Sự phân tách này rất quan trọng khi đọc số liệu: benchmark Retriever đang đo
+document-level index, trong khi API phục vụ passage-level index có thêm lexical boost.
+Kết quả offline mô tả xu hướng của phương pháp, không phải cam kết latency hay Recall
+giống hệt runtime.
+
+\section{Cấu hình QA đang hoạt động}
+\begin{table}[H]
+\centering
+\caption{Snapshot \texttt{config/qa\_pipeline.json}}
+\label{tab:qa-config}
+\begin{tabularx}{\textwidth}{L{5.2cm}L{3.0cm}Y}
+\toprule
+Tham số & Giá trị & Ý nghĩa \\
+\midrule
+\code{default\_retriever} & BM25 & lựa chọn mặc định của API/UI \\
+\code{default\_top\_k} / \code{max\_top\_k} & 10 / 20 & passage trả về / trần request \\
+Candidate pool & $\max(20,2k)$, trần 40 & số passage Reader phải đọc \\
+Ranking weights & 0,30 / 0,60 / 0,10 / 0,00 & retriever / reader / answer type / relation \\
+\code{minimum\_reader\_score} & 0,30 & gate tối thiểu của Reader signal \\
+\code{reader\_span\_candidates} & 5 & số span neural tối đa mỗi passage \\
+Reader window & 256, stride 80 & cửa sổ token và overlap \\
+Chunking & 220 token, overlap 2 câu & passage runtime \\
+Extractive Checkpoint & XLM-RoBERTa Large & \artifact{models/reader/xlm-roberta-large-viquad} \\
+Generative Local LLM & LiquidAI LFM2.5-2.6B & Lượng tử 4-bit NF4 (bitsandbytes) \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Các trọng số phải không âm và tổng bằng 1; backend kiểm tra điều kiện khi load. Quan hệ
+có trọng số 0 trong phép cộng hiện tại nhưng vẫn có vai trò gate bắt buộc theo policy.
+
+% =============================================================================
+\chapter{Retriever}
+\label{chap:retriever}
+
+\section{Bốn phương pháp được hỗ trợ}
+\begin{description}[leftmargin=3.3cm,style=nextline]
+  \item[TF--IDF] Cosine trên vector TF--IDF; module benchmark dùng unigram/bigram,
+  feature hashing kiểu DrQA và PyVi.
+  \item[BM25] BM25 Okapi với $k_1=1{,}5$, $b=0{,}75$. Online bổ sung query coverage,
+  title match, n-gram proximity và lead-passage boost.
+  \item[Dense] Mô hình \code{keepitreal/vietnamese-sbert}; offline dùng FAISS, runtime
+  dùng cosine trên embedding chuẩn hóa được cache/precompute.
+  \item[Hybrid] Lấy tối đa $3k$ ứng viên ở mỗi nhánh BM25 và Dense, hợp nhất bằng RRF
+  rồi min--max normalize trong tập top-$k$.
+\end{description}
+
+Nếu Dense không thể nạp, online Dense/Hybrid hạ cấp về BM25 thay vì làm API dừng.
+Điều này tăng độ sẵn sàng nhưng response cần được đọc cùng health/config để biết phương
+pháp thực tế có hoạt động đầy đủ hay không.
+
+\section{Chuẩn hóa điểm}
+Điểm thô của các Retriever không cùng thang. API dùng min--max trong candidate pool:
+\begin{equation}
+  \hat{s}_i=\begin{cases}
+    \dfrac{s_i-\min_j s_j}{\max_j s_j-\min_j s_j}, & \max_j s_j\ne\min_j s_j,\\[6pt]
+    1, & \max_j s_j=\min_j s_j>0,\\
+    0, & \text{ngược lại.}
+  \end{cases}
+\end{equation}
+Chuẩn hóa này thuận tiện cho reranking nhưng phụ thuộc candidate pool; không nên so
+trực tiếp một score runtime giữa hai câu hỏi khác nhau.
+
+\section{Lý do BM25 vẫn là mặc định}
+Hybrid tốt nhất trên benchmark hiện có, nhưng BM25 vẫn là mặc định vì model Dense
+làm tăng footprint và thời gian nạp ở host CPU, trong khi BM25 có đường fallback đơn
+giản và dễ chẩn đoán. Đây là lựa chọn vận hành, không phải kết luận BM25 chính xác hơn.
+UI cho phép chuyển TF--IDF, BM25, Dense và Hybrid; Pyserini được đánh dấu chưa triển
+khai online.
+
+% =============================================================================
+\chapter{Reader, Local LLM và semantic gating}
+\label{chap:reader}
+
+\section{Các chế độ Reader và Local LLM được hỗ trợ}
+Hệ thống hỗ trợ cả hướng trích xuất truyền thống (Extractive QA) lẫn hướng tạo sinh hiện đại
+(Generative QA) thông qua tham số \code{reader} ở API:
+
+\begin{table}[H]
+\centering
+\caption{Các chế độ Reader và Local LLM trong runtime}
+\label{tab:reader-modes}
+\begin{tabularx}{\textwidth}{L{2.5cm}L{3.8cm}Y}
+\toprule
+Giá trị \code{reader} & Mô hình thực thi & Cơ chế hoạt động \\
+\midrule
+\code{xlmr} & XLM-RoBERTa Large & Extractive QA: trích xuất span trực tiếp từ passage ứng viên \\
+\code{phobert} & XLM-RoBERTa Large & Khóa tương thích ngược; trỏ về checkpoint XLM-R trong config \\
+\code{llm} & LiquidAI LFM2.5-2.6B & Generative RAG: dùng tối đa 5 passage làm ngữ cảnh sinh đáp án \\
+\code{llm\_chat} & LiquidAI LFM2.5-2.6B & Generative Direct: đàm thoại trực tiếp, không gắn nguồn passage \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Kiến trúc Extractive Reader XLM-RoBERTa}
+XLM-RoBERTa Large (\artifact{models/reader/xlm-roberta-large-viquad}, dung lượng khoảng 2,08 GB)
+được nạp cục bộ để dự đoán span bắt đầu/kết thúc trên từng passage trong candidate pool.
+Reader được lazy-load và bộ predictor chỉ giữ model đang dùng trong bộ nhớ để hạn chế footprint.
+
+\section{Mô hình sinh cục bộ LiquidAI LFM2.5-2.6B}
+Đối với các câu hỏi đòi hỏi tổng hợp đa passage hoặc giải thích tự nhiên, hệ thống tích hợp
+mô hình sinh \code{LiquidAI/LFM2.5-2.6B} chạy hoàn toàn cục bộ trên GPU. Mô hình được nạp
+thông qua thư viện \code{transformers} kết hợp cơ chế lượng tử hóa 4-bit NF4 của \code{bitsandbytes}
+để vừa vặn trong VRAM máy tính cá nhân (yêu cầu khoảng 2,5--3 GB VRAM). Ở chế độ RAG (\code{llm}),
+LFM2.5 nhận prompt chứa top-5 passage đã được Retriever chọn lọc và tạo câu trả lời mạch lạc;
+nếu Retriever không tìm thấy passage đủ tin cậy hoặc ở chế độ \code{llm\_chat}, mô hình sẽ trả
+lời trực tiếp dựa trên tri thức nội tại.
+
+\section{Bảng thông số so sánh mô hình}
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{3.25cm}L{3.75cm}L{3.75cm}L{3.75cm}}
+\caption{Bảng thông số thực nghiệm so sánh PhoBERT, XLM-RoBERTa và LFM2.5}
+\label{tab:model-spec-comparison}\\
+\toprule
+\textbf{Thông số} & \textbf{PhoBERT base} & \textbf{XLM-RoBERTa Large} & \textbf{LiquidAI LFM2.5-2.6B} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Thông số} & \textbf{PhoBERT base} & \textbf{XLM-RoBERTa Large} & \textbf{LiquidAI LFM2.5-2.6B} \\
+\midrule
+\endhead
+\textbf{Parameters} & Khoảng 134M, ước tính từ weights FP32 local & Khoảng 559M, ước tính từ weights FP32 local & 2,6B theo model id LiquidAI/LFM2.5-2.6B \\
+\textbf{Model Size} & 0,503 GB checkpoint local & 2,098 GB checkpoint local & 5,041 GB snapshot Hugging Face cache \\
+\textbf{VRAM} & Quan sát benchmark CPU: 0 GB; ước tính fp32 weights khoảng 0,50 GB nếu chạy GPU & Quan sát benchmark CPU: 0 GB; ước tính fp32 weights khoảng 2,08 GB nếu chạy GPU & Quan sát benchmark CPU: 0 GB; nhánh 4-bit NF4 của backend kỳ vọng khoảng 2,5--3 GB VRAM khi CUDA khả dụng \\
+\textbf{Mean Latency} & 20.950,6 ms & 3.616,4 ms & 111.270,4 ms \\
+\textbf{P95 Latency} & 26.125,8 ms & 5.796,3 ms & 145.191,2 ms \\
+\textbf{Overall F1} & 33,33 & 65,08 & 40,00 \\
+\textbf{Answerable F1} & 0,00 & 47,62 & 80,00 \\
+\textbf{Unanswerable Accuracy} & 100,00 & 100,00 & 0,00 \\
+\textbf{False Positive Rate} & 0,00 & 0,00 & 100,00 \\
+\textbf{False Negative Rate} & 100,00 & 50,00 & 0,00 \\
+\textbf{Grounding / Source Traceability} & Mạnh: trả span trích xuất gắn với một passage nguồn & Mạnh nhất trong runtime: trả exact span từ selected passage/source & Trung bình: RAG prompt dùng context truy hồi nhưng text sinh ra không phải exact span, truy vết nguồn yếu hơn extractive QA \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+Số liệu trong \Cref{tab:model-spec-comparison} lấy từ các artifact mới tạo:
+\artifact{results/model\_spec\_comparison\_benchmark.json},
+\artifact{results/model\_spec\_lfm25\_cpu\_benchmark.json},
+\artifact{results/model\_spec\_lfm25\_unanswerable\_probe.json} và bảng tổng hợp
+\artifact{results/model\_spec\_comparison\_table.csv}. PhoBERT và XLM-R dùng cùng
+fixed smoke-3 validation gồm hai mẫu answerable và một mẫu unanswerable, latency không
+tính thời gian nạp model. LFM2.5 chạy được trên CPU nhưng quá chậm cho smoke-3 đầy đủ:
+benchmark 3 mẫu bị ngắt sau nhiều phút, nên bảng dùng một probe answerable RAG 32 token
+và một probe unanswerable 1 token để vẫn có đủ F1, FP/FN và latency thực nghiệm. Do protocol
+LFM2.5 khác reader extractive, số liệu này dùng để chứng minh trade-off vận hành, không dùng
+như benchmark chất lượng cuối cùng.
+
+\section{Hiệu chỉnh quyết định Reader}
+Đối với luồng trích xuất, threshold best-span-minus-null được kiểm tra để loại trừ các trường hợp
+không có câu trả lời (unanswerable). Mục tiêu lựa chọn threshold tối ưu hóa:
+\begin{equation}
+  0{,}7\times \mathrm{AnswerableF1} +
+  0{,}3\times \mathrm{UnanswerableAccuracy}.
+\end{equation}
+
+\section{Sinh và tinh chỉnh ứng viên}
+Mỗi passage có thể đóng góp:
+\begin{itemize}
+  \item tối đa năm \code{neural\_span} từ Reader;
+  \item \code{phrase\_fallback} khi rule extractor tìm được cụm có bằng chứng;
+  \item \code{sentence\_fallback} như phương án cuối, chịu penalty 0,60 và gate kiểu
+  câu hỏi nghiêm hơn (tối thiểu 0,75).
+\end{itemize}
+Span được kiểm tra offset, biên từ, bằng chứng substring; refinement có thể mở rộng
+hoặc rút gọn để tăng completeness nhưng vẫn phải giữ trực tiếp trong passage.
+
+\section{Question semantics}
+Parser trả về question type và cấu trúc semantic gồm subject, target, predicate,
+modifier, relation và trạng thái parse. Các policy chuyên biệt gồm
+\code{CAUSE}, \code{BIRTH\_TIME}, \code{DEATH\_TIME}, \code{EVENT\_LOCATION},
+\code{OBJECT\_LOCATION}, \code{PURPOSE}, \code{CONTRAST}, \code{DEFINITION},
+\code{IDENTITY}, \code{ATTRIBUTE} và \code{GENERAL}. Policy được version là v2.
+
+\section{Chuỗi gate}
+Ứng viên đi qua đúng thứ tự:
+\begin{enumerate}
+  \item span hợp lệ;
+  \item boundary;
+  \item completeness;
+  \item evidence;
+  \item subject consistency;
+  \item relation validation;
+  \item answer-type compatibility;
+  \item final ranking.
+\end{enumerate}
+Threshold chung là boundary 0,20; evidence 0,50; completeness 0,50; answer type
+0,50 và ranking 0,60. Policy có thể yêu cầu subject/relation mạnh hơn; ví dụ birth và
+death time dùng minimum relation score 0,90. Một số quan hệ grounded được phép bypass
+ranking threshold nhưng không bypass bằng chứng hay các gate bắt buộc khác.
+
+\section{Reranking hiện tại}
+Với candidate $c$, Reader signal sau penalty là
+\begin{equation}
+  R_c=s_{\mathrm{reader}}\,p_{\mathrm{fallback}}
+  \left(0{,}5+0{,}5b_c\right)
+  \left(0{,}5+0{,}5u_c\right),
+\end{equation}
+trong đó $b_c$ là boundary score và $u_c$ là completeness score. Điểm cuối:
+\begin{equation}
+  S_c=0{,}30\,s_{\mathrm{ret}}+0{,}60\,R_c+
+      0{,}10\,s_{\mathrm{type}}+0{,}00\,s_{\mathrm{relation}}.
+  \label{eq:ranking}
+\end{equation}
+Relation score vẫn quyết định pass/fail trước khi \Cref{eq:ranking} được dùng. Ứng
+viên pass gate có $S_c$ lớn nhất được chọn; nếu không có ứng viên hợp lệ, API trả
+\code{has\_answer=false}, source rỗng và rejection reason cụ thể.
+
+\section{Truy vết và giải thích}
+Response giữ raw span, refined span, offsets, candidate list, gate results, semantic
+parse, điểm thành phần và lý do rejection. Production UI chỉ hiển thị câu trả lời,
+nguồn và pipeline tóm tắt; chi tiết score chỉ hiện ở development/debug nhằm tránh tạo
+ấn tượng đây là xác suất chính xác.
+
+% =============================================================================
+\chapter{Chế độ Gia sư Socratic}
+\label{chap:socratic}
+
+\section{Mục tiêu}
+Sau khi có câu trả lời, Gia sư Socratic gợi ý tối đa ba câu hỏi tiếp theo để người
+học khám phá quan hệ khác của cùng chủ thể. Module không thay thế QA chính và không
+gọi mô hình sinh ngoài. Câu gợi ý chỉ được tạo khi có subject và evidence trong
+selected/retrieved passages.
+
+\section{Quy trình tạo gợi ý}
+\begin{enumerate}
+  \item Lấy selected passage trước, sau đó thêm các passage truy hồi, tối đa 12.
+  \item Khôi phục surface form của subject từ corpus.
+  \item Phát hiện pattern trong từng câu cho birth/death time, location, role, event,
+  cause, purpose, consequence, context, comparison và identity.
+  \item Loại relation vừa hỏi, relation đã thăm và câu quá giống lịch sử; ngưỡng
+  similarity là 0,72.
+  \item Tính answerability; ngưỡng tối thiểu là 0,62. Passage xa có thể được BM25
+  probe top-5 xác minh.
+  \item Xếp hạng và lấy tối đa ba câu, chỉ một hop.
+\end{enumerate}
+
+\optionalfigure{ui_socratic_followups.png}
+{Chế độ Gia sư Socratic hiển thị các câu hỏi gợi ý có liên hệ với câu trả lời hiện tại}
+{fig:ui-socratic-followups}
+
+Điểm xếp hạng Socratic là
+\begin{equation}
+  S_{\mathrm{soc}}=0{,}5A+0{,}3R+0{,}2N,
+\end{equation}
+với $A$ là answerability, $R$ là relevance và $N$ là novelty. Đây cũng là ranking
+signal, không phải xác suất câu tiếp theo chắc chắn có đáp án.
+
+\section{Tích hợp frontend}
+Hook \code{useSocraticFollowups} chỉ gọi \code{/api/socratic/followups} sau khi câu
+trả lời chính hoàn tất và toggle được bật. Khi người dùng chọn một gợi ý, câu đó trở
+thành user turn mới và đi qua cùng pipeline \code{/api/ask}. Session lưu relation đã
+thăm và câu đã hỏi để giảm lặp. Toggle xuất hiện ở header/ô soạn trên màn hình phù
+hợp; knob dùng kích thước cố định trong track và Enter/Shift+Enter được xử lý ở
+textarea.
+
+\section{Giới hạn}
+Rule-based generation tránh hallucination nhưng phụ thuộc parser và độ phủ pattern.
+Nếu subject parse sai, module trả danh sách rỗng thay vì đoán. Kết quả gợi ý chưa có
+benchmark người dùng chính thức về tính sư phạm; score hiện tại chỉ phản ánh bằng
+chứng, liên quan và độ mới trong corpus.
+
+% =============================================================================
+\chapter{Vòng lặp phản hồi có người kiểm duyệt}
+\label{chap:feedback}
+
+\section{Mô hình dữ liệu}
+Feedback được lưu trong \artifact{data/feedback/feedback.db} bằng SQLite, WAL mode,
+busy timeout 5 giây và write lock trong process. Các loại phản hồi gồm
+\code{CORRECT}, \code{INCORRECT}, \code{SPAN\_CORRECTION},
+\code{NO\_ANSWER\_BUT\_SHOULD\_HAVE} và
+\code{ANSWERED\_BUT\_SHOULD\_NOT}. Tài liệu đóng góp được lưu ở bảng riêng với loại
+\code{PLAIN\_TEXT}/\code{TXT}.
+
+Mỗi record giữ question, predicted answer, question type, relation, subject, selected
+passage, corrected passage/span, rejection reason, model/corpus/policy version, source
+của feedback, trạng thái review, cờ synthetic, conflict và duplicate count.
+
+\section{Xác minh feedback}
+Span correction phải trỏ đến passage tồn tại và corrected answer phải khớp substring
+theo offset. Fingerprint chuẩn hóa giúp deduplicate; phản hồi mâu thuẫn cho cùng ngữ
+cảnh được đánh dấu conflict thay vì âm thầm ghi đè. Lifecycle gồm
+\code{PENDING}, \code{REVIEWED}, \code{APPROVED}, \code{REJECTED}. Document submission
+có \code{PENDING\_REVIEW}, \code{APPROVED}, \code{REJECTED}.
+
+\section{Phân loại điểm mù}
+Khi metadata đủ, hệ thống phân loại:
+\begin{itemize}
+  \item \code{CORPUS\_GAP}: corpus không có bằng chứng;
+  \item \code{RETRIEVAL\_GAP}: passage sửa đúng không nằm trong danh sách retrieved;
+  \item \code{READER\_SEMANTIC\_GAP}: passage đúng đã được truy hồi nhưng chọn span/
+  relation sai;
+  \item \code{UNKNOWN\_GAP}: dữ liệu chưa đủ để phân loại.
+\end{itemize}
+Dashboard tổng hợp theo relation, question type, rejection reason, ngày và heatmap.
+Blind-spot score được định nghĩa:
+\begin{equation}
+  B=\mathrm{failure\_rate}\times\ln(1+n).
+\end{equation}
+Duplicate count được dùng làm trọng số; dữ liệu synthetic được tách khỏi feedback thật.
+
+\section{Không tự học trong runtime}
+Các endpoint submit/review chỉ cập nhật kho review. Response ghi rõ
+\code{runtime\_model\_updated=false} hoặc
+\code{production\_corpus\_updated=false}. Chỉ record approved mới được export offline
+thành JSONL để kiểm tra, versioning, train và benchmark. Việc promote checkpoint/corpus
+phải là quyết định của con người.
+
+\section{Trạng thái dữ liệu hiện tại}
+Artifact \artifact{results/knowledge_blind_spot_report.json} hiện có
+0 feedback. Vì vậy hệ thống đã có pipeline analytics nhưng chưa có cơ sở để kết luận
+relation hay question type nào là ``điểm mù thực tế'' từ người dùng. Dashboard trống
+là trạng thái đúng, không phải bằng chứng tỷ lệ lỗi bằng 0.
+
+% =============================================================================
+\chapter{Backend API và frontend}
+\label{chap:implementation}
+
+\section{Backend}
+Backend là \code{ThreadingHTTPServer} trong Python, khởi động mặc định tại cổng 8000.
+Nó load corpus/passages, cấu hình policy, feedback store; Reader và Dense model được
+nạp lười. CORS và JSON response được xử lý trong một handler chung. Kiến trúc này phù
+hợp demo cục bộ nhưng chưa có schema framework/OpenAPI, worker queue hoặc readiness
+probe tách biệt.
+
+\begin{longtable}{L{4.5cm}L{2.0cm}L{7.2cm}}
+\caption{API contract chính}\label{tab:api}\\
+\toprule
+Endpoint & Method & Chức năng \\
+\midrule
+\endfirsthead
+\toprule
+Endpoint & Method & Chức năng \\
+\midrule
+\endhead
+\code{/health} & GET & passages, model, retriever/reader hỗ trợ, config, version \\
+\code{/api/ask} & POST & chạy Retriever--Reader--semantic gate \\
+\code{/api/compare} & POST & so top passage và latency; không có Recall nếu thiếu gold \\
+\code{/api/evaluation} & GET & đọc artifact để phục vụ dashboard đánh giá \\
+\code{/api/socratic/followups} & POST & sinh câu hỏi gợi mở có nguồn \\
+\code{/api/feedback} & POST & ghi nhận phản hồi câu trả lời \\
+\code{/api/feedback/review} & GET & danh sách feedback theo trạng thái \\
+\path{/api/feedback/:id/review} & POST & review, approve hoặc reject feedback \\
+\path{/api/feedback/analytics} & GET & summary, relation, type, gap, trend và heatmap \\
+\path{/api/documents/submissions} & GET/POST & liệt kê hoặc đóng góp tài liệu \\
+\path{/api/documents/submissions/:id/review} & POST & duyệt tài liệu \\
+\bottomrule
+\end{longtable}
+
+\section{Response QA}
+Ngoài \code{answer} và \code{has\_answer}, response chứa source, top retrieved passage,
+visible passages, selected candidate, raw/refined span, semantic parse, gates, score
+components, rejection reason, scoring config và system version. Frontend chuẩn hóa
+\code{answer\_source/source}, default cho các field nullable và timeout request sau
+60 giây.
+
+\section{Frontend chat mới}
+Frontend dùng React 18, TypeScript, Vite, Tailwind CSS, Zustand và React Router.
+Giao diện chính có ba vùng thích ứng:
+\begin{itemize}
+  \item sidebar lịch sử, tạo chat mới và đường dẫn Evaluation/Knowledge Blind Spots;
+  \item conversation ở trung tâm, user/assistant turns, trạng thái ``Mari đang suy
+  nghĩ'', disclosure nguồn, đọc/sao chép, feedback và Socratic follow-ups;
+  \item Mari 3D ở desktop từ 1200 px; mobile dùng sheet và chỉ nạp component khi cần.
+\end{itemize}
+Composer dùng \code{textarea}: Enter gửi, Shift+Enter xuống dòng, bỏ qua Enter khi IME
+đang composing. Input speech được hợp nhất với draft rồi reset khi người dùng sửa tay.
+Nút gửi bị khóa khi rỗng hoặc đang xử lý. Lịch sử và cài đặt được lưu bằng Zustand;
+history giới hạn 20 mục.
+
+\optionalfigure{ui_answer_source_evidence.png}
+{Khối trả lời và truy vết nguồn: tiêu đề nguồn sạch, evidence và thao tác đọc/sao chép/feedback}
+{fig:ui-answer-source-evidence}
+
+\section{Avatar và giọng nói}
+Mari sử dụng React Three Fiber, Three.js và \code{@pixiv/three-vrm}; có các state
+listening, typing, retrieving, reading, thinking, speaking, success, no-answer và error.
+Speech Recognition/Synthesis dựa trên Web Speech API của trình duyệt. Voice, rate,
+pitch và volume có thể cấu hình. Đây là lớp trải nghiệm; chất lượng QA không phụ thuộc
+avatar hoặc speech.
+
+\section{Evaluation và Knowledge Blind Spots}
+Trang Evaluation gọi API thật thay vì mock frontend. Tuy nhiên endpoint hiện ghép
+\artifact{results/retriever_eval_all.json} với file Reader legacy
+\artifact{results/reader_eval_results.json}; latency 248 ms và một số error count còn
+là giá trị trình bày tĩnh. Vì vậy số Reader trong trang này có thể khác artifact
+checkpoint đang chạy. Báo cáo sử dụng trực tiếp
+\artifact{results/reader/heidiie_phobert_finetuned_viquad_full/validation_metrics.json}
+làm nguồn chính thức và coi việc thống nhất dashboard là việc cần sửa.
+
+\optionalfigure{ui_evaluation_dashboard.png}
+{Trang Evaluation dashboard dùng để quan sát metric Retriever, Reader và trạng thái pipeline}
+{fig:ui-evaluation-dashboard}
+
+Trang Knowledge Blind Spots gọi analytics/review API thật, hiển thị failure theo
+relation/type, gap distribution, trend, heatmap, queue review và form đóng góp tài
+liệu. Các route review hiện chưa có authentication/RBAC nên chỉ phù hợp môi trường
+cục bộ đáng tin cậy.
+
+\optionalfigure{ui_knowledge_blind_spots.png}
+{Trang Knowledge Blind Spots và hàng đợi human review cho các lỗi thiếu tri thức hoặc thiếu evidence}
+{fig:ui-knowledge-blind-spots}
+
+\section{Cấu trúc mã nguồn}
+\begin{lstlisting}[style=viqa]
+QA_system/
+|-- backend/        # API, chunking, source title, Socratic, feedback
+|-- reader/         # Reader inference/train/eval, semantics, gates, refinement
+|-- retrieval/      # TF-IDF, BM25, Dense, Pyserini, build/evaluate scripts
+|-- src/            # React pages, components, hooks, services, store, types
+|-- config/         # qa_pipeline.json, semantic_policy.json, socratic.json
+|-- data/           # raw/processed/evaluation/feedback
+|-- models/reader/  # PhoBERT and XLM-R checkpoints
+|-- results/        # metrics, predictions, diagnostics, reports
+|-- tests/          # unit, integration and regression tests
+|-- IMG/            # figures used by this report
+`-- report.tex
+\end{lstlisting}
+
+% =============================================================================
+\chapter{Thực nghiệm và trạng thái kiểm chứng}
+\label{chap:evaluation}
+
+\section{Benchmark Retriever}
+\paragraph{Thiết lập.}
+Artifact \artifact{results/retriever_eval_all.json} đánh giá bốn phương pháp trên
+7.301 câu hỏi test, gold là document chứa context. Kết quả trong
+\Cref{tab:retriever-results,fig:retriever-recall}.
+
+\begin{table}[H]
+\centering
+\caption{Kết quả Retriever trên test; giá trị lớn hơn tốt hơn, trừ thời gian}
+\label{tab:retriever-results}
+\small
+\begin{tabular}{lrrrrrrr}
+\toprule
+Phương pháp & MRR & R@1 & R@3 & R@5 & R@10 & QPS & Thời gian (s) \\
+\midrule
+BM25 & 0,6856 & 0,5946 & 0,7444 & 0,7970 & 0,8507 & 56,8 & 128,5 \\
+TF--IDF & 0,6512 & 0,5582 & 0,7121 & 0,7634 & 0,8142 & 51,3 & 142,1 \\
+Dense & 0,7321 & 0,6654 & 0,8012 & 0,8541 & 0,8923 & 213,5 & 34,2 \\
+\textbf{Hybrid} & \textbf{0,7682} & \textbf{0,6981} & \textbf{0,8345} & \textbf{0,8812} & \textbf{0,9156} & 44,8 & 162,7 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{report_retriever_recall.png}
+\caption{Recall@$k$ từ artifact Retriever hiện tại}
+\label{fig:retriever-recall}
+\end{figure}
+
+Hybrid cải thiện tuyệt đối 6,49 điểm phần trăm Recall@1 và 6,49 điểm Recall@10 so
+với BM25. Dense có QPS lớn nhất trong artifact vì embedding corpus/index đã được xây
+trước; con số này không bao gồm cost khởi động model và không nên suy rộng sang API
+CPU end-to-end.
+
+\section{Đánh giá Reader PhoBERT}
+Artifact đầy đủ có 3.814 validation examples. Kết quả trong
+\Cref{tab:reader-results,fig:reader-results}.
+
+\begin{table}[H]
+\centering
+\caption{Reader checkpoint đang được cấu hình}
+\label{tab:reader-results}
+\begin{tabular}{lrr}
+\toprule
+Nhóm & Chỉ số & Giá trị \\
+\midrule
+Overall (3.814) & EM / F1 & 13,87 / 36,25 \\
+Answerable (2.653) & EM / F1 & 0,79 / 32,96 \\
+Answerable & predicted-empty rate & 34,83\% \\
+Unanswerable (1.161) & Accuracy & 42,38\% \\
+Toàn bộ & predicted-no-answer rate & 37,13\% \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{report_reader_metrics.png}
+\caption{Reader PhoBERT trên full validation; nguồn: validation metrics của checkpoint}
+\label{fig:reader-results}
+\end{figure}
+
+Answerable F1 đã tốt hơn Reader cũ, nhưng Answerable EM rất thấp, cho thấy span còn
+dài/ngắn lệch chuẩn dù token overlap có ý nghĩa. Deployment decision trong
+\artifact{results/reader/new_checkpoint/deployment_decision.json} ghi rõ
+\code{status=experimental}, \code{production\_ready=false}. So với checkpoint trước,
+Answerable F1 tăng 3,88 điểm và empty rate giảm 8,78 điểm, nhưng Overall F1 giảm 1,78,
+Unanswerable Accuracy giảm 16,11 và Answerable EM giảm 13,68 điểm. Vì vậy runtime
+đang dùng checkpoint thử nghiệm, không đồng nghĩa đã được promote theo chuẩn nghiên cứu.
+
+\section{Semantic holdout và ablation}
+Artifact v2-final mô tả holdout 260 mẫu, parser relation rate 89,62\%, predicate rate
+87,31\%, subject rate 63,46\% và fully parsed rate 57,69\%. Diagnostic paraphrase mới
+đạt 11/12 (91,67\%). Full pipeline nâng Unanswerable Accuracy từ 22,50\% lên 57,50\%
+và giảm false-positive rate từ 77,50\% xuống 42,50\%, nhưng false-negative rate tăng
+từ 15,00\% lên 44,09\%. Overall F1 tăng từ 24,63 lên 26,56.
+
+\begin{table}[H]
+\centering
+\caption{Ablation trên candidate pool cố định của semantic holdout}
+\label{tab:semantic-ablation}
+\small
+\begin{tabular}{lrrrr}
+\toprule
+Cấu hình & Overall F1 & Answerable F1 & Unans. Acc. & FP / FN rate \\
+\midrule
+Reader only & 24,63 & 25,02 & 22,50 & 77,50 / 15,00 \\
++ refinement & 22,05 & 21,97 & 22,50 & 77,50 / 17,27 \\
++ subject & 22,51 & 21,14 & 27,50 & 72,50 / 25,45 \\
++ relation & 20,59 & 17,97 & 35,00 & 65,00 / 31,82 \\
+Full pipeline & \textbf{26,56} & 20,94 & \textbf{57,50} & \textbf{42,50} / 44,09 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.96\textwidth]{report_semantic_ablation.png}
+\caption{Ablation semantic trên candidate pool của holdout}
+\label{fig:semantic-ablation}
+\end{figure}
+
+\paragraph{Độ phủ rule.}
+Artifact rule coverage cho thấy cause prefix, location và purpose interrogative đạt
+precision 1,00 trên lần lượt 31, 18 và 18 match; auxiliary/copula boundary đạt 0,961
+và 0,991. Điểm yếu gồm modifier boundary 0,554, death-time marker 0,20 và identity
+0/1. Những mẫu có coverage quá thấp không đủ để kết luận khả năng tổng quát.
+
+\section{Latency semantic}
+Artifact holdout ghi average 5.371 ms, p50 4.439 ms và maximum 29.607 ms cho pipeline
+in-process trên host CPU. Đây không phải SLA: phép đo không gồm HTTP serialization,
+có cold/warm model effects và candidate pool cố định. Frontend timeout ở 60 giây để
+tránh chờ vô hạn.
+
+
+\section{Bảng quyết định lựa chọn thành phần}
+Các bảng dưới đây trình bày theo chiều dọc để phù hợp khổ giấy A4. Mỗi bảng tóm tắt trực tiếp căn cứ lựa chọn, phương án thay thế và quyết định cuối cùng.
+
+\begin{longtable}{L{3.0cm}L{7.2cm}L{4.0cm}}
+\caption{Bảng quyết định lựa chọn Retriever}\label{tab:retriever-selection}\\
+\toprule
+\textbf{Phương án} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Phương án} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endhead
+TF--IDF & Sparse lexical matching. MRR 0,6512; R@1 0,5582; R@5 0,7634; R@10 0,8142; 51,3 QPS. Ưu điểm là đơn giản, dễ giải thích; hạn chế là thấp hơn các phương án còn lại ở nhóm metric chính. & Không chọn mặc định. \\
+BM25 & Sparse probabilistic lexical matching. MRR 0,6856; R@1 0,5946; R@5 0,7970; R@10 0,8507; 56,8 QPS. Phù hợp truy vấn bám từ khóa, nhưng kém Hybrid ở MRR và Recall. & Không chọn mặc định. \\
+Dense & Embedding semantic similarity. MRR 0,7321; R@1 0,6654; R@5 0,8541; R@10 0,8923; 213,5 QPS. Tốc độ tốt nhất trong artifact, nhưng chất lượng truy hồi vẫn thấp hơn Hybrid. & Không chọn mặc định. \\
+\textbf{Hybrid} & Kết hợp tín hiệu BM25 và Dense. \textbf{MRR 0,7682; R@1 0,6981; R@5 0,8812; R@10 0,9156}. Hybrid đứng đầu ở các metric truy hồi chính, đổi lại QPS thấp hơn (44,8) và latency trung bình cao hơn. & \textbf{Chọn làm Retriever mặc định}. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{3.0cm}L{7.2cm}L{4.0cm}}
+\caption{Bảng quyết định lựa chọn mô hình Reader/LLM}\label{tab:model-selection}\\
+\toprule
+\textbf{Mô hình} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Mô hình} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endhead
+PhoBERT & Kiến trúc RoBERTa/PhoBERT base, extractive span QA, checkpoint khoảng 0,50 GB. Smoke benchmark 10 mẫu validation đạt EM 30,0 và F1 30,0. Có khả năng trích xuất span và truy vết nguồn, nhưng kết quả smoke thấp hơn XLM-R và runtime hiện dùng khóa \code{phobert} như compatibility alias. & Không chọn làm Reader mặc định. \\
+\textbf{XLM-R} & XLM-RoBERTa Large, extractive span QA, checkpoint khoảng 2,10 GB. Smoke benchmark 10 mẫu validation đạt EM 60,0 và F1 76,35. Mô hình giữ được exact span, gắn đáp án với passage nguồn và tương thích tốt với answer-type/ranking/semantic gates. & \textbf{Chọn làm Reader mặc định}. \\
+LFM2.5 & LiquidAI/LFM2.5-2.6B, mô hình sinh dùng cho RAG hoặc chat trực tiếp. Mạnh ở diễn giải và tổng hợp nhiều passage, nhưng không phải extractive span reader nên không so EM/F1 trực tiếp với XLM-R trong cùng bảng metric. & Giữ làm nhánh sinh câu trả lời tùy chọn. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{3.0cm}L{7.2cm}L{4.0cm}}
+\caption{Bảng quyết định lựa chọn cấu hình ablation}\label{tab:ablation-selection}\\
+\toprule
+\textbf{Biến thể} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Biến thể} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endhead
+A & Reader only. Overall F1 24,63; Answerable F1 25,02; Unanswerable Accuracy 22,50; FP 77,50; FN 15,00. Đây là baseline để so sánh các lớp xử lý bổ sung. & Baseline, không chọn làm cấu hình cuối. \\
+AB & Reader + Candidate Refinement. Overall F1 22,05; Answerable F1 21,97; Unanswerable Accuracy 22,50; FP 77,50; FN 17,27. So với A, Overall F1 giảm 2,58 điểm. & Không chọn độc lập. \\
+AC & Reader + Semantic Validation. Artifact hiện tại chưa có biến thể AC tách riêng khỏi candidate refinement, nên chưa dùng AC để kết luận định lượng độc lập. & Chưa chọn làm cấu hình riêng. \\
+\textbf{ABC} & Reader + Candidate Refinement + Semantic Validation/final policy. \textbf{Overall F1 26,56}; Answerable F1 20,94; \textbf{Unanswerable Accuracy 57,50}; \textbf{FP 42,50}; FN 44,09. Biến thể này tăng Overall F1 và cải thiện khả năng từ chối câu hỏi thiếu bằng chứng so với A. & \textbf{Chọn làm pipeline đầy đủ hiện tại}. \\
+\bottomrule
+\end{longtable}
+
+\section{Build và kiểm thử}
+\begin{table}[H]
+\centering
+\caption{Kết quả build và kiểm thử}
+\label{tab:tests}
+\begin{tabularx}{\textwidth}{L{3.5cm}L{3.2cm}Y}
+\toprule
+Lệnh & Kết quả & Ghi chú \\
+\midrule
+\code{npm run build} & Thành công & 3.351 module; cảnh báo hai JS chunk lớn hơn 500 kB \\
+\code{python -m pytest -q} & 178 passed, 10 failed & 188 test; 7 deprecation warnings; 147,51 giây \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Mười failure không bị che giấu. Chúng thuộc các nhóm:
+\begin{itemize}
+  \item semantic false premise/cause và thứ tự rejection reason;
+  \item question-type regression cho alias, location/entity và câu hỏi mô tả số lượng;
+  \item fallback span dài hơn expected;
+  \item hai test vẫn kỳ vọng reader weight 0,50 trong khi config hiện là 0,60;
+  \item một số test kiểm tra phiên bản dữ liệu/evaluation manifest cần cập nhật theo artifact mới.
+\end{itemize}
+Do có failure semantic thật, trạng thái kiểm thử tổng thể là \textbf{chưa xanh}. Hai
+failure trọng số có thể là test stale, nhưng phải được quyết định và cập nhật có chủ
+đích; không nên tự coi là pass.
+
+\section{Kiểm chứng source title}
+Các test source-title và tích hợp QA nằm trong phần đã pass. Runtime kiểm tra câu
+``Phạm Văn Đồng là ai?'' trả source title ``Phạm Văn Đồng'' trong khi passage vẫn giữ
+đủ ngày sinh--mất. Điều này xác nhận lỗi title bị cắt thô đã được sửa ở backend, không
+chỉ bằng CSS.
+
+% =============================================================================
+\chapter{Thảo luận, giới hạn và lộ trình}
+\label{chap:discussion}
+
+\section{Điểm mạnh hiện tại}
+\begin{itemize}
+  \item Pipeline có bằng chứng end-to-end và không sinh câu trả lời ngoài passage.
+  \item Hybrid Retriever đạt Recall cao nhất trong benchmark hiện tại.
+  \item Semantic policy có version, gate order và rejection reason có thể audit.
+  \item Socratic follow-up cũng grounded; không đưa thêm LLM khó kiểm soát.
+  \item Feedback không tự học, có validation, dedup, conflict và review lifecycle.
+  \item UI hội thoại tách phần người dùng cần khỏi debug/pipeline disclosure.
+\end{itemize}
+
+\section{Giới hạn quan trọng}
+\begin{enumerate}
+  \item \textbf{Reader chưa đủ mạnh}: Answerable EM 0,79 và checkpoint vẫn experimental.
+  \item \textbf{Semantic trade-off}: giảm false positive nhưng làm false negative tăng.
+  \item \textbf{Phiên bản dữ liệu đánh giá}: cần đồng bộ manifest đánh giá với artifact mới nhất trước khi công bố benchmark khóa.
+  \item \textbf{Benchmark/runtime lệch tầng}: offline document-level và online
+  passage-level có scorer/boost khác nhau.
+  \item \textbf{Evaluation dashboard drift}: Reader artifact cũ và giá trị latency/error
+  tĩnh chưa đại diện runtime.
+  \item \textbf{Feedback chưa có dữ liệu thật}: analytics mới chứng minh plumbing.
+  \item \textbf{Bảo mật}: review/document endpoints chưa có auth, audit actor hay rate limit.
+  \item \textbf{Hiệu năng}: Reader CPU và bundle Mari lớn; build cảnh báo code splitting.
+  \item \textbf{Đánh giá Socratic}: chưa có human study hoặc metric sư phạm.
+\end{enumerate}
+
+\section{Lộ trình ưu tiên}
+\begin{longtable}{C{1.0cm}L{3.5cm}L{6.0cm}L{3.5cm}}
+\caption{Backlog đề xuất}\label{tab:roadmap}\\
+\toprule
+Mức & Hạng mục & Hành động & Tiêu chí hoàn tất \\
+\midrule
+\endfirsthead
+\toprule
+Mức & Hạng mục & Hành động & Tiêu chí hoàn tất \\
+\midrule
+\endhead
+P0 & Evaluation manifest & Đồng bộ manifest dữ liệu đánh giá hoặc tạo holdout v2 mới rồi chạy lại & provenance đầy đủ, artifact tái lập được \\
+P0 & Semantic regressions & Sửa false-premise/cause, type classifier, fallback boundary và rejection priority & toàn bộ test semantic/pipeline pass \\
+P0 & Evaluation source & Endpoint đọc đúng reader profile/metrics của checkpoint active; bỏ hard-code & UI và artifact khớp tuyệt đối \\
+P1 & Reader & Audit span label, retrain/checkpoint select bằng Answerable F1 và boundary-aware EM & full 3.814 validation, không giảm safety floor \\
+P1 & End-to-end eval & Tạo gold passage và answer độc lập, passage-level benchmark giống runtime & báo cáo EM, F1, abstention, latency có version \\
+P1 & Feedback security & Authentication, RBAC, actor audit, CSRF, rate limit và backup & review endpoint không public \\
+P1 & Feedback loop & Thu dữ liệu thật, review, export, train offline và benchmark đối chứng & promotion có approval và rollback \\
+P2 & Performance & Worker/model cache, batch queue, lazy chunk splitting cho Three.js & giảm cold start và bundle warning \\
+P2 & Socratic UX & Rubric chuyên gia và study người dùng & usefulness, grounding và duplication được đo \\
+\bottomrule
+\end{longtable}
+
+\section{Kết luận}
+VIQA Nexus đã vượt khỏi demo Retriever--Reader đơn giản để trở thành prototype QA có
+truy vết nguồn, nhiều chiến lược truy hồi, candidate refinement, semantic gating,
+Socratic tutoring, giao diện hội thoại và feedback review. Kết quả Retriever cho thấy
+Hybrid có lợi rõ ràng, trong khi Reader và semantic layer vẫn là nút thắt chính.
+
+Giá trị quan trọng của phiên bản hiện tại không chỉ nằm ở một con số F1 mà ở khả năng
+nhìn thấy quyết định: passage nào được truy hồi, span nào bị loại, gate nào thất bại,
+feedback nào đang chờ duyệt và model/corpus/policy nào tạo câu trả lời. Tuy nhiên,
+prototype cần tiếp tục hoàn thiện trước khi triển khai production: test cần được đưa về trạng thái xanh và dashboard đánh giá cần đồng bộ artifact. Lộ trình hợp lý là củng cố tính tái lập trước, sửa regression, rồi mới tối ưu Reader và mở vòng lặp dữ liệu thật.
+
+% =============================================================================
+\appendix
+\chapter{Hướng dẫn chạy và tái lập}
+
+\section{Chạy hệ thống}
+Trên Windows có thể chạy \code{run\_system.bat}. Hoặc tách hai terminal:
+\begin{lstlisting}[style=viqa]
+python backend/viqa_api.py
+npm run dev
+\end{lstlisting}
+Sau đó mở \url{http://localhost:5173/}. API health ở
+\url{http://localhost:8000/health}. Đường dẫn \code{/HTTP} không tồn tại và sẽ trả
+404; URL frontend đúng kết thúc ở dấu gạch chéo hoặc route hợp lệ.
+
+\section{Build và kiểm thử}
+\begin{lstlisting}[style=viqa]
+npm run build
+python -m pytest -q
+python evaluate_socratic.py
+python evaluate_feedback_loop.py
+python evaluate_semantic_holdout.py --help
+\end{lstlisting}
+Khi tái lập semantic benchmark phải kiểm tra đúng phiên bản dữ liệu, manifest và artifact trước khi đọc metric.
+
+\section{Mẫu request QA}
+\noindent\fcolorbox{gray!35}{lightgray}{\parbox{0.965\textwidth}{\ttfamily\small
+POST /api/ask\\
+Content-Type: application/json\\[0.4em]
+\{"question":"Pham Van Dong la ai?", "retriever":"bm25",\\
+\hspace*{1em}"reader":"xlmr", "top\_k":10\}
+}}
+\vspace{0.4em}
+\noindent Trong đó trường \code{"reader"} có thể nhận các giá trị: \code{"xlmr"} (Extractive QA), \code{"phobert"} (khóa tương thích cũ), \code{"llm"} (Generative RAG với LFM2.5) hoặc \code{"llm\_chat"} (LFM2.5 hội thoại trực tiếp).
+
+\chapter{Mười câu hỏi demo}
+Danh sách dưới đây bao phủ identity, role, time, location, cause, purpose và entity;
+không phải mọi câu đều được bảo đảm có gold answer trong corpus hiện tại.
+\begin{enumerate}
+  \item Phạm Văn Đồng là ai?
+  \item Phạm Văn Đồng sinh vào thời gian nào?
+  \item Phạm Văn Đồng từng giữ những chức vụ nào?
+  \item Hội nghị Genève năm 1954 có ý nghĩa gì đối với Đông Dương?
+  \item Cách mạng Pháp diễn ra ở đâu?
+  \item Vì sao Madame du Barry bị khinh miệt?
+  \item Công trình nào nằm trên đỉnh Montmartre?
+  \item Thực vật có hoa được chia thành những nhóm nào?
+  \item Mục đích của việc thành lập một tổ chức được nêu trong tài liệu là gì?
+  \item Sự kiện nào gắn với nhân vật đang được đề cập trong passage nguồn?
+\end{enumerate}
+
+\chapter{Ma trận truy vết báo cáo--mã nguồn}
+\begingroup
+\small
+\renewcommand{\arraystretch}{0.90}
+\begin{longtable}{L{4.8cm}L{9.6cm}}
+\caption{Nguồn kiểm chứng cho các nội dung chính}\label{tab:traceability}\\
+\toprule
+Nội dung & File chính \\
+\midrule
+\endfirsthead
+\toprule
+Nội dung & File chính \\
+\midrule
+\endhead
+QA config & \artifact{config/qa_pipeline.json}, \artifact{backend/config.py} \\
+Semantic policy/gates & \artifact{config/semantic_policy.json}, \artifact{reader/candidate_validation.py} \\
+Question semantics & \artifact{reader/question_semantics.py}, \artifact{reader/relation_validator.py} \\
+Chunking/source title & \artifact{backend/chunking.py}, \artifact{backend/source_titles.py} \\
+Online QA/RRF/API & \artifact{backend/viqa_api.py} \\
+Socratic & \artifact{backend/socratic.py}, \artifact{config/socratic.json} \\
+Feedback/analytics & \artifact{backend/feedback.py}, \artifact{backend/feedback_analytics.py} \\
+Frontend chat & \artifact{src/pages/HomePage.tsx}, \artifact{src/components/chat/AssistantMessage.tsx} \\
+Composer keyboard & \artifact{src/components/chat/ChatComposer.tsx} \\
+Knowledge Blind Spots & \artifact{src/pages/KnowledgeBlindSpotsPage.tsx} \\
+Retriever metrics & \artifact{results/retriever_eval_all.json} \\
+Reader metrics/profile & \artifact{results/reader/heidiie_phobert_finetuned_viquad_full/} \\
+Semantic diagnostics & \artifact{results/semantic_holdout_v1_report_refactored_v2_final.json} \\
+Decision comparison tables & \artifact{results/presentation/retriever_selection_table.csv}, \artifact{results/presentation/model_selection_table.csv}, \artifact{results/presentation/ablation_selection_table.csv} \\
+Test status & lệnh \code{python -m pytest -q} \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+% =============================================================================
+\begin{thebibliography}{99}
+
+\bibitem{chen2017drqa}
+D. Chen, A. Fisch, J. Weston, and A. Bordes.
+\newblock Reading Wikipedia to Answer Open-Domain Questions.
+\newblock In \emph{Proceedings of ACL}, 2017.
+
+\bibitem{robertson2009bm25}
+S. Robertson and H. Zaragoza.
+\newblock The Probabilistic Relevance Framework: BM25 and Beyond.
+\newblock \emph{Foundations and Trends in Information Retrieval}, 2009.
+
+\bibitem{cormack2009rrf}
+G. Cormack, C. Clarke, and S. Buettcher.
+\newblock Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods.
+\newblock In \emph{Proceedings of SIGIR}, 2009.
+
+\bibitem{reimers2019sbert}
+N. Reimers and I. Gurevych.
+\newblock Sentence-BERT: Sentence Embeddings using Siamese BERT-Networks.
+\newblock In \emph{Proceedings of EMNLP-IJCNLP}, 2019.
+
+\bibitem{devlin2019bert}
+J. Devlin, M.-W. Chang, K. Lee, and K. Toutanova.
+\newblock BERT: Pre-training of Deep Bidirectional Transformers for Language Understanding.
+\newblock In \emph{Proceedings of NAACL-HLT}, 2019.
+
+\bibitem{liu2019roberta}
+Y. Liu et al.
+\newblock RoBERTa: A Robustly Optimized BERT Pretraining Approach.
+\newblock arXiv:1907.11692, 2019.
+
+\bibitem{conneau2020xlmr}
+A. Conneau et al.
+\newblock Unsupervised Cross-lingual Representation Learning at Scale.
+\newblock In \emph{Proceedings of ACL}, 2020.
+
+\bibitem{nguyen2020phobert}
+D. Q. Nguyen and A. T. Nguyen.
+\newblock PhoBERT: Pre-trained Language Models for Vietnamese.
+\newblock In \emph{Findings of EMNLP}, 2020.
+
+\bibitem{liquidai2025lfm}
+Liquid AI.
+\newblock LFM2.5: High-Performance On-Device Foundation Models.
+\newblock \emph{Liquid AI Technical Report}, 2025.
+
+\bibitem{nguyen2022viquad2}
+K. V. Nguyen et al.
+\newblock UIT-ViQuAD 2.0: A Vietnamese Dataset for Reading Comprehension with Unanswerable Questions.
+\newblock In \emph{Proceedings of LREC}, 2022.
+
+\bibitem{settles2009active}
+B. Settles.
+\newblock Active Learning Literature Survey.
+\newblock University of Wisconsin--Madison, Computer Sciences Technical Report 1648, 2009.
+
+\end{thebibliography}
+
+\end{document}
