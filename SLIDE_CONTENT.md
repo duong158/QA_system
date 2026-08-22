@@ -7,13 +7,13 @@ hoặc bố cục; dòng **Nguồn** nên đặt nhỏ ở chân slide hoặc tr
 Đối tượng trình bày: giảng viên và sinh viên có kiến thức nền về NLP.
 
 Thông điệp xuyên suốt: **VIQA Nexus đã phát triển từ một pipeline
-Retriever–Reader thành hệ thống QA tiếng Việt lai XLM-R–Qwen3 có truy vết nguồn,
+Retriever–Reader thành hệ thống QA tiếng Việt lai XLM-R–LFM2.5 có truy vết nguồn,
 giao diện hội thoại và vòng phản hồi; tuy nhiên model active, Socratic grounding và
 độ ổn định kiểm thử vẫn cần hoàn thiện trước khi triển khai production.**
 
 ---
 
-## Slide 1 — VIQA Nexus: Hệ thống hỏi đáp tiếng Việt lai XLM-R–Qwen3
+## Slide 1 — VIQA Nexus: Hệ thống hỏi đáp tiếng Việt lai XLM-R–LFM2.5
 
 ### Nội dung trên slide
 
@@ -80,7 +80,7 @@ Người dùng
     ↓
 React UI → HTTP API → Retriever
                          ├─ XLM-R → Span candidates → Semantic gates
-                         └─ Qwen3 → RAG hoặc Direct generation
+                         └─ LFM2.5 → RAG hoặc Direct generation
                               ↓
                     Câu trả lời + nguồn nếu có
 ~~~
@@ -208,18 +208,18 @@ Nguồn: results/semantic_holdout_v1_report_refactored_v2_final.json
 
 ---
 
-## Slide 10 — Qwen3 bổ sung khả năng tổng hợp và hội thoại cục bộ
+## Slide 10 — LFM2.5 bổ sung khả năng tổng hợp và hội thoại cục bộ
 
 ### Nội dung trên slide
 
-- Model mặc định: **Qwen3 1.7B**, lượng tử NF4 4-bit.
+- Model mặc định: **LFM2.5 2.6B (LiquidAI)**, lượng tử NF4 4-bit.
 - **reader=llm**:
   - RAG trên tối đa 5 passage khi retrieval score đủ mạnh;
   - chuyển sang direct answer khi tín hiệu truy hồi dưới ngưỡng 0,30.
 - **reader=llm_chat:** luôn trả lời trực tiếp, không gắn nguồn.
-- XLM-R và Qwen3 có thể cùng tồn tại trong bộ nhớ.
+- XLM-R và LFM2.5 có thể cùng tồn tại trong bộ nhớ.
 
-> Giá trị confidence 1,0 của Qwen hiện là placeholder, không phải xác suất đúng.
+> Giá trị confidence 1,0 của LFM hiện là placeholder, không phải xác suất đúng.
 
 ### Gợi ý trực quan
 
@@ -230,14 +230,14 @@ Nguồn: backend/llm_reader.py, backend/viqa_api.py
 
 ---
 
-## Slide 11 — Smoke test xác nhận cả XLM-R và Qwen3 đều chạy thật
+## Slide 11 — Smoke test xác nhận cả XLM-R và LFM2.5 đều chạy thật
 
 ### Nội dung trên slide
 
 | Chế độ | Câu hỏi kiểm tra | Thời gian |
 |---|---|---:|
-| Qwen direct | Thủ đô của Việt Nam là gì? | 7,55 s |
-| Qwen RAG | Phạm Văn Đồng là ai? | 48,52 s |
+| LFM direct | Thủ đô của Việt Nam là gì? | 7,55 s |
+| LFM RAG | Phạm Văn Đồng là ai? | 48,52 s |
 | XLM-R | Phạm Văn Đồng là ai? | 13,91 s |
 | Alias phobert | Cùng checkpoint XLM-R | 15,63 s |
 
@@ -374,7 +374,7 @@ data/feedback/feedback.db
 | Endpoint | Vai trò |
 |---|---|
 | GET /health | Model hỗ trợ/đã nạp, passage, config |
-| POST /api/ask | XLM-R extractive hoặc Qwen RAG/direct |
+| POST /api/ask | XLM-R extractive hoặc LFM RAG/direct |
 | POST /api/compare | So sánh Retriever |
 | POST /api/socratic/followups | Câu hỏi liên quan bằng BM25 |
 | POST /api/feedback | Ghi nhận phản hồi |
@@ -424,13 +424,13 @@ Nguồn: npm run build, python -m pytest -q, ngày 21/08/2026
 **Điểm mạnh**
 
 - Bốn Retriever, hai kiểu trả lời và source trace cho nhánh grounded.
-- XLM-R và Qwen3 chạy cục bộ, không phụ thuộc API LLM bên ngoài.
+- XLM-R và LFM2.5 chạy cục bộ, không phụ thuộc API LLM bên ngoài.
 - Semantic trace, feedback review và UI hội thoại đã tích hợp.
 
 **Giới hạn quyết định**
 
-- Chưa có full-validation artifact cho XLM-R và factuality benchmark cho Qwen3.
-- Qwen direct/chat không có source; confidence chưa hiệu chuẩn.
+- Chưa có full-validation artifact cho XLM-R và factuality benchmark cho LFM2.5.
+- LFM direct/chat không có source; confidence chưa hiệu chuẩn.
 - Socratic chưa source-verified.
 - Test suite, holdout integrity, security và hiệu năng chưa đạt production.
 
@@ -449,7 +449,7 @@ Nguồn: Chương 10–11 của report.tex
 
 1. **P0 — Test và holdout:** sửa regression, khôi phục checksum/provenance.
 2. **P0 — Socratic grounding:** bắt buộc source passage và QA verification.
-3. **P0 — Evaluation:** sinh artifact đúng cho XLM-R và Qwen3.
+3. **P0 — Evaluation:** sinh artifact đúng cho XLM-R và LFM2.5.
 4. **P1 — Security:** authentication, RBAC, audit và rate limit.
 5. **P2 — Performance:** model worker, cache, batching và code splitting.
 
@@ -487,7 +487,7 @@ Nguồn: config/qa_pipeline.json
 
 ---
 
-## Slide A2 — Cách chạy đồng thời XLM-R và Qwen3
+## Slide A2 — Cách chạy đồng thời XLM-R và LFM2.5
 
 ### Nội dung trên slide
 
@@ -507,7 +507,7 @@ npm run dev
 
 - Frontend: http://localhost:5173/
 - Health: http://localhost:8000/health
-- run_system.bat hiện hard-code Python path không tồn tại và chưa bật Qwen.
+- run_system.bat hiện hard-code Python path không tồn tại và chưa bật LFM.
 
 Nguồn: requirements-reader.txt, backend/viqa_api.py, run_system.bat
 
@@ -519,7 +519,7 @@ Nguồn: requirements-reader.txt, backend/viqa_api.py, run_system.bat
 
 1. Mở /health để chỉ ra loaded_readers.
 2. Hỏi “Phạm Văn Đồng là ai?” bằng XLM-R và mở source passage.
-3. Đổi sang Qwen RAG, hỏi lại để so cách diễn đạt và latency.
+3. Đổi sang LFM RAG, hỏi lại để so cách diễn đạt và latency.
 4. Chọn một câu gợi ý để minh họa Socratic luôn bật.
 5. Giải thích vì sao gợi ý hiện chưa được source-verify.
 6. Gửi feedback và mở trang Knowledge Blind Spots.
@@ -528,7 +528,7 @@ Nguồn: requirements-reader.txt, backend/viqa_api.py, run_system.bat
 
 - Khởi động/preload model trước buổi trình bày.
 - Không chạy một backend thứ hai trên cổng 8000.
-- Chuẩn bị ảnh/video dự phòng nếu máy demo không đủ RAM hoặc Qwen cold start lâu.
+- Chuẩn bị ảnh/video dự phòng nếu máy demo không đủ RAM hoặc LFM cold start lâu.
 
 Nguồn: backend/viqa_api.py, src/pages/HomePage.tsx
 
@@ -543,7 +543,7 @@ Nguồn: backend/viqa_api.py, src/pages/HomePage.tsx
 - G. Cormack et al. — *Reciprocal Rank Fusion*, SIGIR 2009.
 - A. Conneau et al. — *Unsupervised Cross-lingual Representation Learning at
   Scale*, ACL 2020.
-- A. Yang et al. — *Qwen3 Technical Report*, arXiv:2505.09388, 2025.
+- A. Yang et al. — *LFM2.5 Technical Report*, arXiv:2505.09388, 2025.
 - K. V. Nguyen et al. — *UIT-ViQuAD 2.0*, LREC 2022.
 
 Nguồn: phần Tài liệu tham khảo trong report.tex

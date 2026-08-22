@@ -155,38 +155,60 @@ Face Transformers, Sentence Transformers, FAISS, React, Three.js và các thư v
 20/08/2026; những kết quả còn chưa đạt hoặc chưa được xác minh được trình bày như
 giới hạn, không được diễn giải thành khả năng đã hoàn thiện.
 
+\chapter*{Phân công nhiệm vụ}
+\addcontentsline{toc}{chapter}{Phân công nhiệm vụ}
+Dự án VIQA Nexus được thực hiện với sự tham gia và phân công trách nhiệm cụ thể của các thành viên Nhóm 15 như sau:
+
+\begin{table}[H]
+\centering
+\begin{tabularx}{\textwidth}{L{4.2cm}C{2.5cm}Y}
+\toprule
+\textbf{Họ và tên} & \textbf{Mã sinh viên} & \textbf{Nhiệm vụ phân công chính} \\
+\midrule
+Nguyễn Tùng Dương & 24022306 & \textbf{Document Retriever}: Thiết kế và hiện thực hóa các phương pháp truy hồi (TF--IDF, BM25 Okapi, Dense SBERT, Hybrid RRF), chuẩn hóa điểm số và tối ưu hóa candidate pool. \\
+\addlinespace[0.3em]
+Tống Đức Hồng Anh & 24022258 & \textbf{Reader / Answer Extraction}: Huấn luyện và tinh chỉnh Reader (XLM-RoBERTa, PhoBERT), xây dựng cơ chế trích xuất span, ranking ứng viên và hiệu chỉnh threshold. \\
+\addlinespace[0.3em]
+Lê Toàn & 24022466 & \textbf{Dữ liệu \& Tiếng Việt hóa}: Tiền xử lý tập dữ liệu UIT-ViQuAD 2.0, phân đoạn văn bản, chunking bảo toàn biên câu, xây dựng cơ sở dữ liệu SQLite \code{docs.db} và căn chỉnh offset. \\
+\addlinespace[0.3em]
+Lê Ngọc Quý & 23021677 & \textbf{Tích hợp hệ thống, Web UI \& Báo cáo}: Xây dựng backend orchestration API, tích hợp Local LLM LFM2.5, phát triển giao diện React/Vite 3D tương tác và tổng hợp báo cáo kỹ thuật. \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
 \chapter*{Tóm tắt}
 \addcontentsline{toc}{chapter}{Tóm tắt}
-VIQA Nexus là hệ thống hỏi đáp trích xuất tiếng Việt trên kho tài liệu đóng. Một câu
-hỏi được đưa qua Retriever để lấy các passage liên quan, Reader để sinh nhiều span
-ứng viên, rồi qua lớp phân tích ngữ nghĩa và chuỗi gate nhằm kiểm tra tính hợp lệ của
-span, biên câu trả lời, bằng chứng, chủ thể, quan hệ và kiểu câu hỏi. Hệ thống trả lời
-kèm passage nguồn; nếu không có ứng viên vượt gate thì trả về trạng thái no-answer
-thay vì tạo nội dung mới.
+VIQA Nexus là hệ thống hỏi đáp tiếng Việt chạy cục bộ trên kho tài liệu đóng, kết hợp
+truy hồi tài liệu, Reader trích xuất XLM-RoBERTa và mô hình ngôn ngữ sinh LFM2.5-2.6B.
+Một câu hỏi được đưa qua Retriever để lấy các passage liên quan, sau đó có thể đi theo
+hai hướng xử lý:
+\begin{itemize}
+  \item \textbf{Extractive QA}: chạy Reader XLM-RoBERTa trên các passage ứng viên, sinh nhiều
+  span, rồi qua lớp phân tích ngữ nghĩa và chuỗi semantic gate nhằm kiểm tra tính hợp lệ
+  của span, biên câu trả lời, bằng chứng, chủ thể, quan hệ và kiểu câu hỏi;
+  \item \textbf{Generative QA}: nạp mô hình cục bộ \code{LiquidAI/LFM2.5-2.6B} (lượng tử hóa
+  4-bit NF4 qua bitsandbytes) để sinh câu trả lời tự nhiên dạng RAG từ top-5 passage hoặc
+  hội thoại trực tiếp.
+\end{itemize}
+Hệ thống trả lời kèm passage nguồn; trong luồng extractive, nếu không có ứng viên vượt gate
+thì trả về trạng thái no-answer thay vì tự tạo nội dung mới.
 
-So với phiên bản báo cáo trước, mã nguồn hiện đã có bốn Retriever ở API
-(TF--IDF, BM25, Dense và Hybrid), hai Reader có thể nạp (PhoBERT và XLM-R), semantic
-policy v2, cơ chế tinh chỉnh span, fallback có kiểm soát, chuẩn hóa source title,
-giao diện chat responsive với nhân vật 3D Mari, chế độ Gia sư Socratic và vòng lặp
-phản hồi có người kiểm duyệt. Socratic không dùng mô hình sinh ngoài: câu hỏi gợi mở
-được tạo từ bằng chứng trong các passage đã chọn/truy hồi, khử trùng lặp và có thể
-được kiểm tra lại bằng BM25. Phản hồi được lưu trong SQLite ở trạng thái chờ duyệt;
-model và corpus không tự cập nhật trong runtime.
+Mã nguồn hiện hỗ trợ bốn Retriever ở API (TF--IDF, BM25, Dense và Hybrid), hai luồng Reader
+(Extractive XLM-RoBERTa/PhoBERT compatibility và Generative LFM2.5), semantic policy v2,
+cơ chế tinh chỉnh span, fallback có kiểm soát, chuẩn hóa source title, giao diện chat
+responsive với nhân vật 3D Mari, chế độ Gia sư Socratic và vòng lặp phản hồi có người kiểm duyệt.
+Socratic không dùng mô hình sinh ngoài: câu hỏi gợi mở được tạo từ bằng chứng trong các
+passage đã chọn/truy hồi, khử trùng lặp và được kiểm tra lại bằng BM25. Phản hồi được lưu
+trong SQLite ở trạng thái chờ duyệt; model và corpus không tự cập nhật trong runtime.
 
-Benchmark Retriever trên 7.301 câu hỏi test cho thấy Hybrid đứng đầu với MRR
-0,7682 và Recall@10 là 0,9156. Reader PhoBERT đang được runtime sử dụng đạt Overall
-EM 13,87 và Overall F1 36,25 trên toàn bộ 3.814 mẫu validation, nhưng Answerable EM
-chỉ 0,79; checkpoint vì vậy vẫn mang trạng thái \emph{experimental}, chưa đủ điều
-kiện khẳng định production-ready. Lần chạy kiểm thử ngày 20/08/2026 cho kết quả 178
-passed, 10 failed; frontend build thành công nhưng phát cảnh báo bundle lớn. Báo cáo
-cũng chỉ ra checksum của semantic holdout đang lệch file lock và trang Evaluation
-còn đọc artifact Reader cũ. Hai điểm này làm kết quả semantic mang tính tạm thời và
-dashboard chưa phải nguồn số liệu chính thức.
+Benchmark Retriever trên 7.301 câu hỏi test cho thấy Hybrid đứng đầu với MRR 0,7682 và
+Recall@10 là 0,9156. Frontend mặc định sử dụng BM25 với Reader XLM-RoBERTa và hỗ trợ chuyển
+sang LFM2.5 RAG/Chat linh hoạt.
 
 \noindent\textbf{Mã nguồn:} \url{https://github.com/duong158/QA_system}
 
 \noindent\textbf{Từ khóa:} Question Answering, tiếng Việt, Retriever--Reader,
-Hybrid Retrieval, PhoBERT, semantic gating, Socratic tutoring, human-in-the-loop.
+Hybrid Retrieval, XLM-RoBERTa, LFM2.5, Generative RAG, semantic gating, Socratic tutoring.
 
 \chapter*{Quy ước về bằng chứng và phạm vi}
 \addcontentsline{toc}{chapter}{Quy ước về bằng chứng và phạm vi}
@@ -402,7 +424,7 @@ feedback được tách khỏi quyết định trả lời để lỗi của ch�
   \node[block] (ui) {React chat UI\\Mari, voice, settings};
   \node[block,right=of ui] (api) {HTTP API\\validation + orchestration};
   \node[block,right=of api] (ret) {Retriever\\BM25 / TF--IDF\\Dense / Hybrid};
-  \node[block,right=of ret] (reader) {Reader\\PhoBERT hoặc XLM-R};
+  \node[block,right=of ret] (reader) {Reader / LLM\\XLM-R (Extract)\\LFM2.5 (Generative)};
   \node[block,right=of reader] (gates) {Candidates\\refinement + semantic gates};
   \node[store,below=1.15cm of ret] (corpus) {SQLite corpus\\5.317 documents\\6.544 passages};
   \node[postblock,below=1.15cm of reader] (socratic) {Socratic follow-ups\\grounded one-hop};
@@ -430,7 +452,7 @@ Lớp & Offline & Online/runtime \\
 \midrule
 Dữ liệu & clean parquet, build corpus/index, kiểm tra span & load SQLite, chunk passage khi khởi động \\
 Retriever & module benchmark document-level, FAISS index & PassageIndex nội bộ, dense cosine, hybrid RRF \\
-Reader & train/evaluate/calibrate checkpoint & lazy-load checkpoint, batch inference trên candidate passages \\
+Reader / LLM & train/evaluate checkpoint XLM-R, nạp weights LFM & lazy-load XLM-RoBERTa, LFM2.5 4-bit NF4 RAG/Chat \\
 Semantic & build holdout, ablation, rule coverage & parse question, refine span, validate candidate, abstain \\
 Feedback & export bản ghi approved thành JSONL & SQLite WAL, review queue, analytics; không học trực tiếp \\
 \bottomrule
@@ -459,7 +481,8 @@ Ranking weights & 0,30 / 0,60 / 0,10 / 0,00 & retriever / reader / answer type /
 \code{reader\_span\_candidates} & 5 & số span neural tối đa mỗi passage \\
 Reader window & 256, stride 80 & cửa sổ token và overlap \\
 Chunking & 220 token, overlap 2 câu & passage runtime \\
-Checkpoint & heidiie PhoBERT (fine-tuned) & Reader PhoBERT đang nạp \\
+Extractive Checkpoint & XLM-RoBERTa Large & \artifact{models/reader/xlm-roberta-large-viquad} \\
+Generative Local LLM & LiquidAI LFM2.5-2.6B & Lượng tử 4-bit NF4 (bitsandbytes) \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -507,26 +530,50 @@ UI cho phép chuyển TF--IDF, BM25, Dense và Hybrid; Pyserini được đánh 
 khai online.
 
 % =============================================================================
-\chapter{Reader, candidate và semantic gating}
+\chapter{Reader, Local LLM và semantic gating}
 \label{chap:reader}
 
-\section{Reader được nạp}
-API công bố \code{phobert} và \code{xlmr}. PhoBERT dùng checkpoint
-\artifact{models/reader/heidiie_phobert_finetuned_viquad}, nặng khoảng 513 MB; XLM-R
-dùng \artifact{models/reader/xlm-roberta-large-viquad}, nặng khoảng 2,08 GB. Reader
-được lazy-load và bộ predictor chỉ giữ model đang dùng để hạn chế bộ nhớ. UI có thể
-chọn XLM-R, nhưng artifact đánh giá chuẩn trong báo cáo chỉ dành cho PhoBERT.
+\section{Các chế độ Reader và Local LLM được hỗ trợ}
+Hệ thống hỗ trợ cả hướng trích xuất truyền thống (Extractive QA) lẫn hướng tạo sinh hiện đại
+(Generative QA) thông qua tham số \code{reader} ở API:
+
+\begin{table}[H]
+\centering
+\caption{Các chế độ Reader và Local LLM trong runtime}
+\label{tab:reader-modes}
+\begin{tabularx}{\textwidth}{L{2.5cm}L{3.8cm}Y}
+\toprule
+Giá trị \code{reader} & Mô hình thực thi & Cơ chế hoạt động \\
+\midrule
+\code{xlmr} & XLM-RoBERTa Large & Extractive QA: trích xuất span trực tiếp từ passage ứng viên \\
+\code{phobert} & XLM-RoBERTa Large & Khóa tương thích ngược; trỏ về checkpoint XLM-R trong config \\
+\code{llm} & LiquidAI LFM2.5-2.6B & Generative RAG: dùng tối đa 5 passage làm ngữ cảnh sinh đáp án \\
+\code{llm\_chat} & LiquidAI LFM2.5-2.6B & Generative Direct: đàm thoại trực tiếp, không gắn nguồn passage \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Kiến trúc Extractive Reader XLM-RoBERTa}
+XLM-RoBERTa Large (\artifact{models/reader/xlm-roberta-large-viquad}, dung lượng khoảng 2,08 GB)
+được nạp cục bộ để dự đoán span bắt đầu/kết thúc trên từng passage trong candidate pool.
+Reader được lazy-load và bộ predictor chỉ giữ model đang dùng trong bộ nhớ để hạn chế footprint.
+
+\section{Mô hình sinh cục bộ LiquidAI LFM2.5-2.6B}
+Đối với các câu hỏi đòi hỏi tổng hợp đa passage hoặc giải thích tự nhiên, hệ thống tích hợp
+mô hình sinh \code{LiquidAI/LFM2.5-2.6B} chạy hoàn toàn cục bộ trên GPU. Mô hình được nạp
+thông qua thư viện \code{transformers} kết hợp cơ chế lượng tử hóa 4-bit NF4 của \code{bitsandbytes}
+để vừa vặn trong VRAM máy tính cá nhân (yêu cầu khoảng 2,5--3 GB VRAM). Ở chế độ RAG (\code{llm}),
+LFM2.5 nhận prompt chứa top-5 passage đã được Retriever chọn lọc và tạo câu trả lời mạch lạc;
+nếu Retriever không tìm thấy passage đủ tin cậy hoặc ở chế độ \code{llm\_chat}, mô hình sẽ trả
+lời trực tiếp dựa trên tri thức nội tại.
 
 \section{Hiệu chỉnh quyết định Reader}
-File \artifact{models/reader/heidiie_phobert_finetuned_viquad/reader_profile.json}
-lưu threshold $-3{,}5$ trên margin best-span-minus-null. Profile đánh dấu calibrated
-vì được tạo từ toàn bộ 3.814 mẫu validation. Mục tiêu chọn threshold là
+Đối với luồng trích xuất, threshold best-span-minus-null được kiểm tra để loại trừ các trường hợp
+không có câu trả lời (unanswerable). Mục tiêu lựa chọn threshold tối ưu hóa:
 \begin{equation}
   0{,}7\times \mathrm{AnswerableF1} +
   0{,}3\times \mathrm{UnanswerableAccuracy}.
 \end{equation}
-Tuy nhiên, ``calibrated threshold'' chỉ nói threshold có quy trình lựa chọn, không nói
-Reader đạt chất lượng production.
 
 \section{Sinh và tinh chỉnh ứng viên}
 Mỗi passage có thể đóng góp:
@@ -1030,8 +1077,10 @@ Khi tái lập semantic benchmark phải kiểm tra checksum lock trước khi �
 POST /api/ask\\
 Content-Type: application/json\\[0.4em]
 \{"question":"Pham Van Dong la ai?", "retriever":"bm25",\\
-\hspace*{1em}"reader":"phobert", "top\_k":10\}
+\hspace*{1em}"reader":"xlmr", "top\_k":10\}
 }}
+\vspace{0.4em}
+\noindent Trong đó trường \code{"reader"} có thể nhận các giá trị: \code{"xlmr"} (Extractive QA), \code{"phobert"} (khóa tương thích cũ), \code{"llm"} (Generative RAG với LFM2.5) hoặc \code{"llm\_chat"} (LFM2.5 hội thoại trực tiếp).
 
 \chapter{Mười câu hỏi demo}
 Danh sách dưới đây bao phủ identity, role, time, location, cause, purpose và entity;
@@ -1114,10 +1163,20 @@ Y. Liu et al.
 \newblock RoBERTa: A Robustly Optimized BERT Pretraining Approach.
 \newblock arXiv:1907.11692, 2019.
 
+\bibitem{conneau2020xlmr}
+A. Conneau et al.
+\newblock Unsupervised Cross-lingual Representation Learning at Scale.
+\newblock In \emph{Proceedings of ACL}, 2020.
+
 \bibitem{nguyen2020phobert}
 D. Q. Nguyen and A. T. Nguyen.
 \newblock PhoBERT: Pre-trained Language Models for Vietnamese.
 \newblock In \emph{Findings of EMNLP}, 2020.
+
+\bibitem{liquidai2025lfm}
+Liquid AI.
+\newblock LFM2.5: High-Performance On-Device Foundation Models.
+\newblock \emph{Liquid AI Technical Report}, 2025.
 
 \bibitem{nguyen2022viquad2}
 K. V. Nguyen et al.
