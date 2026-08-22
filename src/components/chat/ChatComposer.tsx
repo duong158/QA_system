@@ -1,7 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { FilePlus2, Send, Square } from 'lucide-react';
-import { VoiceButton } from '@/components/input/VoiceButton';
+import { Send, Square } from 'lucide-react';
 import { mergeQuestionParts } from '@/utils/questionInput';
 
 interface ChatComposerProps {
@@ -22,13 +20,10 @@ export function ChatComposer({
   value,
   transcript,
   interimTranscript,
-  listening,
-  speechSupported,
   audioActive,
   submitting,
   onChange,
   onSubmit,
-  onVoiceToggle,
   onStopSpeaking,
 }: ChatComposerProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -52,14 +47,6 @@ export function ChatComposer({
   return (
     <div className="shrink-0 border-t border-[var(--border)] bg-[var(--surface)] px-3 pb-3 pt-2 sm:px-4 sm:pb-4">
       <div className="flex items-end gap-2 rounded-2xl border border-[var(--border-strong)] bg-[var(--surface)] p-2 shadow-sm transition focus-within:border-indigo-300 focus-within:ring-4 focus-within:ring-indigo-50">
-        <Link
-          to="/knowledge-blind-spots#document-contribution"
-          aria-label="Đóng góp tài liệu"
-          title="Đóng góp tài liệu"
-          className="soft-icon-button h-10 w-10 shrink-0 border-0"
-        >
-          <FilePlus2 className="h-5 w-5" />
-        </Link>
         <textarea
           ref={textareaRef}
           value={displayValue}
@@ -76,7 +63,6 @@ export function ChatComposer({
             <Square className="h-4 w-4" />
           </button>
         ) : null}
-        <VoiceButton listening={listening} supported={speechSupported} onToggle={onVoiceToggle} />
         <button
           type="button"
           onClick={onSubmit}
