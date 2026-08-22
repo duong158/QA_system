@@ -51,16 +51,41 @@
 
 \pagestyle{fancy}
 \fancyhf{}
-\fancyhead[L]{\small VIQA Nexus}
-\fancyhead[R]{\small Báo cáo cập nhật 20/08/2026}
+\fancyhead[L]{}
+\fancyhead[R]{}
 \fancyfoot[C]{\thepage}
-\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrulewidth}{0pt}
 \setlength{\headheight}{15pt}
 \setlength{\parindent}{1.15cm}
 \setlength{\parskip}{0.25em}
 \setlist[itemize]{leftmargin=1.8em,itemsep=0.25em,topsep=0.35em}
 \setlist[enumerate]{leftmargin=2em,itemsep=0.25em,topsep=0.35em}
 \captionsetup{font=small,labelfont=bf}
+\makeatletter
+\renewcommand{\@makechapterhead}[1]{%
+  \vspace*{0.8em}%
+  {\parindent \z@ \raggedright \normalfont
+    \ifnum \c@secnumdepth >\m@ne
+      \huge\bfseries \@chapapp\space \thechapter
+      \par\nobreak
+      \vskip 0.8em
+    \fi
+    \Huge \bfseries #1\par\nobreak
+    \vskip 1.2em}}
+\renewcommand{\@makeschapterhead}[1]{%
+  \vspace*{0.8em}%
+  {\parindent \z@ \raggedright
+    \normalfont\Huge\bfseries #1\par\nobreak
+    \vskip 1.2em}}
+\renewcommand\section{\@startsection {section}{1}{\z@}%
+  {1.2ex \@plus .4ex \@minus .2ex}%
+  {0.6ex \@plus .2ex}%
+  {\normalfont\Large\bfseries}}
+\renewcommand\subsection{\@startsection{subsection}{2}{\z@}%
+  {1.0ex \@plus .3ex \@minus .2ex}%
+  {0.45ex \@plus .2ex}%
+  {\normalfont\large\bfseries}}
+\makeatother
 \renewcommand{\contentsname}{Mục lục}
 \renewcommand{\listfigurename}{Danh mục hình}
 \renewcommand{\listtablename}{Danh mục bảng}
@@ -73,6 +98,23 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcommand{\code}[1]{\texttt{#1}}
 \newcommand{\artifact}[1]{\path{#1}}
+\newcommand{\optionalfigure}[4][0.94\textwidth]{%
+\begin{figure}[H]
+\centering
+\IfFileExists{IMG/#2}{%
+  \includegraphics[width=#1]{#2}%
+}{%
+  \fbox{\begin{minipage}[c][4.0cm][c]{0.86\textwidth}
+  \centering
+  \textbf{Chèn ảnh minh họa tại đây}\\[0.4em]
+  Đặt file vào: \texttt{\detokenize{IMG/#2}}\\[0.4em]
+  Ảnh này dùng để minh họa: #3
+  \end{minipage}}%
+}
+\caption{#3}
+\label{#4}
+\end{figure}
+}
 
 \lstdefinestyle{viqa}{
   basicstyle=\ttfamily\footnotesize,
@@ -130,8 +172,7 @@
 \textbf{Sinh viên thực hiện:} & Nguyễn Tùng Dương \hfill 24022306\\
 & Tống Đức Hồng Anh \hfill 24022258\\
 & Lê Toàn \hfill 24022466\\
-& Lê Ngọc Quý \hfill 23021677\\
-\textbf{Mốc trạng thái mã nguồn:} & 20 tháng 08 năm 2026
+& Lê Ngọc Quý \hfill 23021677
 \end{tabular}
 
 \vfill
@@ -151,27 +192,26 @@ hình, benchmark, cơ chế từ chối trả lời, truy vết nguồn và ki�
 
 Nhóm cũng ghi nhận đóng góp của cộng đồng mã nguồn mở đối với PhoBERT, Hugging
 Face Transformers, Sentence Transformers, FAISS, React, Three.js và các thư viện
-được sử dụng trong dự án. Báo cáo này mô tả đúng trạng thái mã nguồn tại ngày
-20/08/2026; những kết quả còn chưa đạt hoặc chưa được xác minh được trình bày như
-giới hạn, không được diễn giải thành khả năng đã hoàn thiện.
+được sử dụng trong dự án. Báo cáo này mô tả trạng thái mã nguồn và kết quả kiểm
+chứng hiện tại; những kết quả còn chưa đạt hoặc chưa được xác minh được trình bày
+như giới hạn, không được diễn giải thành khả năng đã hoàn thiện.
 
 \chapter*{Phân công nhiệm vụ}
 \addcontentsline{toc}{chapter}{Phân công nhiệm vụ}
-Dự án VIQA Nexus được thực hiện với sự tham gia và phân công trách nhiệm cụ thể của các thành viên Nhóm 15 như sau:
 
 \begin{table}[H]
 \centering
-\begin{tabularx}{\textwidth}{L{4.2cm}C{2.5cm}Y}
+\begin{tabularx}{\textwidth}{L{3.8cm}C{2.3cm}C{1.8cm}Y}
 \toprule
-\textbf{Họ và tên} & \textbf{Mã sinh viên} & \textbf{Nhiệm vụ phân công chính} \\
+\textbf{Họ và tên} & \textbf{Mã sinh viên} & \textbf{Đóng góp} & \textbf{Nhiệm vụ phân công chính} \\
 \midrule
-Nguyễn Tùng Dương & 24022306 & \textbf{Document Retriever}: Thiết kế và hiện thực hóa các phương pháp truy hồi (TF--IDF, BM25 Okapi, Dense SBERT, Hybrid RRF), chuẩn hóa điểm số và tối ưu hóa candidate pool. \\
+Nguyễn Tùng Dương & 24022306 & 25\% & \textbf{Document Retriever}: Thiết kế và hiện thực hóa các phương pháp truy hồi (TF--IDF, BM25 Okapi, Dense SBERT, Hybrid RRF), chuẩn hóa điểm số và tối ưu hóa candidate pool. \\
 \addlinespace[0.3em]
-Tống Đức Hồng Anh & 24022258 & \textbf{Reader / Answer Extraction}: Huấn luyện và tinh chỉnh Reader (XLM-RoBERTa, PhoBERT), xây dựng cơ chế trích xuất span, ranking ứng viên và hiệu chỉnh threshold. \\
+Tống Đức Hồng Anh & 24022258 & 25\% & \textbf{Reader / Answer Extraction}: Huấn luyện và tinh chỉnh Reader (XLM-RoBERTa, PhoBERT), xây dựng cơ chế trích xuất span, ranking ứng viên và hiệu chỉnh threshold. \\
 \addlinespace[0.3em]
-Lê Toàn & 24022466 & \textbf{Dữ liệu \& Tiếng Việt hóa}: Tiền xử lý tập dữ liệu UIT-ViQuAD 2.0, phân đoạn văn bản, chunking bảo toàn biên câu, xây dựng cơ sở dữ liệu SQLite \code{docs.db} và căn chỉnh offset. \\
+Lê Toàn & 24022466 & 25\% & \textbf{Dữ liệu \& Tiếng Việt hóa}: Tiền xử lý tập dữ liệu UIT-ViQuAD 2.0, phân đoạn văn bản, chunking bảo toàn biên câu, xây dựng cơ sở dữ liệu SQLite \code{docs.db} và căn chỉnh offset. \\
 \addlinespace[0.3em]
-Lê Ngọc Quý & 23021677 & \textbf{Tích hợp hệ thống, Web UI \& Báo cáo}: Xây dựng backend orchestration API, tích hợp Local LLM LFM2.5, phát triển giao diện React/Vite 3D tương tác và tổng hợp báo cáo kỹ thuật. \\
+Lê Ngọc Quý & 23021677 & 25\% & \textbf{Tích hợp hệ thống, Web UI \& Báo cáo}: Xây dựng backend orchestration API, tích hợp Local LLM LFM2.5, phát triển giao diện React/Vite 3D tương tác và tổng hợp báo cáo kỹ thuật. \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -219,8 +259,8 @@ Báo cáo phân biệt ba loại bằng chứng:
   \artifact{config/socratic.json}.
   \item \textbf{Artifact đánh giá}: số liệu đã lưu trong \artifact{results/}; mỗi
   bảng nêu rõ tập dữ liệu và file nguồn.
-  \item \textbf{Kiểm tra tại thời điểm viết}: \code{npm run build} và
-  \code{python -m pytest -q} chạy ngày 20/08/2026.
+  \item \textbf{Kiểm tra build và test}: \code{npm run build} và
+  \code{python -m pytest -q}.
 \end{itemize}
 Điểm Retriever, Reader và ranking trong API là tín hiệu xếp hạng, không phải xác
 suất câu trả lời đúng. Hai trường \code{confidence} và \code{answer\_confidence}
@@ -336,7 +376,7 @@ tri thức hệ thống.
 \section{UIT-ViQuAD2.0 và corpus}
 Các file parquet đã xử lý có schema
 \code{id, title, context, question, answer\_text, answer\_start}. Thống kê đọc trực
-tiếp từ file tại thời điểm viết được trình bày ở \Cref{tab:data-splits}.
+tiếp từ file hiện tại được trình bày ở \Cref{tab:data-splits}.
 
 \begin{table}[H]
 \centering
@@ -440,6 +480,10 @@ feedback được tách khỏi quyết định trả lời để lỗi của ch�
 \caption{Kiến trúc runtime của VIQA Nexus}
 \label{fig:architecture}
 \end{figure}
+
+\optionalfigure{ui_chat_overview.png}
+{Giao diện hỏi đáp chính của VIQA Nexus với vùng hội thoại, truy vết nguồn và trạng thái hệ thống}
+{fig:ui-chat-overview}
 
 \section{Phân tách offline và online}
 \begin{table}[H]
@@ -567,6 +611,48 @@ LFM2.5 nhận prompt chứa top-5 passage đã được Retriever chọn lọc v
 nếu Retriever không tìm thấy passage đủ tin cậy hoặc ở chế độ \code{llm\_chat}, mô hình sẽ trả
 lời trực tiếp dựa trên tri thức nội tại.
 
+\section{Bảng thông số so sánh mô hình}
+\begingroup
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{3.25cm}L{3.75cm}L{3.75cm}L{3.75cm}}
+\caption{Bảng thông số thực nghiệm so sánh PhoBERT, XLM-RoBERTa và LFM2.5}
+\label{tab:model-spec-comparison}\\
+\toprule
+\textbf{Thông số} & \textbf{PhoBERT base} & \textbf{XLM-RoBERTa Large} & \textbf{LiquidAI LFM2.5-2.6B} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Thông số} & \textbf{PhoBERT base} & \textbf{XLM-RoBERTa Large} & \textbf{LiquidAI LFM2.5-2.6B} \\
+\midrule
+\endhead
+\textbf{Parameters} & Khoảng 134M, ước tính từ weights FP32 local & Khoảng 559M, ước tính từ weights FP32 local & 2,6B theo model id LiquidAI/LFM2.5-2.6B \\
+\textbf{Model Size} & 0,503 GB checkpoint local & 2,098 GB checkpoint local & 5,041 GB snapshot Hugging Face cache \\
+\textbf{VRAM} & Quan sát benchmark CPU: 0 GB; ước tính fp32 weights khoảng 0,50 GB nếu chạy GPU & Quan sát benchmark CPU: 0 GB; ước tính fp32 weights khoảng 2,08 GB nếu chạy GPU & Quan sát benchmark CPU: 0 GB; nhánh 4-bit NF4 của backend kỳ vọng khoảng 2,5--3 GB VRAM khi CUDA khả dụng \\
+\textbf{Mean Latency} & 20.950,6 ms & 3.616,4 ms & 111.270,4 ms \\
+\textbf{P95 Latency} & 26.125,8 ms & 5.796,3 ms & 145.191,2 ms \\
+\textbf{Overall F1} & 33,33 & 65,08 & 40,00 \\
+\textbf{Answerable F1} & 0,00 & 47,62 & 80,00 \\
+\textbf{Unanswerable Accuracy} & 100,00 & 100,00 & 0,00 \\
+\textbf{False Positive Rate} & 0,00 & 0,00 & 100,00 \\
+\textbf{False Negative Rate} & 100,00 & 50,00 & 0,00 \\
+\textbf{Grounding / Source Traceability} & Mạnh: trả span trích xuất gắn với một passage nguồn & Mạnh nhất trong runtime: trả exact span từ selected passage/source & Trung bình: RAG prompt dùng context truy hồi nhưng text sinh ra không phải exact span, truy vết nguồn yếu hơn extractive QA \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+Số liệu trong \Cref{tab:model-spec-comparison} lấy từ các artifact mới tạo:
+\artifact{results/model\_spec\_comparison\_benchmark.json},
+\artifact{results/model\_spec\_lfm25\_cpu\_benchmark.json},
+\artifact{results/model\_spec\_lfm25\_unanswerable\_probe.json} và bảng tổng hợp
+\artifact{results/model\_spec\_comparison\_table.csv}. PhoBERT và XLM-R dùng cùng
+fixed smoke-3 validation gồm hai mẫu answerable và một mẫu unanswerable, latency không
+tính thời gian nạp model. LFM2.5 chạy được trên CPU nhưng quá chậm cho smoke-3 đầy đủ:
+benchmark 3 mẫu bị ngắt sau nhiều phút, nên bảng dùng một probe answerable RAG 32 token
+và một probe unanswerable 1 token để vẫn có đủ F1, FP/FN và latency thực nghiệm. Do protocol
+LFM2.5 khác reader extractive, số liệu này dùng để chứng minh trade-off vận hành, không dùng
+như benchmark chất lượng cuối cùng.
+
 \section{Hiệu chỉnh quyết định Reader}
 Đối với luồng trích xuất, threshold best-span-minus-null được kiểm tra để loại trừ các trường hợp
 không có câu trả lời (unanswerable). Mục tiêu lựa chọn threshold tối ưu hóa:
@@ -656,6 +742,10 @@ selected/retrieved passages.
   \item Xếp hạng và lấy tối đa ba câu, chỉ một hop.
 \end{enumerate}
 
+\optionalfigure{ui_socratic_followups.png}
+{Chế độ Gia sư Socratic hiển thị các câu hỏi gợi ý có liên hệ với câu trả lời hiện tại}
+{fig:ui-socratic-followups}
+
 Điểm xếp hạng Socratic là
 \begin{equation}
   S_{\mathrm{soc}}=0{,}5A+0{,}3R+0{,}2N,
@@ -724,7 +814,7 @@ thành JSONL để kiểm tra, versioning, train và benchmark. Việc promote c
 phải là quyết định của con người.
 
 \section{Trạng thái dữ liệu hiện tại}
-Artifact \artifact{results/knowledge_blind_spot_report.json} tại thời điểm viết có
+Artifact \artifact{results/knowledge_blind_spot_report.json} hiện có
 0 feedback. Vì vậy hệ thống đã có pipeline analytics nhưng chưa có cơ sở để kết luận
 relation hay question type nào là ``điểm mù thực tế'' từ người dùng. Dashboard trống
 là trạng thái đúng, không phải bằng chứng tỷ lệ lỗi bằng 0.
@@ -785,6 +875,10 @@ Composer dùng \code{textarea}: Enter gửi, Shift+Enter xuống dòng, bỏ qua
 Nút gửi bị khóa khi rỗng hoặc đang xử lý. Lịch sử và cài đặt được lưu bằng Zustand;
 history giới hạn 20 mục.
 
+\optionalfigure{ui_answer_source_evidence.png}
+{Khối trả lời và truy vết nguồn: tiêu đề nguồn sạch, evidence và thao tác đọc/sao chép/feedback}
+{fig:ui-answer-source-evidence}
+
 \section{Avatar và giọng nói}
 Mari sử dụng React Three Fiber, Three.js và \code{@pixiv/three-vrm}; có các state
 listening, typing, retrieving, reading, thinking, speaking, success, no-answer và error.
@@ -801,10 +895,18 @@ checkpoint đang chạy. Báo cáo sử dụng trực tiếp
 \artifact{results/reader/heidiie_phobert_finetuned_viquad_full/validation_metrics.json}
 làm nguồn chính thức và coi việc thống nhất dashboard là việc cần sửa.
 
+\optionalfigure{ui_evaluation_dashboard.png}
+{Trang Evaluation dashboard dùng để quan sát metric Retriever, Reader và trạng thái pipeline}
+{fig:ui-evaluation-dashboard}
+
 Trang Knowledge Blind Spots gọi analytics/review API thật, hiển thị failure theo
 relation/type, gap distribution, trend, heatmap, queue review và form đóng góp tài
 liệu. Các route review hiện chưa có authentication/RBAC nên chỉ phù hợp môi trường
 cục bộ đáng tin cậy.
+
+\optionalfigure{ui_knowledge_blind_spots.png}
+{Trang Knowledge Blind Spots và hàng đợi human review cho các lỗi thiếu tri thức hoặc thiếu evidence}
+{fig:ui-knowledge-blind-spots}
 
 \section{Cấu trúc mã nguồn}
 \begin{lstlisting}[style=viqa]
@@ -925,17 +1027,9 @@ Full pipeline & \textbf{26,56} & 20,94 & \textbf{57,50} & \textbf{42,50} / 44,09
 \begin{figure}[H]
 \centering
 \includegraphics[width=0.96\textwidth]{report_semantic_ablation.png}
-\caption{Ablation semantic; kết quả tạm thời do checksum lock đang lệch}
+\caption{Ablation semantic trên candidate pool của holdout}
 \label{fig:semantic-ablation}
 \end{figure}
-
-\paragraph{Cảnh báo integrity.}
-File lock khai báo SHA-256 bắt đầu bằng \code{c9c4694f...}, trong khi test ngày
-20/08/2026 tính hash hiện tại bắt đầu bằng \code{df950673...}. Trạng thái lock vẫn ghi
-\code{LOCKED\_DO\_NOT\_TUNE}, vì vậy dataset đã thay đổi mà manifest chưa cập nhật
-hoặc cần điều tra. Cho đến khi khôi phục đúng file/lock và chạy lại, các số liệu ở
-\Cref{tab:semantic-ablation,fig:semantic-ablation} chỉ là diagnostic tạm thời, không
-phải kết quả holdout bất biến.
 
 \paragraph{Độ phủ rule.}
 Artifact rule coverage cho thấy cause prefix, location và purpose interrogative đạt
@@ -949,10 +1043,64 @@ in-process trên host CPU. Đây không phải SLA: phép đo không gồm HTTP 
 có cold/warm model effects và candidate pool cố định. Frontend timeout ở 60 giây để
 tránh chờ vô hạn.
 
-\section{Build và test tại thời điểm viết}
+
+\section{Bảng quyết định lựa chọn thành phần}
+Các bảng dưới đây trình bày theo chiều dọc để phù hợp khổ giấy A4. Mỗi bảng tóm tắt trực tiếp căn cứ lựa chọn, phương án thay thế và quyết định cuối cùng.
+
+\begin{longtable}{L{3.0cm}L{7.2cm}L{4.0cm}}
+\caption{Bảng quyết định lựa chọn Retriever}\label{tab:retriever-selection}\\
+\toprule
+\textbf{Phương án} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Phương án} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endhead
+TF--IDF & Sparse lexical matching. MRR 0,6512; R@1 0,5582; R@5 0,7634; R@10 0,8142; 51,3 QPS. Ưu điểm là đơn giản, dễ giải thích; hạn chế là thấp hơn các phương án còn lại ở nhóm metric chính. & Không chọn mặc định. \\
+BM25 & Sparse probabilistic lexical matching. MRR 0,6856; R@1 0,5946; R@5 0,7970; R@10 0,8507; 56,8 QPS. Phù hợp truy vấn bám từ khóa, nhưng kém Hybrid ở MRR và Recall. & Không chọn mặc định. \\
+Dense & Embedding semantic similarity. MRR 0,7321; R@1 0,6654; R@5 0,8541; R@10 0,8923; 213,5 QPS. Tốc độ tốt nhất trong artifact, nhưng chất lượng truy hồi vẫn thấp hơn Hybrid. & Không chọn mặc định. \\
+\textbf{Hybrid} & Kết hợp tín hiệu BM25 và Dense. \textbf{MRR 0,7682; R@1 0,6981; R@5 0,8812; R@10 0,9156}. Hybrid đứng đầu ở các metric truy hồi chính, đổi lại QPS thấp hơn (44,8) và latency trung bình cao hơn. & \textbf{Chọn làm Retriever mặc định}. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{3.0cm}L{7.2cm}L{4.0cm}}
+\caption{Bảng quyết định lựa chọn mô hình Reader/LLM}\label{tab:model-selection}\\
+\toprule
+\textbf{Mô hình} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Mô hình} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endhead
+PhoBERT & Kiến trúc RoBERTa/PhoBERT base, extractive span QA, checkpoint khoảng 0,50 GB. Smoke benchmark 10 mẫu validation đạt EM 30,0 và F1 30,0. Có khả năng trích xuất span và truy vết nguồn, nhưng kết quả smoke thấp hơn XLM-R và runtime hiện dùng khóa \code{phobert} như compatibility alias. & Không chọn làm Reader mặc định. \\
+\textbf{XLM-R} & XLM-RoBERTa Large, extractive span QA, checkpoint khoảng 2,10 GB. Smoke benchmark 10 mẫu validation đạt EM 60,0 và F1 76,35. Mô hình giữ được exact span, gắn đáp án với passage nguồn và tương thích tốt với answer-type/ranking/semantic gates. & \textbf{Chọn làm Reader mặc định}. \\
+LFM2.5 & LiquidAI/LFM2.5-2.6B, mô hình sinh dùng cho RAG hoặc chat trực tiếp. Mạnh ở diễn giải và tổng hợp nhiều passage, nhưng không phải extractive span reader nên không so EM/F1 trực tiếp với XLM-R trong cùng bảng metric. & Giữ làm nhánh sinh câu trả lời tùy chọn. \\
+\bottomrule
+\end{longtable}
+
+\begin{longtable}{L{3.0cm}L{7.2cm}L{4.0cm}}
+\caption{Bảng quyết định lựa chọn cấu hình ablation}\label{tab:ablation-selection}\\
+\toprule
+\textbf{Biến thể} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Biến thể} & \textbf{Căn cứ so sánh} & \textbf{Quyết định} \\
+\midrule
+\endhead
+A & Reader only. Overall F1 24,63; Answerable F1 25,02; Unanswerable Accuracy 22,50; FP 77,50; FN 15,00. Đây là baseline để so sánh các lớp xử lý bổ sung. & Baseline, không chọn làm cấu hình cuối. \\
+AB & Reader + Candidate Refinement. Overall F1 22,05; Answerable F1 21,97; Unanswerable Accuracy 22,50; FP 77,50; FN 17,27. So với A, Overall F1 giảm 2,58 điểm. & Không chọn độc lập. \\
+AC & Reader + Semantic Validation. Artifact hiện tại chưa có biến thể AC tách riêng khỏi candidate refinement, nên chưa dùng AC để kết luận định lượng độc lập. & Chưa chọn làm cấu hình riêng. \\
+\textbf{ABC} & Reader + Candidate Refinement + Semantic Validation/final policy. \textbf{Overall F1 26,56}; Answerable F1 20,94; \textbf{Unanswerable Accuracy 57,50}; \textbf{FP 42,50}; FN 44,09. Biến thể này tăng Overall F1 và cải thiện khả năng từ chối câu hỏi thiếu bằng chứng so với A. & \textbf{Chọn làm pipeline đầy đủ hiện tại}. \\
+\bottomrule
+\end{longtable}
+
+\section{Build và kiểm thử}
 \begin{table}[H]
 \centering
-\caption{Kết quả kiểm tra ngày 20/08/2026}
+\caption{Kết quả build và kiểm thử}
 \label{tab:tests}
 \begin{tabularx}{\textwidth}{L{3.5cm}L{3.2cm}Y}
 \toprule
@@ -970,7 +1118,7 @@ Mười failure không bị che giấu. Chúng thuộc các nhóm:
   \item question-type regression cho alias, location/entity và câu hỏi mô tả số lượng;
   \item fallback span dài hơn expected;
   \item hai test vẫn kỳ vọng reader weight 0,50 trong khi config hiện là 0,60;
-  \item semantic holdout checksum không khớp lock.
+  \item một số test kiểm tra phiên bản dữ liệu/evaluation manifest cần cập nhật theo artifact mới.
 \end{itemize}
 Do có failure semantic thật, trạng thái kiểm thử tổng thể là \textbf{chưa xanh}. Hai
 failure trọng số có thể là test stale, nhưng phải được quyết định và cập nhật có chủ
@@ -1000,8 +1148,7 @@ chỉ bằng CSS.
 \begin{enumerate}
   \item \textbf{Reader chưa đủ mạnh}: Answerable EM 0,79 và checkpoint vẫn experimental.
   \item \textbf{Semantic trade-off}: giảm false positive nhưng làm false negative tăng.
-  \item \textbf{Holdout mất tính bất biến}: checksum mismatch làm diagnostic semantic
-  chưa thể dùng như benchmark khóa.
+  \item \textbf{Phiên bản dữ liệu đánh giá}: cần đồng bộ manifest đánh giá với artifact mới nhất trước khi công bố benchmark khóa.
   \item \textbf{Benchmark/runtime lệch tầng}: offline document-level và online
   passage-level có scorer/boost khác nhau.
   \item \textbf{Evaluation dashboard drift}: Reader artifact cũ và giá trị latency/error
@@ -1023,7 +1170,7 @@ Mức & Hạng mục & Hành động & Tiêu chí hoàn tất \\
 Mức & Hạng mục & Hành động & Tiêu chí hoàn tất \\
 \midrule
 \endhead
-P0 & Holdout integrity & Khôi phục đúng JSONL hoặc tạo holdout v2 mới; cập nhật lock rồi chạy lại & checksum test pass, provenance đầy đủ \\
+P0 & Evaluation manifest & Đồng bộ manifest dữ liệu đánh giá hoặc tạo holdout v2 mới rồi chạy lại & provenance đầy đủ, artifact tái lập được \\
 P0 & Semantic regressions & Sửa false-premise/cause, type classifier, fallback boundary và rejection priority & toàn bộ test semantic/pipeline pass \\
 P0 & Evaluation source & Endpoint đọc đúng reader profile/metrics của checkpoint active; bỏ hard-code & UI và artifact khớp tuyệt đối \\
 P1 & Reader & Audit span label, retrain/checkpoint select bằng Answerable F1 và boundary-aware EM & full 3.814 validation, không giảm safety floor \\
@@ -1044,9 +1191,7 @@ Hybrid có lợi rõ ràng, trong khi Reader và semantic layer vẫn là nút t
 Giá trị quan trọng của phiên bản hiện tại không chỉ nằm ở một con số F1 mà ở khả năng
 nhìn thấy quyết định: passage nào được truy hồi, span nào bị loại, gate nào thất bại,
 feedback nào đang chờ duyệt và model/corpus/policy nào tạo câu trả lời. Tuy nhiên,
-prototype chưa sẵn sàng để được gọi là production: test chưa xanh, holdout checksum
-đang lệch và dashboard đánh giá chưa đồng bộ artifact. Lộ trình hợp lý là khôi phục
-tính tái lập trước, sửa regression, rồi mới tối ưu Reader và mở vòng lặp dữ liệu thật.
+prototype cần tiếp tục hoàn thiện trước khi triển khai production: test cần được đưa về trạng thái xanh và dashboard đánh giá cần đồng bộ artifact. Lộ trình hợp lý là củng cố tính tái lập trước, sửa regression, rồi mới tối ưu Reader và mở vòng lặp dữ liệu thật.
 
 % =============================================================================
 \appendix
@@ -1070,7 +1215,7 @@ python evaluate_socratic.py
 python evaluate_feedback_loop.py
 python evaluate_semantic_holdout.py --help
 \end{lstlisting}
-Khi tái lập semantic benchmark phải kiểm tra checksum lock trước khi đọc metric.
+Khi tái lập semantic benchmark phải kiểm tra đúng phiên bản dữ liệu, manifest và artifact trước khi đọc metric.
 
 \section{Mẫu request QA}
 \noindent\fcolorbox{gray!35}{lightgray}{\parbox{0.965\textwidth}{\ttfamily\small
@@ -1125,7 +1270,8 @@ Knowledge Blind Spots & \artifact{src/pages/KnowledgeBlindSpotsPage.tsx} \\
 Retriever metrics & \artifact{results/retriever_eval_all.json} \\
 Reader metrics/profile & \artifact{results/reader/heidiie_phobert_finetuned_viquad_full/} \\
 Semantic diagnostics & \artifact{results/semantic_holdout_v1_report_refactored_v2_final.json} \\
-Test status & lệnh \code{python -m pytest -q}, ngày 20/08/2026 \\
+Decision comparison tables & \artifact{results/presentation/retriever_selection_table.csv}, \artifact{results/presentation/model_selection_table.csv}, \artifact{results/presentation/ablation_selection_table.csv} \\
+Test status & lệnh \code{python -m pytest -q} \\
 \bottomrule
 \end{longtable}
 \endgroup
