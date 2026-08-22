@@ -20,8 +20,6 @@ import {
   ArrowLeft,
   BrainCircuit,
   Check,
-  DatabaseZap,
-  FilePlus2,
   Loader2,
   RefreshCw,
   ShieldCheck,
@@ -31,14 +29,11 @@ import { Header } from '@/components/layout/Header';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { SettingsPanel } from '@/components/settings/SettingsPanel';
 import {
-  fetchDocumentSubmissions,
   fetchFeedbackAnalytics,
   fetchPendingFeedback,
-  reviewDocument,
   reviewFeedback,
-  submitDocument,
 } from '@/services/feedbackService';
-import type { DocumentSubmission, FeedbackAnalytics, FeedbackRecord } from '@/types/feedback';
+import type { FeedbackAnalytics, FeedbackRecord } from '@/types/feedback';
 import { useAppStore } from '@/store/appStore';
 import { useSpeechSynthesis } from '@/hooks/useSpeechSynthesis';
 
@@ -72,27 +67,21 @@ export function KnowledgeBlindSpotsPage() {
 
   const [analytics, setAnalytics] = useState<FeedbackAnalytics | null>(null);
   const [feedback, setFeedback] = useState<FeedbackRecord[]>([]);
-  const [documents, setDocuments] = useState<DocumentSubmission[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [sourceView, setSourceView] = useState<FeedbackRecord | null>(null);
-  const [documentTitle, setDocumentTitle] = useState('');
-  const [documentContent, setDocumentContent] = useState('');
-  const [documentMessage, setDocumentMessage] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const [nextAnalytics, nextFeedback, nextDocuments] = await Promise.all([
+      const [nextAnalytics, nextFeedback] = await Promise.all([
         fetchFeedbackAnalytics(),
         fetchPendingFeedback(),
-        fetchDocumentSubmissions(),
       ]);
       setAnalytics(nextAnalytics);
       setFeedback(nextFeedback);
-      setDocuments(nextDocuments);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'Không thể tải dashboard.');
     } finally {
@@ -114,46 +103,11 @@ export function KnowledgeBlindSpotsPage() {
     }
   };
 
-  const reviewSubmission = async (item: DocumentSubmission, decision: 'APPROVED' | 'REJECTED') => {
-    setBusyId(item.submission_id);
-    try {
-      await reviewDocument(item.submission_id, decision);
-      await load();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Không thể cập nhật tài liệu.');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const contributeDocument = async () => {
-    if (!documentTitle.trim() || documentContent.trim().length < 20) return;
-    setBusyId('document-form');
-    setDocumentMessage(null);
-    try {
-      const result = await submitDocument({
-        title: documentTitle.trim(),
-        content: documentContent.trim(),
-        source_type: 'PLAIN_TEXT',
-      });
-      setDocumentMessage(result.message);
-      setDocumentTitle('');
-      setDocumentContent('');
-      await load();
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Không thể gửi tài liệu.');
-    } finally {
-      setBusyId(null);
-    }
-  };
-
   const heatmapLookup = useMemo(() => {
     const lookup = new Map<string, FeedbackAnalytics['heatmap']['cells'][number]>();
     analytics?.heatmap.cells.forEach((cell) => lookup.set(`${cell.question_type}\u241f${cell.relation}`, cell));
     return lookup;
   }, [analytics]);
-
-  const pendingDocuments = documents.filter((item) => item.status === 'PENDING_REVIEW');
 
   const testVoice = () => synthesis.speak({
     text: 'Dashboard điểm mù tri thức và hàng chờ phản hồi của con người.',
@@ -358,29 +312,6 @@ export function KnowledgeBlindSpotsPage() {
             </div>
           </section>
 
-          <section className="grid gap-4 xl:grid-cols-[0.8fr_1.2fr]">
-            <article id="document-contribution" className="viqa-panel scroll-mt-4 rounded-[24px] p-5">
-              <div className="flex items-center gap-2"><FilePlus2 className="h-5 w-5 text-viqa-gold" /><h2 className="font-display text-lg text-white">Đóng góp tài liệu</h2></div>
-              <p className="mt-2 text-xs leading-5 text-slate-400">V1 nhận plain text. Nội dung chỉ vào hàng chờ, không chunk/index production tự động.</p>
-              <input value={documentTitle} onChange={(event) => setDocumentTitle(event.target.value)} placeholder="Tiêu đề tài liệu" className="mt-4 w-full rounded-xl border border-slate-400/15 bg-slate-900/70 px-3 py-2 text-sm outline-none focus:border-viqa-cyan/30" />
-              <textarea value={documentContent} onChange={(event) => setDocumentContent(event.target.value)} rows={7} placeholder="Nội dung tài liệu..." className="mt-3 w-full rounded-xl border border-slate-400/15 bg-slate-900/70 px-3 py-2 text-sm leading-6 outline-none focus:border-viqa-cyan/30" />
-              <button type="button" onClick={() => void contributeDocument()} disabled={!documentTitle.trim() || documentContent.trim().length < 20 || busyId === 'document-form'} className="mt-3 rounded-xl bg-viqa-gold px-4 py-2 text-sm font-semibold text-slate-950 disabled:opacity-40">Gửi vào hàng chờ</button>
-              {documentMessage ? <p className="mt-3 text-sm text-emerald-200">{documentMessage}</p> : null}
-            </article>
-
-            <article className="viqa-panel rounded-[24px] p-5">
-              <div className="flex items-center gap-2"><DatabaseZap className="h-5 w-5 text-viqa-violet" /><h2 className="font-display text-lg text-white">Document Review Queue</h2><span className="rounded-full bg-slate-700 px-2 py-0.5 text-xs">{pendingDocuments.length}</span></div>
-              <div className="mt-4 grid gap-3">
-                {pendingDocuments.map((item) => (
-                  <div key={item.submission_id} className="rounded-xl border border-slate-400/15 bg-slate-900/35 p-4">
-                    <div className="flex flex-wrap items-start justify-between gap-3"><div><p className="font-medium text-white">{item.title}</p><p className="mt-1 text-xs text-slate-500">{item.source_type} · {new Date(item.timestamp).toLocaleString('vi-VN')}</p></div><div className="flex gap-2"><button type="button" onClick={() => void reviewSubmission(item, 'APPROVED')} disabled={busyId === item.submission_id} className="rounded-lg border border-emerald-400/20 px-2 py-1 text-xs text-emerald-200">Approve candidate</button><button type="button" onClick={() => void reviewSubmission(item, 'REJECTED')} disabled={busyId === item.submission_id} className="rounded-lg border border-rose-400/20 px-2 py-1 text-xs text-rose-200">Reject</button></div></div>
-                    <p className="mt-3 line-clamp-3 text-sm leading-6 text-slate-300">{item.content}</p>
-                  </div>
-                ))}
-                {!pendingDocuments.length ? <p className="py-10 text-center text-sm text-slate-500">Không có tài liệu chờ duyệt.</p> : null}
-              </div>
-            </article>
-          </section>
         </div>
       </main>
 
