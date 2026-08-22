@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { Sparkles } from 'lucide-react';
 import { AssistantMessage, ThinkingMessage } from '@/components/chat/AssistantMessage';
+import { UserMessage } from '@/components/chat/UserMessage';
 import { ChatComposer } from '@/components/chat/ChatComposer';
 import { ChatSidebar } from '@/components/chat/ChatSidebar';
 import { SourceSidebar } from '@/components/answer/SourceSidebar';
@@ -49,6 +50,7 @@ export function HomePage() {
   const clearSessions = useAppStore((state) => state.clearSessions);
   const addTurn = useAppStore((state) => state.addTurn);
   const updateTurn = useAppStore((state) => state.updateTurn);
+  const removeTurn = useAppStore((state) => state.removeTurn);
   const createNewSession = useAppStore((state) => state.createNewSession);
   const switchSession = useAppStore((state) => state.switchSession);
   const toggleSettings = useAppStore((state) => state.toggleSettings);
@@ -145,6 +147,13 @@ export function HomePage() {
     setHistoryOpen(false);
   };
 
+  const handleDeleteTurn = (turnId: string, turnResponse?: QaResponse) => {
+    removeTurn(turnId);
+    if (turnResponse && turnResponse === answer) {
+      setAnswer(null);
+    }
+  };
+
   const toggleVoiceInput = () => {
     if (speech.isListening) speech.stopListening();
     else speech.startListening();
@@ -227,11 +236,10 @@ export function HomePage() {
                 const isCurrentResponse = Boolean(turn.response && answer === turn.response);
                 return (
                   <div key={turn.id} className="grid gap-3">
-                    <div className="flex justify-end">
-                      <div className="max-w-[78%] rounded-2xl rounded-tr-md bg-[var(--primary)] px-4 py-3 text-[15px] leading-6 text-white shadow-sm sm:max-w-[72%]">
-                        {turn.question}
-                      </div>
-                    </div>
+                    <UserMessage 
+                      question={turn.question} 
+                      onDelete={() => handleDeleteTurn(turn.id, turn.response)} 
+                    />
                     {turn.status === 'pending' ? <ThinkingMessage /> : null}
                     {turn.status === 'error' ? (
                       <div className="ml-10 max-w-[82%] rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700" role="alert">{turn.error}</div>

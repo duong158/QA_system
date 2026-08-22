@@ -62,6 +62,7 @@ export interface AppState {
   clearSessions: () => void;
   addTurn: (turn: ChatTurn) => void;
   updateTurn: (turnId: string, updates: Partial<ChatTurn>) => void;
+  removeTurn: (turnId: string) => void;
 
   setPipelineState: (state: PipelineState) => void;
   setAvatarState: (state: AvatarState) => void;
@@ -179,6 +180,21 @@ export const useAppStore = create<AppState>()(
               return {
                 ...s,
                 turns: s.turns.map(t => t.id === turnId ? { ...t, ...updates } : t),
+                updatedAt: Date.now()
+              };
+            }
+            return s;
+          })
+        };
+      }),
+      removeTurn: (turnId) => set((state) => {
+        if (!state.currentSessionId) return state;
+        return {
+          sessions: state.sessions.map(s => {
+            if (s.id === state.currentSessionId) {
+              return {
+                ...s,
+                turns: s.turns.filter(t => t.id !== turnId),
                 updatedAt: Date.now()
               };
             }
