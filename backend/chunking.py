@@ -28,7 +28,30 @@ def split_sentences(text: str) -> list[str]:
     clean = re.sub(r"[ \t]+", " ", str(text or "").strip())
     if not clean:
         return []
-    return [part.strip() for part in SENTENCE_BOUNDARY.split(clean) if part.strip()]
+        
+    parts = [part.strip() for part in SENTENCE_BOUNDARY.split(clean) if part.strip()]
+    
+    merged: list[str] = []
+    abbreviations = {"tr", "tp", "gs", "ts", "ths", "bs", "vs", "vd", "st", "mr", "mrs", "ms", "dr", "prof", "v.v"}
+    
+    for part in parts:
+        if not merged:
+            merged.append(part)
+            continue
+            
+        prev = merged[-1]
+        words = prev.split()
+        if words:
+            last_word = words[-1].lower()
+            if last_word.endswith('.'):
+                core = last_word[:-1]
+                if core in abbreviations or len(core) == 1 or core.isdigit():
+                    merged[-1] = f"{prev} {part}"
+                    continue
+                    
+        merged.append(part)
+        
+    return merged
 
 
 def _split_oversized_sentence(

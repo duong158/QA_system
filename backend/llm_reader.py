@@ -27,7 +27,7 @@ class LocalLLMReader:
         self.model = AutoModelForCausalLM.from_pretrained(
             model_id,
             quantization_config=quant_config,
-            device_map="auto",
+            device_map="cuda:0",
         )
         logger.info("Local LLM loaded successfully!")
 
